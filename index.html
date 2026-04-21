@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mako City — Suivi de Chantier</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0A0C0E; --bg2:#121518; --bg3:#1A1D22; --bg4:#222529;
+  --border:rgba(255,255,255,0.07);
+  --gold:#D4A843; --gold2:#F0C96A; --gold-bg:rgba(212,168,67,0.08);
+  --green:#3DBE7A; --green-bg:rgba(61,190,122,0.08);
+  --red:#E05252; --red-bg:rgba(224,82,82,0.08);
+  --blue:#4A9EE8; --blue-bg:rgba(74,158,232,0.08);
+  --orange:#F07A3A; --orange-bg:rgba(240,122,58,0.08);
+  --text:#EDE9E1; --text2:rgba(237,233,225,0.6); --text3:rgba(237,233,225,0.32);
+
+  --f-display:'Fraunces', Georgia, serif;
+  --f-body:'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  --f-mono:'JetBrains Mono', 'SF Mono', monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+body{background:var(--bg);color:var(--text);font-family:var(--f-body);font-weight:400;min-height:100vh;font-feature-settings:'ss01','cv11';letter-spacing:-0.005em;}
+
+/* HEADER */
+.app-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:60px;}
+.app-logo{font-family:var(--f-display);font-weight:600;font-size:20px;color:var(--gold2);letter-spacing:-0.02em;font-variation-settings:'opsz' 48;}
+.app-logo span{color:var(--text3);font-weight:400;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-family:var(--f-body);margin-left:6px;}
+.header-actions{display:flex;gap:6px;}
+.hbtn{padding:7px 13px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;letter-spacing:0.02em;font-family:var(--f-body);}
+.hbtn-sync{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(74,158,232,0.2);}
+.hbtn-pdf{background:var(--red-bg);color:var(--red);border:1px solid rgba(224,82,82,0.2);}
+
+/* NAV */
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;padding:0 12px;gap:0;scrollbar-width:none;}
+.nav::-webkit-scrollbar{display:none;}
+.nav-tab{padding:14px 16px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--f-body);}
+.nav-tab:hover{color:var(--text2);}
+.nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* MAIN */
+.main{padding:22px 14px;max-width:860px;margin:0 auto;}
+.page{display:none;}
+.page.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px;}
+.card-title{font-family:var(--f-display);font-size:16px;font-weight:500;letter-spacing:-0.01em;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:10px;font-variation-settings:'opsz' 24;}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dot-gold{background:var(--gold);}
+.dot-green{background:var(--green);}
+.dot-blue{background:var(--blue);}
+.dot-red{background:var(--red);}
+.dot-orange{background:var(--orange);}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+.kpi{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.kpi-label{font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;font-weight:600;}
+.kpi-value{font-family:var(--f-display);font-size:26px;font-weight:500;letter-spacing:-0.02em;line-height:1;font-variation-settings:'opsz' 60;}
+.kpi-value.gold{color:var(--gold2);}
+.kpi-value.green{color:var(--green);}
+.kpi-value.red{color:var(--red);}
+.kpi-value.blue{color:var(--blue);}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:6px;font-weight:400;}
+
+/* PROGRESS */
+.progress-wrap{margin-bottom:6px;}
+.progress-labels{display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;color:var(--text2);font-weight:500;}
+.progress-bar{height:6px;background:var(--bg4);border-radius:4px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .6s ease;}
+
+/* PHASE ITEMS */
+.phase-list{display:flex;flex-direction:column;gap:7px;}
+.phase-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px 15px;display:flex;align-items:center;gap:11px;transition:border-color .2s;}
+.phase-status{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.s-done{background:var(--green);}
+.s-active{background:var(--gold);box-shadow:0 0 8px var(--gold);}
+.s-pending{background:var(--bg4);border:1px solid var(--border);}
+.phase-info{flex:1;min-width:0;}
+.phase-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;letter-spacing:-0.005em;}
+.phase-amount{font-size:11px;color:var(--text3);font-weight:400;}
+.phase-pct{font-family:var(--f-mono);font-size:12px;font-weight:500;color:var(--text2);}
+
+/* FORMS */
+.form-group{margin-bottom:14px;}
+.form-label{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);margin-bottom:7px;display:block;font-weight:600;}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px 14px;color:var(--text);font-family:var(--f-body);font-size:14px;outline:none;transition:all .2s;font-weight:500;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:rgba(212,168,67,.5);background:var(--bg4);}
+.form-input::placeholder{color:var(--text3);font-weight:400;}
+.form-select option{background:var(--bg3);}
+.form-textarea{resize:vertical;min-height:72px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn{padding:12px 20px;border-radius:9px;font-family:var(--f-body);font-size:13px;font-weight:600;letter-spacing:0.01em;cursor:pointer;transition:all .2s;border:none;}
+.btn-primary{background:var(--gold);color:#0A0C0E;width:100%;}
+.btn-primary:hover{background:var(--gold2);}
+.btn-secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.btn-secondary:hover{border-color:var(--gold);color:var(--gold);}
+.btn-danger{background:var(--red-bg);color:var(--red);border:1px solid rgba(224,82,82,.2);padding:6px 11px;font-size:11px;font-weight:600;}
+.btn-edit{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(74,158,232,.2);padding:6px 11px;font-size:11px;font-weight:600;}
+.btn-pdf{background:var(--red-bg);color:var(--red);border:1px solid rgba(224,82,82,.2);}
+.btn-pdf:hover{background:var(--red);color:#fff;}
+.btn-green{background:var(--green-bg);color:var(--green);border:1px solid rgba(61,190,122,.2);}
+
+/* TX ITEMS */
+.tx-list{display:flex;flex-direction:column;gap:7px;}
+.tx-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px 15px;display:flex;align-items:flex-start;gap:11px;}
+.tx-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.tx-icon.payment{background:var(--green-bg);}
+.tx-icon.purchase{background:var(--blue-bg);}
+.tx-icon.labor{background:var(--gold-bg);}
+.tx-icon.parpaing{background:var(--orange-bg);}
+.tx-icon.other{background:var(--bg4);}
+.tx-info{flex:1;min-width:0;}
+.tx-desc{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;letter-spacing:-0.005em;}
+.tx-meta{font-size:11px;color:var(--text3);display:flex;gap:10px;flex-wrap:wrap;font-weight:500;}
+.tx-amount{font-family:var(--f-display);font-weight:500;font-size:15px;text-align:right;white-space:nowrap;letter-spacing:-0.02em;font-variation-settings:'opsz' 48;}
+.tx-amount.out{color:var(--red);}
+.tx-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+.tx-actions{display:flex;gap:5px;}
+
+/* PARPAING STATS */
+.parpaing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.p-stat{background:var(--bg3);border-radius:10px;padding:13px;border:1px solid var(--border);}
+.p-stat-label{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;font-weight:600;}
+.p-stat-val{font-family:var(--f-display);font-size:22px;font-weight:500;letter-spacing:-0.02em;line-height:1;font-variation-settings:'opsz' 60;}
+
+/* CONTRACTS */
+.contract-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;}
+.contract-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:10px;}
+.contract-name{font-family:var(--f-display);font-size:16px;font-weight:500;color:var(--text);margin-bottom:4px;letter-spacing:-0.01em;}
+.contract-supplier{font-size:12px;color:var(--text3);font-weight:500;}
+.contract-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.c-stat{background:var(--bg2);border-radius:7px;padding:10px;}
+.c-stat-label{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;font-weight:600;}
+.c-stat-val{font-family:var(--f-display);font-size:14px;font-weight:500;letter-spacing:-0.015em;font-variation-settings:'opsz' 30;}
+.badge{font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:0.04em;}
+.badge-active{background:var(--green-bg);color:var(--green);border:1px solid rgba(61,190,122,.2);}
+.badge-pending{background:var(--gold-bg);color:var(--gold);border:1px solid rgba(212,168,67,.2);}
+.badge-done{background:var(--bg4);color:var(--text3);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:200;padding:16px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;}
+.modal-title{font-family:var(--f-display);font-size:20px;font-weight:500;color:var(--gold2);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;letter-spacing:-0.02em;font-variation-settings:'opsz' 36;}
+.modal-close{background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;padding:0;}
+.modal-close:hover{color:var(--text);}
+
+/* SECTION HEADER */
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.section-h2{font-family:var(--f-display);font-size:20px;font-weight:500;color:var(--text);letter-spacing:-0.02em;font-variation-settings:'opsz' 36;}
+
+/* FILTER */
+.filter-bar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.filter-btn{padding:6px 13px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.02em;cursor:pointer;background:var(--bg3);color:var(--text3);border:1px solid var(--border);transition:all .2s;font-family:var(--f-body);}
+.filter-btn:hover,.filter-btn.active{background:var(--gold-bg);color:var(--gold);border-color:rgba(212,168,67,.3);}
+
+/* ALERT */
+.alert{padding:12px 15px;border-radius:10px;font-size:12px;margin-bottom:14px;font-weight:500;line-height:1.5;}
+.alert-info{background:var(--blue-bg);border:1px solid rgba(74,158,232,.2);color:var(--blue);}
+.alert-success{background:var(--green-bg);border:1px solid rgba(61,190,122,.2);color:var(--green);}
+.alert-orange{background:var(--orange-bg);border:1px solid rgba(240,122,58,.2);color:var(--orange);}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:18px 0;}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 16px;color:var(--text3);font-size:13px;font-weight:500;}
+.empty-icon{font-size:32px;margin-bottom:12px;opacity:.5;}
+
+/* SYNC BOX */
+.sync-box{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;}
+.sync-title{font-family:var(--f-display);font-size:15px;font-weight:500;color:var(--text);margin-bottom:10px;letter-spacing:-0.01em;font-variation-settings:'opsz' 24;}
+.sync-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* PDF SECTION */
+.pdf-section{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;}
+
+/* MONO NUMBERS */
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums;}
+
+/* EDITING BADGE */
+.edit-badge{background:var(--blue-bg);color:var(--blue);font-size:10px;padding:3px 9px;border-radius:4px;border:1px solid rgba(74,158,232,0.2);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;}
+
+@media(max-width:480px){
+  .form-row{grid-template-columns:1fr;}
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .kpi-value{font-size:22px;}
+  .parpaing-grid{grid-template-columns:1fr 1fr 1fr;}
+}
+
+/* ═══ AUTH / SYNC ═══ */
+#auth-gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:500;padding:20px;}
+#auth-gate.hidden{display:none;}
+.auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:380px;}
+.auth-logo{font-family:var(--f-display);font-weight:600;font-size:28px;color:var(--gold2);letter-spacing:-0.02em;margin-bottom:4px;text-align:center;}
+.auth-sub{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);text-align:center;margin-bottom:24px;font-weight:600;}
+.auth-tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--bg3);border-radius:10px;padding:4px;}
+.auth-tab{flex:1;padding:9px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;background:none;border:none;color:var(--text3);font-family:var(--f-body);}
+.auth-tab.active{background:var(--gold);color:var(--bg);}
+.auth-error{background:var(--red-bg);color:var(--red);border:1px solid rgba(224,82,82,.2);padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;}
+.auth-error.show{display:block;}
+.auth-info{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(74,158,232,.2);padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;}
+.auth-info.show{display:block;}
+
+.sync-pill{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:600;padding:4px 9px;border-radius:20px;font-family:var(--f-body);letter-spacing:0.05em;}
+.sync-pill.online{background:var(--green-bg);color:var(--green);border:1px solid rgba(61,190,122,.2);}
+.sync-pill.offline{background:var(--red-bg);color:var(--red);border:1px solid rgba(224,82,82,.2);}
+.sync-pill.syncing{background:var(--gold-bg);color:var(--gold);border:1px solid rgba(212,168,67,.2);}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.sync-dot.pulse{animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+.user-chip{font-size:11px;color:var(--text2);padding:5px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);font-weight:500;}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="app-logo">Mako City<span>Chantier</span></div>
+    <span class="sync-pill syncing" id="sync-pill"><span class="sync-dot pulse"></span><span id="sync-label">SYNC…</span></span>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn hbtn-sync" onclick="goTo('sync')">🔄 Sync</button>
+    <button class="hbtn hbtn-pdf" onclick="goTo('rapports')">📄 PDF</button>
+  </div>
+</header>
+
+<nav class="nav">
+  <button class="nav-tab active" onclick="goTo('dashboard')">Bord</button>
+  <button class="nav-tab" onclick="goTo('parpaings')">Parpaings</button>
+  <button class="nav-tab" onclick="goTo('transactions')">Dépenses</button>
+  <button class="nav-tab" onclick="goTo('contracts')">Contrats</button>
+  <button class="nav-tab" onclick="goTo('phases')">Phases</button>
+  <button class="nav-tab" onclick="goTo('rapports')">Rapports</button>
+  <button class="nav-tab" onclick="goTo('sync')">Sync</button>
+</nav>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Budget total</div><div class="kpi-value gold">53,7M</div><div class="kpi-sub">FCFA — devis ECGI + parpaings</div></div>
+    <div class="kpi"><div class="kpi-label">Dépensé</div><div class="kpi-value red" id="kpi-spent">0</div><div class="kpi-sub">FCFA engagé</div></div>
+    <div class="kpi"><div class="kpi-label">Restant</div><div class="kpi-value green" id="kpi-remaining">53,7M</div><div class="kpi-sub">FCFA estimé</div></div>
+    <div class="kpi"><div class="kpi-label">Parpaings reçus</div><div class="kpi-value blue" id="kpi-parpaings">0</div><div class="kpi-sub" id="kpi-parp-sub">—</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="dot dot-gold"></span>Avancement budgétaire</div>
+    <div class="progress-wrap">
+      <div class="progress-labels"><span id="prog-label">0 % engagé</span><span class="mono" id="prog-amount">0 / 53 705 500 FCFA</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="dot dot-orange"></span>Parpaings — phase prioritaire</div>
+    <div class="parpaing-grid">
+      <div class="p-stat"><div class="p-stat-label">Commandés</div><div class="p-stat-val" style="color:var(--gold2)" id="d-parp-cmd">0</div></div>
+      <div class="p-stat"><div class="p-stat-label">Reçus</div><div class="p-stat-val" style="color:var(--green)" id="d-parp-recv">0</div></div>
+      <div class="p-stat"><div class="p-stat-label">Restants</div><div class="p-stat-val" style="color:var(--red)" id="d-parp-left">0</div></div>
+    </div>
+    <div class="progress-bar" style="margin-bottom:8px;"><div class="progress-fill" id="parp-prog" style="width:0%;background:linear-gradient(90deg,var(--orange),var(--gold))"></div></div>
+    <div style="text-align:right;font-size:11px;color:var(--text3);font-weight:500" id="parp-pct">0 % livré</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="dot dot-blue"></span>Dernières dépenses</div>
+    <div id="dash-recent"><div class="empty"><div class="empty-icon">📝</div>Aucune opération</div></div>
+    <div style="margin-top:14px;display:flex;gap:8px;">
+      <button class="btn btn-primary" style="flex:1" onclick="goTo('transactions');openTxModal()">+ Dépense</button>
+      <button class="btn btn-secondary" onclick="goTo('parpaings');openParpModal()">🧱 Parpaings</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="dot dot-green"></span>Phases du chantier</div>
+    <div class="phase-list" id="dash-phases"></div>
+  </div>
+</div>
+
+<!-- PARPAINGS -->
+<div class="page" id="page-parpaings">
+  <div class="section-header">
+    <div class="section-h2">Parpaings</div>
+    <button class="btn btn-secondary" onclick="openParpModal()">+ Livraison</button>
+  </div>
+
+  <div class="alert alert-orange">
+    ⚙️ Phase prioritaire — les parpaings sont fabriqués sur commande. Entrez chaque livraison au fur et à mesure. Le total commandé est calculé à partir de vos contrats actifs.
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="dot dot-orange"></span>État du stock</div>
+    <div class="parpaing-grid" style="margin-bottom:14px;">
+      <div class="p-stat"><div class="p-stat-label">Commandés</div><div class="p-stat-val" style="color:var(--gold2)" id="p-cmd">0</div></div>
+      <div class="p-stat"><div class="p-stat-label">Reçus</div><div class="p-stat-val" style="color:var(--green)" id="p-recv">0</div></div>
+      <div class="p-stat"><div class="p-stat-label">Restants</div><div class="p-stat-val" style="color:var(--red)" id="p-left">0</div></div>
+    </div>
+    <div class="parpaing-grid">
+      <div class="p-stat"><div class="p-stat-label">Prix moyen/unité</div><div class="p-stat-val" style="color:var(--text2)" id="p-uprice">—</div></div>
+      <div class="p-stat"><div class="p-stat-label">Valeur livrée</div><div class="p-stat-val" style="color:var(--gold2)" id="p-total">0</div></div>
+      <div class="p-stat"><div class="p-stat-label">Payé à ce jour</div><div class="p-stat-val" style="color:var(--green)" id="p-paid">0</div></div>
+    </div>
+    <div style="margin-top:14px;">
+      <div class="progress-bar"><div class="progress-fill" id="p-prog-fill" style="width:0%;background:linear-gradient(90deg,var(--orange),var(--gold))"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:var(--text3);font-weight:500">
+        <span id="p-prog-label">0 reçu · 0 commandé</span>
+        <span class="mono" id="p-prog-pct">0 %</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header" style="margin-top:18px;">
+    <div class="section-h2" style="font-size:17px">Historique livraisons</div>
+  </div>
+  <div id="parp-history"><div class="empty"><div class="empty-icon">🧱</div>Aucune livraison enregistrée</div></div>
+</div>
+
+<!-- TRANSACTIONS -->
+<div class="page" id="page-transactions">
+  <div class="section-header">
+    <div class="section-h2">Dépenses</div>
+    <button class="btn btn-secondary" onclick="openTxModal()">+ Ajouter</button>
+  </div>
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterTx('all',this)">Tout</button>
+    <button class="filter-btn" onclick="filterTx('parpaing',this)">🧱 Parpaings</button>
+    <button class="filter-btn" onclick="filterTx('purchase',this)">🛒 Achats</button>
+    <button class="filter-btn" onclick="filterTx('labor',this)">👷 Main d'œuvre</button>
+    <button class="filter-btn" onclick="filterTx('payment',this)">💰 Paiements</button>
+    <button class="filter-btn" onclick="filterTx('other',this)">📦 Autre</button>
+  </div>
+  <div id="tx-list"><div class="empty"><div class="empty-icon">💸</div>Aucune dépense</div></div>
+</div>
+
+<!-- CONTRACTS -->
+<div class="page" id="page-contracts">
+  <div class="section-header">
+    <div class="section-h2">Contrats fournisseurs</div>
+    <button class="btn btn-secondary" onclick="openContractModal()">+ Contrat</button>
+  </div>
+  <div id="contract-list"><div class="empty"><div class="empty-icon">📋</div>Aucun contrat</div></div>
+</div>
+
+<!-- PHASES -->
+<div class="page" id="page-phases">
+  <div class="section-header"><div class="section-h2">Phases du devis ECGI</div></div>
+  <div class="alert alert-orange">🧱 Pré-requis — fabrication des parpaings avant toute élévation.</div>
+  <div id="phases-full"></div>
+</div>
+
+<!-- RAPPORTS -->
+<div class="page" id="page-rapports">
+  <div class="section-header"><div class="section-h2">Rapports & Export</div></div>
+
+  <div class="pdf-section">
+    <div class="sync-title">📄 Rapport de situation financière</div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:14px;font-weight:400;line-height:1.5;">Génère un PDF complet : KPIs, toutes les dépenses, phases, contrats.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-pdf" onclick="generatePDF('full')">📄 PDF complet</button>
+      <button class="btn btn-pdf" onclick="generatePDF('parpaings')">🧱 PDF Parpaings</button>
+    </div>
+  </div>
+
+  <div class="pdf-section">
+    <div class="sync-title">📧 Envoyer par e-mail</div>
+    <div class="form-group">
+      <label class="form-label">Adresse e-mail destinataire</label>
+      <input type="email" class="form-input" id="email-dest" placeholder="technicien@example.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Message (optionnel)</label>
+      <textarea class="form-textarea" id="email-msg" placeholder="Voici le rapport de suivi du chantier Mako City…"></textarea>
+    </div>
+    <div class="alert alert-info">💡 Cliquez ci-dessous pour préparer l'e-mail dans votre application mail. Joignez ensuite le PDF téléchargé.</div>
+    <button class="btn btn-primary" onclick="sendByEmail()">📧 Préparer l'e-mail</button>
+  </div>
+</div>
+
+<!-- SYNC -->
+<div class="page" id="page-sync">
+  <div class="section-header"><div class="section-h2">Synchronisation cloud</div></div>
+
+  <div class="alert alert-success">
+    ☁️ <strong>Synchronisation automatique active.</strong> Toutes vos données (dépenses, contrats, livraisons) sont stockées sur un serveur cloud sécurisé et synchronisées en temps réel sur tous vos appareils. Ouvrez l'app sur un autre navigateur avec le même compte — tout sera là.
+  </div>
+
+  <div class="sync-box">
+    <div class="sync-title">🔴 État de la synchronisation</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <span class="sync-pill online"><span class="sync-dot"></span><span>EN LIGNE</span></span>
+      <span style="font-size:12px;color:var(--text2);font-weight:500;">= données à jour, tout se sauvegarde automatiquement</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <span class="sync-pill syncing"><span class="sync-dot pulse"></span><span>SYNC…</span></span>
+      <span style="font-size:12px;color:var(--text2);font-weight:500;">= envoi en cours vers le serveur</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="sync-pill offline"><span class="sync-dot"></span><span>HORS LIGNE</span></span>
+      <span style="font-size:12px;color:var(--text2);font-weight:500;">= pas de connexion (les données restent en cache)</span>
+    </div>
+  </div>
+
+  <div class="sync-box">
+    <div class="sync-title">👥 Partager avec un collaborateur</div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:12px;font-weight:400;line-height:1.5;">Pour qu'un collègue (technicien à Kribi, par exemple) accède aux mêmes données : <strong style="color:var(--gold)">envoyez-lui simplement l'URL de cette page</strong>. Dès qu'il l'ouvre, il voit exactement les mêmes données que vous et peut ajouter/modifier en direct.</p>
+    <p style="font-size:11px;color:var(--orange);margin-top:10px;font-weight:500;">⚠️ Gardez l'URL privée — toute personne qui l'obtient peut lire et modifier vos données.</p>
+  </div>
+
+  <div class="sync-box">
+    <div class="sync-title">💾 Backup JSON (optionnel)</div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:12px;font-weight:400;line-height:1.5;">Télécharge un fichier de sauvegarde avec toutes tes données. Utile pour archiver ou pour restaurer après un accident.</p>
+    <div class="sync-actions" style="margin-bottom:10px;"><button class="btn btn-green" onclick="exportData()">📥 Télécharger backup JSON</button></div>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+    <div class="sync-actions"><button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">📂 Restaurer depuis un JSON</button></div>
+  </div>
+
+  <div class="sync-box">
+    <div class="sync-title">🔗 Héberger sur GitHub Pages (optionnel)</div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:12px;font-weight:400;line-height:1.5;">Pour accéder à l'app depuis n'importe quel appareil avec une URL publique :</p>
+    <ol style="font-size:12px;color:var(--text2);line-height:2;padding-left:20px;font-weight:500;">
+      <li>Connectez-vous à <strong style="color:var(--gold)">github.com</strong></li>
+      <li>Créez un dépôt : <strong style="color:var(--gold)">mako-city-chantier</strong></li>
+      <li>Uploadez ce fichier sous le nom <strong style="color:var(--gold)">index.html</strong></li>
+      <li><strong style="color:var(--gold)">Settings → Pages → Branch : main</strong></li>
+      <li>URL : <strong style="color:var(--gold)">https://VOTRE-USERNAME.github.io/mako-city-chantier</strong></li>
+    </ol>
+  </div>
+</div>
+
+</div>
+
+<!-- MODALS -->
+
+<!-- TRANSACTION -->
+<div class="modal-overlay" id="modal-tx">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="tx-modal-title">Nouvelle dépense</span>
+      <button class="modal-close" onclick="closeModal('modal-tx')">✕</button>
+    </div>
+    <div id="tx-edit-badge" style="display:none;margin-bottom:14px;"><span class="edit-badge">✏️ Mode édition</span></div>
+    <input type="hidden" id="tx-id" value="">
+    <div class="form-group"><label class="form-label">Description *</label><input type="text" class="form-input" id="tx-desc" placeholder="Ex : camion sable Sanaga n°1"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Montant FCFA *</label><input type="number" class="form-input" id="tx-amount" placeholder="170000"></div>
+      <div class="form-group"><label class="form-label">Date *</label><input type="date" class="form-input" id="tx-date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Catégorie</label>
+        <select class="form-select" id="tx-cat">
+          <option value="parpaing">🧱 Parpaings</option>
+          <option value="purchase">🛒 Achat matériaux</option>
+          <option value="labor">👷 Main d'œuvre</option>
+          <option value="payment">💰 Paiement fournisseur</option>
+          <option value="other">📦 Autre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phase</label>
+        <select class="form-select" id="tx-phase">
+          <option value="">— Général —</option>
+          <option value="PARP">🧱 Pré-phase Parpaings</option>
+          <option value="A">A · Déblayage</option>
+          <option value="B">B · Fondation</option>
+          <option value="C">C · Élévation RDC</option>
+          <option value="D">D · Dallage 1</option>
+          <option value="E">E · Élévation R+1</option>
+          <option value="F">F · Dallage 2</option>
+          <option value="G">G · Élévation R+2</option>
+          <option value="H">H · Dallage 3</option>
+          <option value="I">I · Élévation R+3</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Payé à</label><input type="text" class="form-input" id="tx-supplier" placeholder="Ex : TD Construction, M. Jean…"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="tx-notes" placeholder="Détails…"></textarea></div>
+    <button class="btn btn-primary" onclick="saveTx()" id="tx-save-btn">✓ Enregistrer</button>
+  </div>
+</div>
+
+<!-- PARPAING -->
+<div class="modal-overlay" id="modal-parp">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="parp-modal-title">🧱 Livraison parpaings</span>
+      <button class="modal-close" onclick="closeModal('modal-parp')">✕</button>
+    </div>
+    <div id="parp-edit-badge" style="display:none;margin-bottom:14px;"><span class="edit-badge">✏️ Mode édition</span></div>
+    <input type="hidden" id="parp-id" value="">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Quantité reçue *</label><input type="number" class="form-input" id="parp-qty" placeholder="500"></div>
+      <div class="form-group"><label class="form-label">Date *</label><input type="date" class="form-input" id="parp-date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Prix unitaire FCFA</label><input type="number" class="form-input" id="parp-price" placeholder="300"></div>
+      <div class="form-group"><label class="form-label">Montant payé FCFA</label><input type="number" class="form-input" id="parp-paid" placeholder="150000"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Fournisseur</label><input type="text" class="form-input" id="parp-supplier" placeholder="Fabricant parpaings"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="parp-notes" placeholder="Qualité, remarques…"></textarea></div>
+    <button class="btn btn-primary" onclick="saveParpLivraison()" id="parp-save-btn">✓ Enregistrer</button>
+  </div>
+</div>
+
+<!-- CONTRACT -->
+<div class="modal-overlay" id="modal-contract">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="contract-modal-title">Nouveau contrat</span>
+      <button class="modal-close" onclick="closeModal('modal-contract')">✕</button>
+    </div>
+    <div id="contract-edit-badge" style="display:none;margin-bottom:14px;"><span class="edit-badge">✏️ Mode édition</span></div>
+    <input type="hidden" id="c-id" value="">
+    <div class="form-group"><label class="form-label">Objet *</label><input type="text" class="form-input" id="c-name" placeholder="Ex : fabrication parpaings"></div>
+    <div class="form-group"><label class="form-label">Fournisseur *</label><input type="text" class="form-input" id="c-supplier" placeholder="Ex : M. Jean-Baptiste"></div>
+    <div class="form-group">
+      <label class="form-label">Type (pour les parpaings, cochez ci-dessous)</label>
+      <select class="form-select" id="c-type">
+        <option value="general">Contrat général</option>
+        <option value="parpaing">🧱 Contrat parpaings (compte dans le total commandé)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Quantité (nombre)</label><input type="number" class="form-input" id="c-qty" placeholder="7000"></div>
+      <div class="form-group"><label class="form-label">Prix unitaire FCFA</label><input type="number" class="form-input" id="c-unitprice" placeholder="300"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Montant total</label><input type="number" class="form-input" id="c-total" placeholder="2100000"></div>
+      <div class="form-group"><label class="form-label">Avance versée</label><input type="number" class="form-input" id="c-advance" placeholder="500000"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Statut</label>
+      <select class="form-select" id="c-status"><option value="active">En cours</option><option value="pending">En attente</option><option value="done">Terminé</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="c-notes" placeholder="Conditions, délais…"></textarea></div>
+    <button class="btn btn-primary" onclick="saveContract()" id="c-save-btn">✓ Enregistrer</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+const BUDGET_TOTAL=53705500; // 45 405 500 (devis ECGI) + 8 300 000 (parpaings)
+const PHASES_DEF=[
+  {id:'PARP',name:'Pré-phase : Fabrication Parpaings',budget:8300000,note:'25 000 parpaings à votre charge',priority:true},
+  {id:'A',name:'Déblayage + alimentation eau',budget:200000},
+  {id:'B',name:'Fondation',budget:6853375},
+  {id:'C',name:'Élévation Rez-de-chaussée',budget:5440000},
+  {id:'D',name:'Dallage 1',budget:5769375},
+  {id:'E',name:'Élévation R+1',budget:4552500},
+  {id:'F',name:'Dallage 2',budget:6506875},
+  {id:'G',name:'Élévation R+2',budget:4902500},
+  {id:'H',name:'Dallage 3',budget:6506875},
+  {id:'I',name:'Élévation R+3',budget:4675000},
+];
+
+// ═══════════════════════════════════════════════════
+// SUPABASE — Base de données cloud temps réel
+// ═══════════════════════════════════════════════════
+const SUPABASE_URL='https://dfdmasejsoibxrvubegu.supabase.co';
+const SUPABASE_KEY='sb_publishable_FUNJl2eCG1rDiEZOUJsQdA_GQIl2YZM';
+const sbClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{persistSession:true,autoRefreshToken:true,storageKey:'mako_session'},
+  realtime:{params:{eventsPerSecond:10}}
+});
+let realtimeSubs=[];
+
+// Données en mémoire (miroir du cloud)
+let transactions=[];
+let contracts=[];
+let parpLivraisons=[];
+
+// Cache localStorage (mode hors-ligne / rapidité d'affichage)
+function loadCache(k,d){try{const v=localStorage.getItem('mako_cache_'+k);return v?JSON.parse(v):d;}catch{return d;}}
+function saveCache(k,v){try{localStorage.setItem('mako_cache_'+k,JSON.stringify(v));}catch{}}
+transactions=loadCache('tx',[]);
+contracts=loadCache('contracts',[]);
+parpLivraisons=loadCache('parp',[]);
+
+// Indicateur de statut
+function setSyncStatus(state,label){
+  const pill=document.getElementById('sync-pill');
+  const lbl=document.getElementById('sync-label');
+  if(!pill)return;
+  pill.classList.remove('online','offline','syncing');
+  pill.classList.add(state);
+  const dot=pill.querySelector('.sync-dot');
+  if(dot){if(state==='syncing')dot.classList.add('pulse');else dot.classList.remove('pulse');}
+  if(lbl)lbl.textContent=label;
+}
+
+// Mapping JS ↔ DB (certaines colonnes sont renommées côté SQL pour éviter les mots réservés)
+function txToDb(t){return{id:t.id,description:t.desc||'',amount:t.amount||0,tx_date:t.date||null,cat:t.cat||null,phase:t.phase||null,supplier:t.supplier||null,notes:t.notes||null,parp_link_id:t.parpLinkId||null};}
+function txFromDb(r){return{id:r.id,desc:r.description,amount:parseFloat(r.amount)||0,date:r.tx_date,cat:r.cat,phase:r.phase,supplier:r.supplier,notes:r.notes,parpLinkId:r.parp_link_id};}
+function contractToDb(c){return{id:c.id,name:c.name||'',supplier:c.supplier||'',type:c.type||null,qty:c.qty||null,unit_price:c.unitPrice||0,total:c.total||0,advance:c.advance||0,status:c.status||'active',notes:c.notes||null,c_date:c.date||null};}
+function contractFromDb(r){return{id:r.id,name:r.name,supplier:r.supplier,type:r.type,qty:r.qty,unitPrice:parseFloat(r.unit_price)||0,total:parseFloat(r.total)||0,advance:parseFloat(r.advance)||0,status:r.status,notes:r.notes,date:r.c_date};}
+function parpToDb(p){return{id:p.id,qty:p.qty||0,p_date:p.date||null,price:p.price||0,paid:p.paid||0,supplier:p.supplier||null,notes:p.notes||null};}
+function parpFromDb(r){return{id:r.id,qty:r.qty,date:r.p_date,price:parseFloat(r.price)||0,paid:parseFloat(r.paid)||0,supplier:r.supplier,notes:r.notes};}
+
+// Adapter DB (toutes les opérations passent par ici)
+const DB={
+  async upsertTx(t){const{error}=await sbClient.from('transactions').upsert(txToDb(t));if(error)console.error(error);return !error;},
+  async deleteTx(id){const{error}=await sbClient.from('transactions').delete().eq('id',id);if(error)console.error(error);return !error;},
+  async upsertContract(c){const{error}=await sbClient.from('contracts').upsert(contractToDb(c));if(error)console.error(error);return !error;},
+  async deleteContract(id){const{error}=await sbClient.from('contracts').delete().eq('id',id);if(error)console.error(error);return !error;},
+  async upsertParp(p){const{error}=await sbClient.from('parp_livraisons').upsert(parpToDb(p));if(error)console.error(error);return !error;},
+  async deleteParp(id){const{error}=await sbClient.from('parp_livraisons').delete().eq('id',id);if(error)console.error(error);return !error;},
+  async fetchAll(){
+    setSyncStatus('syncing','SYNC…');
+    const[{data:txs,error:e1},{data:cs,error:e2},{data:ps,error:e3}]=await Promise.all([
+      sbClient.from('transactions').select('*').order('tx_date',{ascending:false}),
+      sbClient.from('contracts').select('*').order('created_at',{ascending:false}),
+      sbClient.from('parp_livraisons').select('*').order('p_date',{ascending:false})
+    ]);
+    if(e1||e2||e3){console.error('Fetch error',e1,e2,e3);setSyncStatus('offline','HORS LIGNE');return false;}
+    transactions=(txs||[]).map(txFromDb);
+    contracts=(cs||[]).map(contractFromDb);
+    parpLivraisons=(ps||[]).map(parpFromDb);
+    saveCache('tx',transactions);saveCache('contracts',contracts);saveCache('parp',parpLivraisons);
+    setSyncStatus('online','EN LIGNE');
+    return true;
+  }
+};
+
+// Realtime — déclenché sur INSERT/UPDATE/DELETE dans les 3 tables
+function subscribeRealtime(){
+  realtimeSubs.forEach(s=>sbClient.removeChannel(s));realtimeSubs=[];
+  const ch=sbClient.channel('mako-live')
+    .on('postgres_changes',{event:'*',schema:'public',table:'transactions'},p=>handleRealtime('tx',p))
+    .on('postgres_changes',{event:'*',schema:'public',table:'contracts'},p=>handleRealtime('contracts',p))
+    .on('postgres_changes',{event:'*',schema:'public',table:'parp_livraisons'},p=>handleRealtime('parp',p))
+    .subscribe(s=>{if(s==='SUBSCRIBED')console.log('🔴 Realtime actif');});
+  realtimeSubs.push(ch);
+}
+function handleRealtime(kind,payload){
+  const evt=payload.eventType;
+  if(kind==='tx'){
+    if(evt==='DELETE')transactions=transactions.filter(t=>t.id!==payload.old.id);
+    else{const n=txFromDb(payload.new);const i=transactions.findIndex(t=>t.id===n.id);if(i>=0)transactions[i]=n;else transactions.unshift(n);}
+    saveCache('tx',transactions);
+  }else if(kind==='contracts'){
+    if(evt==='DELETE')contracts=contracts.filter(c=>c.id!==payload.old.id);
+    else{const n=contractFromDb(payload.new);const i=contracts.findIndex(c=>c.id===n.id);if(i>=0)contracts[i]=n;else contracts.unshift(n);}
+    saveCache('contracts',contracts);
+  }else if(kind==='parp'){
+    if(evt==='DELETE')parpLivraisons=parpLivraisons.filter(p=>p.id!==payload.old.id);
+    else{const n=parpFromDb(payload.new);const i=parpLivraisons.findIndex(p=>p.id===n.id);if(i>=0)parpLivraisons[i]=n;else parpLivraisons.unshift(n);}
+    saveCache('parp',parpLivraisons);
+  }
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════
+// MIGRATION — localStorage (ancien format) → Supabase
+// ═══════════════════════════════════════════════════
+async function migrateFromLocalStorage(){
+  const oldTx=(()=>{try{return JSON.parse(localStorage.getItem('mako_tx')||'[]');}catch{return[];}})();
+  const oldC=(()=>{try{return JSON.parse(localStorage.getItem('mako_contracts')||'[]');}catch{return[];}})();
+  const oldP=(()=>{try{return JSON.parse(localStorage.getItem('mako_parp')||'[]');}catch{return[];}})();
+  const total=oldTx.length+oldC.length+oldP.length;
+  if(total===0)return;
+  if(!confirm(`📦 Migration détectée\n\nDonnées locales à importer dans le cloud :\n• ${oldTx.length} dépenses\n• ${oldC.length} contrats\n• ${oldP.length} livraisons parpaings\n\nImporter maintenant ?`))return;
+  setSyncStatus('syncing','MIGRATION…');
+  for(const t of oldTx){await DB.upsertTx(t);}
+  for(const c of oldC){await DB.upsertContract(c);}
+  for(const p of oldP){await DB.upsertParp(p);}
+  localStorage.removeItem('mako_tx');
+  localStorage.removeItem('mako_contracts');
+  localStorage.removeItem('mako_parp');
+  await DB.fetchAll();
+  alert(`✅ Migration terminée ! ${total} éléments importés dans le cloud.`);
+}
+
+// NAV
+const PAGES=['dashboard','parpaings','transactions','contracts','phases','rapports','sync'];
+function goTo(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const idx=PAGES.indexOf(page);
+  if(idx>=0)document.querySelectorAll('.nav-tab')[idx]?.classList.add('active');
+  renderAll();
+}
+
+// MODALS
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
+
+// ═══════════════════════════════════════════════════
+// TRANSACTION — create & edit
+// ═══════════════════════════════════════════════════
+function openTxModal(id){
+  const m=document.getElementById('modal-tx');
+  m.classList.add('open');
+  if(id){
+    const t=transactions.find(x=>x.id===id);if(!t)return;
+    document.getElementById('tx-modal-title').textContent='Modifier la dépense';
+    document.getElementById('tx-edit-badge').style.display='block';
+    document.getElementById('tx-save-btn').textContent='✓ Mettre à jour';
+    document.getElementById('tx-id').value=t.id;
+    document.getElementById('tx-desc').value=t.desc||'';
+    document.getElementById('tx-amount').value=t.amount||'';
+    document.getElementById('tx-date').value=t.date||today();
+    document.getElementById('tx-cat').value=t.cat||'purchase';
+    document.getElementById('tx-phase').value=t.phase||'';
+    document.getElementById('tx-supplier').value=t.supplier||'';
+    document.getElementById('tx-notes').value=t.notes||'';
+  }else{
+    document.getElementById('tx-modal-title').textContent='Nouvelle dépense';
+    document.getElementById('tx-edit-badge').style.display='none';
+    document.getElementById('tx-save-btn').textContent='✓ Enregistrer';
+    document.getElementById('tx-id').value='';
+    clearFields(['tx-desc','tx-amount','tx-supplier','tx-notes']);
+    document.getElementById('tx-date').value=today();
+    document.getElementById('tx-cat').value='parpaing';
+    document.getElementById('tx-phase').value='';
+  }
+}
+async function saveTx(){
+  const desc=document.getElementById('tx-desc').value.trim();
+  const amount=parseFloat(document.getElementById('tx-amount').value);
+  const date=document.getElementById('tx-date').value;
+  if(!desc||!amount||!date){alert('Remplissez description, montant et date.');return;}
+  const editId=parseInt(document.getElementById('tx-id').value);
+  const data={desc,amount,date,
+    cat:document.getElementById('tx-cat').value,
+    phase:document.getElementById('tx-phase').value,
+    supplier:document.getElementById('tx-supplier').value.trim(),
+    notes:document.getElementById('tx-notes').value.trim()
+  };
+  let item;
+  if(editId){
+    const idx=transactions.findIndex(t=>t.id===editId);
+    if(idx>=0){transactions[idx]={...transactions[idx],...data};item=transactions[idx];}
+  }else{
+    item={id:Date.now(),...data};
+    transactions.unshift(item);
+  }
+  saveCache('tx',transactions);
+  closeModal('modal-tx');renderAll();
+  setSyncStatus('syncing','ENVOI…');
+  const ok=await DB.upsertTx(item);
+  setSyncStatus(ok?'online':'offline',ok?'EN LIGNE':'ERREUR');
+}
+
+// ═══════════════════════════════════════════════════
+// PARPAING — create & edit
+// ═══════════════════════════════════════════════════
+function openParpModal(id){
+  const m=document.getElementById('modal-parp');
+  m.classList.add('open');
+  if(id){
+    const p=parpLivraisons.find(x=>x.id===id);if(!p)return;
+    document.getElementById('parp-modal-title').textContent='✏️ Modifier livraison';
+    document.getElementById('parp-edit-badge').style.display='block';
+    document.getElementById('parp-save-btn').textContent='✓ Mettre à jour';
+    document.getElementById('parp-id').value=p.id;
+    document.getElementById('parp-qty').value=p.qty||'';
+    document.getElementById('parp-date').value=p.date||today();
+    document.getElementById('parp-price').value=p.price||'';
+    document.getElementById('parp-paid').value=p.paid||'';
+    document.getElementById('parp-supplier').value=p.supplier||'';
+    document.getElementById('parp-notes').value=p.notes||'';
+  }else{
+    document.getElementById('parp-modal-title').textContent='🧱 Livraison parpaings';
+    document.getElementById('parp-edit-badge').style.display='none';
+    document.getElementById('parp-save-btn').textContent='✓ Enregistrer';
+    document.getElementById('parp-id').value='';
+    clearFields(['parp-qty','parp-price','parp-paid','parp-supplier','parp-notes']);
+    document.getElementById('parp-date').value=today();
+  }
+}
+async function saveParpLivraison(){
+  const qty=parseInt(document.getElementById('parp-qty').value);
+  const date=document.getElementById('parp-date').value;
+  if(!qty||!date){alert('Remplissez quantité et date.');return;}
+  const editId=parseInt(document.getElementById('parp-id').value);
+  const data={qty,date,
+    price:parseFloat(document.getElementById('parp-price').value)||0,
+    paid:parseFloat(document.getElementById('parp-paid').value)||0,
+    supplier:document.getElementById('parp-supplier').value.trim(),
+    notes:document.getElementById('parp-notes').value.trim()
+  };
+  let parpItem=null,linkedTxItem=null;
+  if(editId){
+    const idx=parpLivraisons.findIndex(p=>p.id===editId);
+    if(idx>=0){
+      parpLivraisons[idx]={...parpLivraisons[idx],...data};
+      parpItem=parpLivraisons[idx];
+      const linkedTx=transactions.find(t=>t.parpLinkId===editId);
+      if(linkedTx&&data.paid>0){
+        linkedTx.desc=`Parpaings ×${qty} — paiement`;
+        linkedTx.amount=data.paid;
+        linkedTx.date=date;
+        linkedTx.supplier=data.supplier;
+        linkedTx.notes=`${qty} unités${data.price?' à '+data.price+' FCFA/u':''}`;
+        linkedTxItem=linkedTx;
+      }
+    }
+  }else{
+    const livId=Date.now();
+    parpItem={id:livId,...data};
+    parpLivraisons.unshift(parpItem);
+    if(data.paid>0){
+      linkedTxItem={id:livId+1,parpLinkId:livId,
+        desc:`Parpaings ×${qty} — paiement`,
+        amount:data.paid,date,cat:'parpaing',phase:'PARP',
+        supplier:data.supplier,
+        notes:`${qty} unités${data.price?' à '+data.price+' FCFA/u':''}`};
+      transactions.unshift(linkedTxItem);
+    }
+  }
+  saveCache('parp',parpLivraisons);saveCache('tx',transactions);
+  closeModal('modal-parp');renderAll();
+  setSyncStatus('syncing','ENVOI…');
+  let ok=true;
+  if(parpItem)ok=ok&&await DB.upsertParp(parpItem);
+  if(linkedTxItem)ok=ok&&await DB.upsertTx(linkedTxItem);
+  setSyncStatus(ok?'online':'offline',ok?'EN LIGNE':'ERREUR');
+}
+
+// ═══════════════════════════════════════════════════
+// CONTRACT — create & edit
+// ═══════════════════════════════════════════════════
+function openContractModal(id){
+  const m=document.getElementById('modal-contract');
+  m.classList.add('open');
+  if(id){
+    const c=contracts.find(x=>x.id===id);if(!c)return;
+    document.getElementById('contract-modal-title').textContent='Modifier le contrat';
+    document.getElementById('contract-edit-badge').style.display='block';
+    document.getElementById('c-save-btn').textContent='✓ Mettre à jour';
+    document.getElementById('c-id').value=c.id;
+    document.getElementById('c-name').value=c.name||'';
+    document.getElementById('c-supplier').value=c.supplier||'';
+    document.getElementById('c-type').value=c.type||'general';
+    document.getElementById('c-qty').value=c.qty||'';
+    document.getElementById('c-unitprice').value=c.unitPrice||'';
+    document.getElementById('c-total').value=c.total||'';
+    document.getElementById('c-advance').value=c.advance||'';
+    document.getElementById('c-status').value=c.status||'active';
+    document.getElementById('c-notes').value=c.notes||'';
+  }else{
+    document.getElementById('contract-modal-title').textContent='Nouveau contrat';
+    document.getElementById('contract-edit-badge').style.display='none';
+    document.getElementById('c-save-btn').textContent='✓ Enregistrer';
+    document.getElementById('c-id').value='';
+    clearFields(['c-name','c-supplier','c-qty','c-unitprice','c-total','c-advance','c-notes']);
+    document.getElementById('c-type').value='general';
+    document.getElementById('c-status').value='active';
+  }
+}
+async function saveContract(){
+  const name=document.getElementById('c-name').value.trim();
+  const supplier=document.getElementById('c-supplier').value.trim();
+  if(!name||!supplier){alert('Nom et fournisseur requis.');return;}
+  const editId=parseInt(document.getElementById('c-id').value);
+  const data={name,supplier,
+    type:document.getElementById('c-type').value,
+    qty:document.getElementById('c-qty').value.trim(),
+    unitPrice:parseFloat(document.getElementById('c-unitprice').value)||0,
+    total:parseFloat(document.getElementById('c-total').value)||0,
+    advance:parseFloat(document.getElementById('c-advance').value)||0,
+    status:document.getElementById('c-status').value,
+    notes:document.getElementById('c-notes').value.trim(),
+  };
+  let item;
+  if(editId){
+    const idx=contracts.findIndex(c=>c.id===editId);
+    if(idx>=0){contracts[idx]={...contracts[idx],...data};item=contracts[idx];}
+  }else{
+    item={id:Date.now(),date:today(),...data};
+    contracts.unshift(item);
+  }
+  saveCache('contracts',contracts);
+  closeModal('modal-contract');renderAll();
+  setSyncStatus('syncing','ENVOI…');
+  const ok=await DB.upsertContract(item);
+  setSyncStatus(ok?'online':'offline',ok?'EN LIGNE':'ERREUR');
+}
+
+// DELETE
+async function deleteTx(id){
+  if(!confirm('Supprimer cette dépense ?'))return;
+  transactions=transactions.filter(t=>t.id!==id);
+  saveCache('tx',transactions);renderAll();
+  setSyncStatus('syncing','SUPPR…');
+  const ok=await DB.deleteTx(id);
+  setSyncStatus(ok?'online':'offline',ok?'EN LIGNE':'ERREUR');
+}
+async function deleteContract(id){
+  if(!confirm('Supprimer ce contrat ?'))return;
+  contracts=contracts.filter(c=>c.id!==id);
+  saveCache('contracts',contracts);renderAll();
+  setSyncStatus('syncing','SUPPR…');
+  const ok=await DB.deleteContract(id);
+  setSyncStatus(ok?'online':'offline',ok?'EN LIGNE':'ERREUR');
+}
+async function deleteParp(id){
+  if(!confirm('Supprimer cette livraison ? La dépense liée sera aussi supprimée.'))return;
+  const linkedTxIds=transactions.filter(t=>t.parpLinkId===id).map(t=>t.id);
+  parpLivraisons=parpLivraisons.filter(p=>p.id!==id);
+  transactions=transactions.filter(t=>t.parpLinkId!==id);
+  saveCache('parp',parpLivraisons);saveCache('tx',transactions);renderAll();
+  setSyncStatus('syncing','SUPPR…');
+  let ok=await DB.deleteParp(id);
+  for(const tid of linkedTxIds){ok=ok&&await DB.deleteTx(tid);}
+  setSyncStatus(ok?'online':'offline',ok?'EN LIGNE':'ERREUR');
+}
+
+// HELPERS
+function today(){return new Date().toISOString().split('T')[0];}
+function fmt(n){if(!n&&n!==0)return '—';if(n>=1000000)return (n/1000000).toFixed(2).replace(/\.?0+$/,'')+'M';if(n>=1000)return (n/1000).toFixed(0)+'k';return n.toLocaleString('fr-FR');}
+function fmtFull(n){return n?(n||0).toLocaleString('fr-FR')+' FCFA':'0 FCFA';}
+function fmtDate(d){if(!d)return '';const [y,m,day]=d.split('-');return `${day}/${m}/${y}`;}
+const CAT_ICONS={payment:'💰',purchase:'🛒',labor:'👷',parpaing:'🧱',other:'📦'};
+const CAT_LABELS={payment:'Paiement',purchase:'Achat matériaux',labor:"Main d'œuvre",parpaing:'Parpaings',other:'Autre'};
+const STATUS_BADGE={active:'<span class="badge badge-active">En cours</span>',pending:'<span class="badge badge-pending">En attente</span>',done:'<span class="badge badge-done">Terminé</span>'};
+function clearFields(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
+
+// ═══════════════════════════════════════════════════
+// PARPAING STATS — dynamique
+// ═══════════════════════════════════════════════════
+function parpStats(){
+  const totalRecv=parpLivraisons.reduce((s,p)=>s+(p.qty||0),0);
+  const totalPaid=parpLivraisons.reduce((s,p)=>s+(p.paid||0),0);
+  // Prix moyen pondéré
+  const totalValue=parpLivraisons.reduce((s,p)=>s+((p.qty||0)*(p.price||0)),0);
+  const avgPrice=totalRecv>0?totalValue/totalRecv:0;
+  // Commandés = somme des contrats parpaings
+  const totalCmd=contracts
+    .filter(c=>c.type==='parpaing')
+    .reduce((s,c)=>s+(parseInt(c.qty)||0),0);
+  return{totalRecv,totalPaid,totalValue,avgPrice,totalCmd,remaining:Math.max(0,totalCmd-totalRecv)};
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
+function renderAll(){
+  renderDashboard();
+  renderParpaings();
+  renderTxList(transactions,'tx-list',true);
+  renderContracts();
+  renderPhasesFull();
+}
+
+function renderDashboard(){
+  const total=transactions.reduce((s,t)=>s+t.amount,0);
+  const pct=Math.min(100,(total/BUDGET_TOTAL)*100);
+  const ps=parpStats();
+  document.getElementById('kpi-spent').textContent=fmt(total);
+  document.getElementById('kpi-remaining').textContent=fmt(BUDGET_TOTAL-total);
+  document.getElementById('kpi-parpaings').textContent=ps.totalRecv.toLocaleString('fr-FR');
+  document.getElementById('kpi-parp-sub').textContent=ps.totalCmd>0?'sur '+ps.totalCmd.toLocaleString('fr-FR')+' commandés':'Aucun contrat encore';
+  document.getElementById('prog-fill').style.width=pct.toFixed(1)+'%';
+  document.getElementById('prog-label').textContent=pct.toFixed(1)+' % engagé';
+  document.getElementById('prog-amount').textContent=fmtFull(total)+' / '+fmtFull(BUDGET_TOTAL);
+
+  const ppct=ps.totalCmd>0?Math.min(100,(ps.totalRecv/ps.totalCmd)*100):0;
+  document.getElementById('d-parp-cmd').textContent=ps.totalCmd.toLocaleString('fr-FR');
+  document.getElementById('d-parp-recv').textContent=ps.totalRecv.toLocaleString('fr-FR');
+  document.getElementById('d-parp-left').textContent=ps.remaining.toLocaleString('fr-FR');
+  document.getElementById('parp-prog').style.width=ppct.toFixed(1)+'%';
+  document.getElementById('parp-pct').textContent=ppct.toFixed(0)+' % livré';
+
+  const el=document.getElementById('dash-recent');
+  if(transactions.length===0){el.innerHTML='<div class="empty"><div class="empty-icon">📝</div>Aucune opération</div>';}
+  else{el.innerHTML='<div class="tx-list">'+transactions.slice(0,3).map(t=>txHTML(t,false)).join('')+'</div>';}
+
+  document.getElementById('dash-phases').innerHTML=PHASES_DEF.map(p=>{
+    const spent=transactions.filter(t=>t.phase===p.id).reduce((s,t)=>s+t.amount,0);
+    const pct2=Math.min(100,(spent/p.budget)*100);
+    let sc='s-pending';if(pct2>=100)sc='s-done';else if(pct2>0)sc='s-active';
+    return `<div class="phase-item">
+      <div class="phase-status ${sc}"></div>
+      <div class="phase-info"><div class="phase-name">${p.priority?'🧱 ':''}Phase ${p.id} · ${p.name}</div><div class="phase-amount">${fmtFull(p.budget)} prévu · ${fmtFull(spent)} engagé</div></div>
+      <div class="phase-pct">${pct2.toFixed(0)}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderParpaings(){
+  const ps=parpStats();
+  const ppct=ps.totalCmd>0?Math.min(100,(ps.totalRecv/ps.totalCmd)*100):0;
+  document.getElementById('p-cmd').textContent=ps.totalCmd.toLocaleString('fr-FR');
+  document.getElementById('p-recv').textContent=ps.totalRecv.toLocaleString('fr-FR');
+  document.getElementById('p-left').textContent=ps.remaining.toLocaleString('fr-FR');
+  document.getElementById('p-uprice').textContent=ps.avgPrice>0?Math.round(ps.avgPrice)+' F':'—';
+  document.getElementById('p-total').textContent=fmt(ps.totalValue);
+  document.getElementById('p-paid').textContent=fmt(ps.totalPaid);
+  document.getElementById('p-prog-fill').style.width=ppct.toFixed(1)+'%';
+  document.getElementById('p-prog-label').textContent=ps.totalRecv.toLocaleString('fr-FR')+' reçu · '+ps.totalCmd.toLocaleString('fr-FR')+' commandé';
+  document.getElementById('p-prog-pct').textContent=ppct.toFixed(0)+' %';
+
+  const el=document.getElementById('parp-history');
+  if(parpLivraisons.length===0){el.innerHTML='<div class="empty"><div class="empty-icon">🧱</div>Aucune livraison enregistrée.<br><span style="color:var(--text2);margin-top:8px;display:inline-block">Cliquez sur <strong style="color:var(--gold)">+ Livraison</strong> pour ajouter votre première livraison.</span></div>';return;}
+  el.innerHTML='<div class="tx-list">'+parpLivraisons.map(p=>`
+    <div class="tx-item">
+      <div class="tx-icon parpaing">🧱</div>
+      <div class="tx-info">
+        <div class="tx-desc">${p.qty.toLocaleString('fr-FR')} parpaings${p.supplier?' · '+p.supplier:''}</div>
+        <div class="tx-meta"><span>${fmtDate(p.date)}</span>${p.price?'<span>'+p.price+' FCFA/u</span>':''}${p.notes?'<span>'+p.notes+'</span>':''}</div>
+      </div>
+      <div class="tx-right">
+        <div class="tx-amount out">${p.paid>0?'-'+fmtFull(p.paid):'Non payé'}</div>
+        <div class="tx-actions">
+          <button class="btn btn-edit" onclick="openParpModal(${p.id})">✏️ Modifier</button>
+          <button class="btn btn-danger" onclick="deleteParp(${p.id})">Suppr.</button>
+        </div>
+      </div>
+    </div>`).join('')+'</div>';
+}
+
+function txHTML(t,showActions=false){
+  const icon=CAT_ICONS[t.cat]||'📦';
+  return `<div class="tx-item">
+    <div class="tx-icon ${t.cat}">${icon}</div>
+    <div class="tx-info">
+      <div class="tx-desc">${t.desc}</div>
+      <div class="tx-meta"><span>${fmtDate(t.date)}</span>${t.phase?'<span>Phase '+t.phase+'</span>':''}${t.supplier?'<span>'+t.supplier+'</span>':''}</div>
+    </div>
+    <div class="tx-right">
+      <div class="tx-amount out">-${fmtFull(t.amount)}</div>
+      ${showActions?`<div class="tx-actions">
+        <button class="btn btn-edit" onclick="openTxModal(${t.id})">✏️</button>
+        <button class="btn btn-danger" onclick="deleteTx(${t.id})">Suppr.</button>
+      </div>`:''}
+    </div>
+  </div>`;
+}
+
+function filterTx(cat,btn){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const d=cat==='all'?transactions:transactions.filter(t=>t.cat===cat);
+  renderTxList(d,'tx-list',true);
+}
+function renderTxList(data,elId,showActions=true){
+  const el=document.getElementById(elId);if(!el)return;
+  if(data.length===0){el.innerHTML='<div class="empty"><div class="empty-icon">💸</div>Aucune dépense</div>';return;}
+  const groups={};
+  data.forEach(t=>{const k=t.date?t.date.slice(0,7):'autre';if(!groups[k])groups[k]=[];groups[k].push(t);});
+  let html='';
+  Object.keys(groups).sort().reverse().forEach(m=>{
+    const mt=groups[m].reduce((s,t)=>s+t.amount,0);
+    const [y,mo]=m.split('-');
+    const ML=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+    const lbl=mo?ML[parseInt(mo)-1]+' '+y:m;
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px 6px;">
+      <span style="font-size:11px;letter-spacing:0.12em;color:var(--text3);text-transform:uppercase;font-weight:600">${lbl}</span>
+      <span class="mono" style="font-size:12px;font-weight:600;color:var(--red)">-${fmtFull(mt)}</span>
+    </div><div class="tx-list">${groups[m].map(t=>txHTML(t,showActions)).join('')}</div><div class="divider"></div>`;
+  });
+  const grand=data.reduce((s,t)=>s+t.amount,0);
+  html+=`<div style="display:flex;justify-content:space-between;padding:12px 4px;">
+    <span style="font-size:12px;font-weight:600;color:var(--text2);letter-spacing:0.05em;text-transform:uppercase">Total</span>
+    <span class="tx-amount out">-${fmtFull(grand)}</span>
+  </div>`;
+  el.innerHTML=html;
+}
+
+function renderContracts(){
+  const el=document.getElementById('contract-list');if(!el)return;
+  if(contracts.length===0){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div>Aucun contrat</div>';return;}
+  el.innerHTML=contracts.map(c=>`<div class="contract-card">
+    <div class="contract-header">
+      <div style="flex:1;min-width:0"><div class="contract-name">${c.type==='parpaing'?'🧱 ':''}${c.name}</div><div class="contract-supplier">👤 ${c.supplier}${c.date?' · '+fmtDate(c.date):''}</div></div>
+      ${STATUS_BADGE[c.status]||''}
+    </div>
+    ${c.qty?`<div style="font-size:12px;color:var(--text3);margin-bottom:10px;font-weight:500">📦 ${c.qty}${c.unitPrice?' · '+fmtFull(c.unitPrice)+'/u':''}</div>`:''}
+    <div class="contract-stats">
+      <div class="c-stat"><div class="c-stat-label">Total</div><div class="c-stat-val" style="color:var(--gold2)">${fmt(c.total)}</div></div>
+      <div class="c-stat"><div class="c-stat-label">Avance</div><div class="c-stat-val" style="color:var(--green)">${fmt(c.advance)}</div></div>
+      <div class="c-stat"><div class="c-stat-label">Restant</div><div class="c-stat-val" style="color:var(--red)">${fmt(c.total-c.advance)}</div></div>
+    </div>
+    ${c.notes?`<div style="margin-top:12px;font-size:12px;color:var(--text3);border-top:1px solid var(--border);padding-top:10px;font-weight:500">📝 ${c.notes}</div>`:''}
+    <div style="margin-top:12px;display:flex;gap:6px;justify-content:flex-end">
+      <button class="btn btn-edit" onclick="openContractModal(${c.id})">✏️ Modifier</button>
+      <button class="btn btn-danger" onclick="deleteContract(${c.id})">Supprimer</button>
+    </div>
+  </div>`).join('');
+}
+
+function renderPhasesFull(){
+  const el=document.getElementById('phases-full');if(!el)return;
+  el.innerHTML=PHASES_DEF.map(p=>{
+    const txP=transactions.filter(t=>t.phase===p.id);
+    const spent=txP.reduce((s,t)=>s+t.amount,0);
+    const pct=Math.min(100,(spent/p.budget)*100);
+    let sc='s-pending';if(pct>=100)sc='s-done';else if(pct>0)sc='s-active';
+    const borderColor=p.priority?'var(--orange)':'var(--border)';
+    return `<div class="card" style="border-color:${borderColor};margin-bottom:11px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div class="phase-status ${sc}"></div>
+        <div style="flex:1;min-width:0"><div style="font-family:var(--f-display);font-size:15px;font-weight:500;color:var(--text);letter-spacing:-0.01em">${p.priority?'🧱 ':''}Phase ${p.id} · ${p.name}</div>
+        ${p.note?`<div style="font-size:11px;color:var(--orange);margin-top:3px;font-weight:500">⚠️ ${p.note}</div>`:''}</div>
+        <div class="mono" style="font-size:13px;font-weight:600;color:var(--text2)">${pct.toFixed(0)}%</div>
+      </div>
+      <div class="progress-bar" style="margin-bottom:11px"><div class="progress-fill" style="width:${pct}%;${p.priority?'background:linear-gradient(90deg,var(--orange),var(--gold))':''}"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:${txP.length>0?'12px':'0'}">
+        <div style="font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.08em;text-transform:uppercase">Prévu<br><span class="mono" style="color:var(--gold2);font-weight:600;font-size:13px;text-transform:none">${fmtFull(p.budget)}</span></div>
+        <div style="font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.08em;text-transform:uppercase">Engagé<br><span class="mono" style="color:var(--red);font-weight:600;font-size:13px;text-transform:none">${fmtFull(spent)}</span></div>
+        <div style="font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.08em;text-transform:uppercase">Restant<br><span class="mono" style="color:var(--green);font-weight:600;font-size:13px;text-transform:none">${fmtFull(p.budget-spent)}</span></div>
+      </div>
+      ${txP.length>0?`<div style="border-top:1px solid var(--border);padding-top:10px">
+        ${txP.slice(0,3).map(t=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+          <span style="color:var(--text2);font-weight:500">${CAT_ICONS[t.cat]||'📦'} ${t.desc}</span>
+          <span class="mono" style="color:var(--red);font-weight:600">-${fmtFull(t.amount)}</span>
+        </div>`).join('')}
+        ${txP.length>3?`<div style="font-size:11px;color:var(--text3);margin-top:4px;font-weight:500">+${txP.length-3} autre(s)…</div>`:''}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// PDF
+// ═══════════════════════════════════════════════════
+function generatePDF(type){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const dateNow=new Date().toLocaleDateString('fr-FR');
+  const W=210, margin=18;
+  let y=margin;
+  const GOLD=[212,168,67],DARK=[10,12,14],GRAY=[80,80,80],LGRAY=[240,240,240],RED=[200,60,60],GREEN=[40,160,100];
+
+  doc.setFillColor(...DARK);doc.rect(0,0,W,28,'F');
+  doc.setTextColor(212,168,67);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('MAKO CITY',margin,16);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(180,170,150);
+  doc.text('Suivi de chantier · Kribi, Cameroun',margin,22);
+  doc.setTextColor(120,120,120);doc.text('Généré le '+dateNow,W-margin,22,{align:'right'});
+  y=38;
+
+  if(type==='parpaings'){
+    const ps=parpStats();
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...GOLD);doc.text('RAPPORT PARPAINGS',margin,y);y+=8;
+    const boxes=[
+      {label:'Commandés',val:ps.totalCmd+' u',col:GOLD},
+      {label:'Reçus',val:ps.totalRecv+' u',col:GREEN},
+      {label:'Restants',val:ps.remaining+' u',col:RED},
+      {label:'Montant payé',val:fmtFull(ps.totalPaid),col:GOLD},
+    ];
+    boxes.forEach((b,i)=>{
+      const bx=margin+(i%2)*90, by=y+(Math.floor(i/2)*22);
+      doc.setFillColor(...LGRAY);doc.roundedRect(bx,by-6,85,18,3,3,'F');
+      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...GRAY);doc.text(b.label,bx+4,by);
+      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...b.col);doc.text(b.val,bx+4,by+8);
+    });
+    y+=52;
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...DARK);doc.text('Historique des livraisons',margin,y);y+=6;
+    doc.setFillColor(...DARK);doc.rect(margin,y,W-2*margin,7,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(8);
+    ['Date','Qté','Prix/u','Payé','Fournisseur'].forEach((h,i)=>{doc.text(h,margin+[0,22,38,58,82][i],y+4.5);});y+=7;
+    doc.setFont('helvetica','normal');doc.setTextColor(...DARK);
+    parpLivraisons.forEach((p,i)=>{
+      if(y>270){doc.addPage();y=20;}
+      if(i%2===0){doc.setFillColor(...LGRAY);doc.rect(margin,y,W-2*margin,7,'F');}
+      const row=[fmtDate(p.date),p.qty+'',p.price+' F',fmtFull(p.paid),p.supplier||'—'];
+      row.forEach((v,j)=>{doc.text(v.toString().slice(0,18),margin+[0,22,38,58,82][j],y+4.5);});y+=7;
+    });
+    if(parpLivraisons.length===0){doc.setTextColor(...GRAY);doc.text('Aucune livraison enregistrée.',margin,y+5);y+=12;}
+  }else{
+    const total=transactions.reduce((s,t)=>s+t.amount,0);
+    const pct=Math.min(100,(total/BUDGET_TOTAL)*100);
+    const ps=parpStats();
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...GOLD);doc.text('SITUATION FINANCIÈRE',margin,y);y+=7;
+    const kpis=[
+      {label:'Budget total devis',val:fmtFull(BUDGET_TOTAL)},
+      {label:'Total engagé',val:fmtFull(total)},
+      {label:'Restant estimé',val:fmtFull(BUDGET_TOTAL-total)},
+      {label:'% avancement budget',val:pct.toFixed(1)+'%'},
+      {label:'Parpaings reçus',val:ps.totalRecv+' / '+ps.totalCmd},
+    ];
+    kpis.forEach((k,i)=>{
+      const bx=margin+(i%2)*90, by=y+(Math.floor(i/2)*20);
+      doc.setFillColor(...LGRAY);doc.roundedRect(bx,by-5,85,16,2,2,'F');
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRAY);doc.text(k.label,bx+3,by);
+      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...DARK);doc.text(k.val,bx+3,by+7);
+    });
+    y+=60;
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...DARK);doc.text('PHASES DU CHANTIER',margin,y);y+=6;
+    doc.setFillColor(...DARK);doc.rect(margin,y,W-2*margin,7,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(8);
+    ['Phase','Description','Prévu','Engagé','%'].forEach((h,i)=>{doc.text(h,margin+[0,15,100,130,162][i],y+4.5);});y+=7;
+    doc.setFont('helvetica','normal');doc.setTextColor(...DARK);
+    PHASES_DEF.forEach((p,i)=>{
+      if(y>270){doc.addPage();y=20;}
+      const spent=transactions.filter(t=>t.phase===p.id).reduce((s,t)=>s+t.amount,0);
+      const pp=Math.min(100,(spent/p.budget)*100);
+      if(i%2===0){doc.setFillColor(...LGRAY);doc.rect(margin,y,W-2*margin,7,'F');}
+      const row=[p.id,p.name.slice(0,28),fmtFull(p.budget),fmtFull(spent),pp.toFixed(0)+'%'];
+      row.forEach((v,j)=>{doc.text(v,margin+[0,15,100,130,162][j],y+4.5);});y+=7;
+    });
+    y+=8;
+    if(y>250){doc.addPage();y=20;}
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...DARK);doc.text('TOUTES LES DÉPENSES ('+transactions.length+')',margin,y);y+=6;
+    if(transactions.length===0){doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);doc.text('Aucune dépense.',margin,y+5);y+=12;}
+    else{
+      doc.setFillColor(...DARK);doc.rect(margin,y,W-2*margin,7,'F');
+      doc.setTextColor(255,255,255);doc.setFontSize(8);
+      ['Date','Description','Catégorie','Phase','Montant'].forEach((h,i)=>{doc.text(h,margin+[0,22,85,120,148][i],y+4.5);});y+=7;
+      doc.setFont('helvetica','normal');doc.setTextColor(...DARK);
+      transactions.forEach((t,i)=>{
+        if(y>270){doc.addPage();y=20;}
+        if(i%2===0){doc.setFillColor(...LGRAY);doc.rect(margin,y,W-2*margin,7,'F');}
+        const row=[fmtDate(t.date),(t.desc||'').slice(0,28),CAT_LABELS[t.cat]||'',t.phase||'—',fmtFull(t.amount)];
+        row.forEach((v,j)=>{doc.text(v,margin+[0,22,85,120,148][j],y+4.5);});y+=7;
+      });
+      y+=4;doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...RED);
+      doc.text('TOTAL DÉPENSÉ : '+fmtFull(total),W-margin,y,{align:'right'});
+    }
+    if(contracts.length>0){
+      if(y>240){doc.addPage();y=20;}y+=8;
+      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...DARK);doc.text('CONTRATS FOURNISSEURS',margin,y);y+=6;
+      doc.setFillColor(...DARK);doc.rect(margin,y,W-2*margin,7,'F');
+      doc.setTextColor(255,255,255);doc.setFontSize(8);
+      ['Objet','Fournisseur','Total','Avance','Restant'].forEach((h,i)=>{doc.text(h,margin+[0,60,110,135,160][i],y+4.5);});y+=7;
+      doc.setFont('helvetica','normal');doc.setTextColor(...DARK);
+      contracts.forEach((c,i)=>{
+        if(y>270){doc.addPage();y=20;}
+        if(i%2===0){doc.setFillColor(...LGRAY);doc.rect(margin,y,W-2*margin,7,'F');}
+        const row=[(c.name||'').slice(0,22),(c.supplier||'').slice(0,18),fmt(c.total),fmt(c.advance),fmt(c.total-c.advance)];
+        row.forEach((v,j)=>{doc.text(v,margin+[0,60,110,135,160][j],y+4.5);});y+=7;
+      });
+    }
+  }
+  const pages=doc.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);doc.setFillColor(...DARK);doc.rect(0,287,W,10,'F');
+    doc.setTextColor(120,110,90);doc.setFontSize(7);doc.setFont('helvetica','normal');
+    doc.text('MAKO CITY · Suivi Chantier · Kribi, Cameroun',margin,293);
+    doc.text('Page '+i+'/'+pages,W-margin,293,{align:'right'});
+  }
+  const fname=type==='parpaings'?'MakoCity_Parpaings_'+dateNow.replace(/\//g,'-')+'.pdf':'MakoCity_Rapport_'+dateNow.replace(/\//g,'-')+'.pdf';
+  doc.save(fname);
+}
+
+// EMAIL
+function sendByEmail(){
+  const dest=document.getElementById('email-dest').value.trim();
+  const msg=document.getElementById('email-msg').value.trim();
+  const total=transactions.reduce((s,t)=>s+t.amount,0);
+  const dateNow=new Date().toLocaleDateString('fr-FR');
+  const body=encodeURIComponent(`${msg?msg+'\n\n':''}Rapport Mako City — ${dateNow}\n\nRésumé :\n- Budget total : ${fmtFull(53705500)}\n- Total engagé : ${fmtFull(total)}\n- Restant estimé : ${fmtFull(53705500-total)}\n- Nombre de transactions : ${transactions.length}\n\nVeuillez trouver le rapport PDF en pièce jointe.\n\n(Générez d'abord le PDF via l'onglet Rapports, puis joignez-le manuellement.)`);
+  const sub=encodeURIComponent('Rapport chantier Mako City — '+dateNow);
+  window.location.href=`mailto:${dest}?subject=${sub}&body=${body}`;
+}
+
+// SYNC
+function exportData(){
+  const data={version:2,exportDate:new Date().toISOString(),projectName:'Mako City — Kribi, Cameroun',transactions,contracts,parpLivraisons};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='mako_city_data_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data.transactions){alert('Fichier invalide.');return;}
+      if(!confirm('Importer '+data.transactions.length+' dépenses, '+data.contracts.length+' contrats et '+(data.parpLivraisons||[]).length+' livraisons vers le cloud ?\n\n⚠️ Les éléments existants avec le même ID seront écrasés.'))return;
+      setSyncStatus('syncing','IMPORT…');
+      for(const t of(data.transactions||[])){await DB.upsertTx(t);}
+      for(const c of(data.contracts||[])){await DB.upsertContract(c);}
+      for(const p of(data.parpLivraisons||[])){await DB.upsertParp(p);}
+      await DB.fetchAll();renderAll();
+      alert('✅ Import réussi vers le cloud !');
+    }catch(err){alert('Erreur : '+(err.message||'fichier JSON invalide.'));}
+  };
+  reader.readAsText(file);e.target.value='';
+}
+
+// ═══════════════════════════════════════════════════
+// INIT — chargement direct depuis Supabase (pas d'auth)
+// ═══════════════════════════════════════════════════
+(async function init(){
+  renderAll(); // rendu initial depuis le cache local
+  const ok=await DB.fetchAll();
+  if(ok){
+    await migrateFromLocalStorage();
+    subscribeRealtime();
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>
