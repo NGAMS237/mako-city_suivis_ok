@@ -1,0 +1,2128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Résidence Veraluz — Kribi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══ VARIABLES ═══ */
+:root{
+  --dk:#08131f;
+  --dk2:#0d1d2e;
+  --dk3:#13253a;
+  --gd:#d4943a;
+  --gd2:#e8b46a;
+  --oc:#0096c7;
+  --oc2:#00b4d8;
+  --sand:#f0e6d3;
+  --sunset:#e76f51;
+  --white:#ffffff;
+  --text1:#f0e6d3;
+  --text2:#b8ccd8;
+  --text3:#6a8fa8;
+  --border:rgba(212,148,58,.18);
+  --rd:8px; --rd2:14px; --rd3:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{background:var(--dk);color:var(--text1);font-family:'Inter',sans-serif;line-height:1.6;overflow-x:hidden}
+img{display:block;max-width:100%}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;border:none;background:none;font:inherit}
+svg{display:inline-block;vertical-align:middle}
+.ico svg{stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;width:22px;height:22px}
+
+/* ═══ TYPOGRAPHY ═══ */
+h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:300;line-height:1.2}
+h1{font-size:clamp(2.4rem,6vw,4.2rem)}
+h2{font-size:clamp(2rem,4.5vw,3.2rem)}
+h3{font-size:clamp(1.3rem,2.5vw,1.8rem)}
+h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
+
+/* ═══ LAYOUT ═══ */
+.container{max-width:1180px;margin:0 auto;padding:0 24px}
+.section{padding:90px 0}
+.section-dark{background:var(--dk2)}
+.section-light{background:#f7f4f0;color:#1a1a1a}
+.section-light .sec-tag{color:var(--gd)}
+.section-light h2{color:#1a1a1a}
+.section-light .sec-lead{color:#555}
+.section-light .pm-card{background:#fff;border-color:rgba(0,0,0,.08);color:#1a1a1a;box-shadow:0 2px 16px rgba(0,0,0,.06)}
+.section-light .pm-card h4{color:#1a1a1a}
+.section-light .pm-card p{color:#555}
+.section-light .pm-card .ico{background:rgba(212,148,58,.12)}
+.section-light .room-card{background:#fff;border-color:rgba(0,0,0,.08);box-shadow:0 2px 20px rgba(0,0,0,.07)}
+.section-light .room-card-body h3{color:#1a1a1a}
+.section-light .room-card-body p,.section-light .room-beds{color:#666}
+.section-light .room-price{color:var(--gd)}
+.section-sand{background:#0f1e2d}
+.section-cta{position:relative;background-size:cover;background-position:center}
+.sec-head{text-align:center;margin-bottom:60px}
+.sec-head.light h2,.sec-head.light .sec-lead,.sec-head.light .sec-tag{color:var(--text1)}
+.sec-tag{font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gd);margin-bottom:14px;display:block}
+.sec-lead{font-size:1.05rem;color:var(--text2);max-width:620px;margin:14px auto 0;line-height:1.7}
+
+/* ═══ NAVIGATION ═══ */
+#nav{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:center;justify-content:space-between;padding:20px 40px;transition:all .35s;backdrop-filter:blur(0)}
+#nav.scrolled{background:rgba(8,19,31,.96);backdrop-filter:blur(12px);padding:14px 40px;box-shadow:0 2px 20px rgba(0,0,0,.4)}
+.nav-logo{display:flex;align-items:center;gap:12px;font-family:'Cormorant Garamond',serif;font-size:1.18rem;font-weight:400;letter-spacing:.04em;color:var(--sand)}
+.nav-logo svg{width:34px;height:34px}
+.nav-links{display:flex;gap:36px;list-style:none}
+.nav-links a{font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);transition:color .2s;font-weight:500}
+.nav-links a:hover{color:var(--gd)}
+.nav-cta{background:var(--gd);color:var(--dk);padding:10px 24px;border-radius:50px;font-size:.8rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;transition:all .25s}
+.nav-cta:hover{background:var(--gd2);transform:translateY(-1px)}
+.back-os-btn{display:flex;align-items:center;gap:7px;color:var(--text3);font-size:.78rem;font-weight:500;letter-spacing:.05em;padding:8px 14px;border-radius:50px;border:1px solid rgba(255,255,255,.1);transition:all .25s;background:transparent;cursor:pointer}
+.back-os-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.back-os-btn:hover{color:var(--sand);border-color:rgba(255,255,255,.25)}
+#burger{display:none;flex-direction:column;gap:5px;width:32px;padding:4px}
+#burger span{height:2px;background:var(--text1);border-radius:2px;transition:all .25s}
+#mobile-menu{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--dk);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:28px}
+#mobile-menu.open{display:flex}
+#mobile-menu a{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:300;color:var(--sand)}
+#mobile-menu .nav-cta{margin-top:12px}
+
+/* ═══ HERO ═══ */
+#hero{min-height:100vh;background:url('https://ngams237.github.io/veraluz-os/assets/img/beach1.jpg') center/cover no-repeat;display:flex;align-items:center;position:relative;padding-top:80px}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(135deg,rgba(8,19,31,.82) 0%,rgba(8,19,31,.45) 60%,rgba(0,0,0,.25) 100%)}
+.hero-content{position:relative;z-index:2;padding:0 40px;max-width:720px}
+.hero-tag{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gd);margin-bottom:20px}
+.hero-lead{font-size:1.15rem;color:rgba(240,230,211,.82);margin:24px 0 38px;max-width:520px;line-height:1.7;font-weight:300}
+.hero-actions{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:56px}
+.hero-stats{display:flex;align-items:center;gap:40px}
+.stat{text-align:center}
+.stat-n{display:block;font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:300;color:var(--gd)}
+.stat-l{display:block;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-top:3px}
+.stat-sep{width:1px;height:40px;background:rgba(212,148,58,.3)}
+.hero-scroll{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);z-index:2;color:var(--gd);opacity:.7;cursor:pointer;animation:bounce 2s infinite}
+.hero-scroll svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+@keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)}}
+
+/* ═══ BUTTONS ═══ */
+.btn-primary{background:var(--gd);color:var(--dk);padding:14px 32px;border-radius:50px;font-size:.88rem;font-weight:600;letter-spacing:.05em;display:inline-flex;align-items:center;gap:10px;transition:all .25s;border:none;cursor:pointer}
+.btn-primary:hover{background:var(--gd2);transform:translateY(-2px);box-shadow:0 6px 24px rgba(212,148,58,.35)}
+.btn-primary svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary.btn-lg{padding:16px 40px;font-size:.95rem}
+.btn-ghost{background:transparent;color:var(--sand);border:1.5px solid rgba(240,230,211,.35);padding:14px 28px;border-radius:50px;font-size:.85rem;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:all .25s;cursor:pointer}
+.btn-ghost:hover{border-color:var(--gd);color:var(--gd)}
+.btn-outline{background:transparent;color:var(--gd);border:1.5px solid var(--gd);padding:12px 28px;border-radius:50px;font-size:.85rem;font-weight:600;display:inline-flex;align-items:center;gap:8px;transition:all .25s;cursor:pointer;margin-top:28px}
+.btn-outline:hover{background:var(--gd);color:var(--dk)}
+.btn-wa{background:#25d366;color:#fff;padding:14px 28px;border-radius:50px;font-size:.88rem;font-weight:600;display:inline-flex;align-items:center;gap:10px;transition:all .25s;cursor:pointer;text-decoration:none}
+.btn-wa svg{width:20px;height:20px}
+.btn-wa:hover{background:#1fbc58;transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,211,102,.3)}
+
+/* ═══ DATE BAR ═══ */
+.date-bar-wrap{background:var(--dk);padding:0 24px;position:relative;z-index:10}
+.date-bar{background:var(--dk3);border:1px solid var(--border);border-radius:var(--rd2);padding:20px 28px;max-width:1180px;margin:0 auto -28px;display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.db-field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:130px}
+.db-field label{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text3)}
+.db-field input,.db-field select{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--rd);padding:10px 14px;color:var(--text1);font:inherit;font-size:.9rem;outline:none;transition:border .2s}
+.db-field input:focus,.db-field select:focus{border-color:var(--gd)}
+.db-field select option{background:var(--dk2)}
+.db-sep{width:1px;height:44px;background:rgba(255,255,255,.1);align-self:flex-end}
+.db-btn{background:var(--gd);color:var(--dk);padding:12px 24px;border-radius:50px;font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:8px;transition:all .25s;white-space:nowrap;cursor:pointer;border:none}
+.db-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.db-btn:hover{background:var(--gd2)}
+
+/* ═══ ROOMS / ESPACES ═══ */
+.rooms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:28px}
+.room-card{background:var(--dk3);border:1px solid var(--border);border-radius:var(--rd2);overflow:hidden;transition:all .3s}
+.room-card:hover{transform:translateY(-5px);box-shadow:0 12px 40px rgba(0,0,0,.4);border-color:rgba(212,148,58,.35)}
+.room-card-img{height:220px;background-size:cover;background-position:center;position:relative}
+.room-badge{position:absolute;top:14px;left:14px;background:rgba(22,163,74,.9);color:#fff;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:20px}
+.room-card-body{padding:22px}
+.room-card-body h3{font-size:1.35rem;margin-bottom:10px;color:var(--sand)}
+.room-card-body p{font-size:.85rem;color:var(--text2);line-height:1.6;margin-bottom:18px}
+.room-card-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.room-price{font-family:'Inter',sans-serif;font-size:1.2rem;font-weight:800;color:var(--gd);letter-spacing:-.02em}
+.room-price small{font-family:'Inter',sans-serif;font-size:.68rem;color:var(--text3);font-weight:400;margin-left:4px}
+.room-bk-btn{background:var(--gd);color:var(--dk);padding:8px 20px;border-radius:50px;font-size:.78rem;font-weight:600;border:none;cursor:pointer;transition:all .2s}
+.room-bk-btn:hover{background:var(--gd2)}
+/* Amenities badges */
+.am-badge{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;color:var(--text3);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);padding:4px 9px;border-radius:20px;white-space:nowrap}
+.am-badge svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.am-more{display:inline-flex;align-items:center;font-size:.65rem;color:var(--gd);padding:4px 8px;border-radius:20px;border:1px solid rgba(212,148,58,.3);background:rgba(212,148,58,.07)}
+.bk-am-row,.room-am-row{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+/* Landing room card light version */
+.room-card .am-badge{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.1);color:#555}
+.room-cap-badge{position:absolute;bottom:10px;right:10px;background:rgba(8,19,31,.75);color:var(--sand);font-size:.65rem;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;backdrop-filter:blur(4px)}
+.room-cap-badge svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.room-beds{font-size:.78rem;color:#888;margin:-2px 0 6px;font-style:italic}
+.bk-room-sqm{position:absolute;top:8px;right:8px;background:rgba(8,19,31,.75);color:var(--sand);font-size:.65rem;padding:3px 9px;border-radius:12px;backdrop-filter:blur(4px)}
+.bk-room-img{position:relative}
+.bk-room-meta{font-size:.75rem;color:var(--text3);display:flex;align-items:center;gap:6px;margin:4px 0 6px}
+.bk-room-meta svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.skeleton{background:linear-gradient(90deg,var(--dk3) 25%,var(--dk2) 50%,var(--dk3) 75%);background-size:200%;animation:shimmer 1.5s infinite;min-height:320px;border-radius:var(--rd2)}
+@keyframes shimmer{0%{background-position:200%}100%{background-position:-200%}}
+
+/* ═══ EXPERIENCES ═══ */
+.exp-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:280px;gap:16px}
+.exp-card{border-radius:var(--rd2);overflow:hidden;background-size:cover;background-position:center;position:relative;cursor:pointer;transition:transform .3s}
+.exp-card.tall{grid-row:span 2}
+.exp-card:hover{transform:scale(1.01)}
+.exp-card::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(8,19,31,.88) 0%,rgba(8,19,31,.2) 50%,transparent 100%);transition:all .3s}
+.exp-card-body{position:absolute;bottom:0;left:0;right:0;padding:26px;z-index:2}
+.exp-card-body h3{font-size:1.35rem;color:var(--sand);margin-bottom:8px}
+.exp-card-body p{font-size:.82rem;color:rgba(240,230,211,.75);line-height:1.5}
+.exp-card-body .ico{margin-bottom:10px;color:var(--gd)}
+
+/* ═══ RESTAURANT ═══ */
+.resto-grid{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:start}
+.resto-imgs{}
+.resto-img-main{height:340px;border-radius:var(--rd2);background-size:cover;background-position:center;margin-bottom:10px}
+.resto-img-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.resto-img-sm{height:110px;border-radius:var(--rd);background-size:cover;background-position:center}
+.resto-text{}
+.resto-feat{display:flex;gap:16px;align-items:flex-start;margin-bottom:26px}
+.resto-feat .ico{flex-shrink:0;width:40px;height:40px;background:rgba(212,148,58,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--gd)}
+.resto-feat h4{font-size:.95rem;margin-bottom:5px}
+.resto-feat p{font-size:.83rem;color:var(--text2);line-height:1.6}
+
+/* ═══ GALLERY ═══ */
+.gal-masonry{columns:3;gap:14px}
+.gal-item{break-inside:avoid;margin-bottom:14px;border-radius:var(--rd);overflow:hidden;background-size:cover;background-position:center;cursor:pointer;transition:transform .3s;aspect-ratio:4/3}
+.gal-item.tall{aspect-ratio:3/4}
+.gal-item:hover{transform:scale(1.02)}
+.gal-lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:2000;align-items:center;justify-content:center}
+.gal-lb-inner{max-width:90vw;max-height:90vh;text-align:center}
+.gal-lb-inner img{max-width:100%;max-height:80vh;border-radius:var(--rd);object-fit:contain}
+.gal-lb-inner p{margin-top:12px;font-size:.82rem;color:var(--text3);letter-spacing:.1em;text-transform:uppercase}
+.gal-lb-close{position:absolute;top:20px;right:24px;color:#fff;font-size:2rem;background:none;border:none;cursor:pointer;line-height:1}
+.gal-lb-prev,.gal-lb-next{position:absolute;top:50%;transform:translateY(-50%);color:#fff;font-size:2.5rem;background:rgba(255,255,255,.08);border:none;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.gal-lb-prev{left:20px}
+.gal-lb-next{right:20px}
+.gal-lb-prev:hover,.gal-lb-next:hover{background:rgba(255,255,255,.18)}
+
+/* ═══ POURQUOI / PM-GRID ═══ */
+.pm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:22px}
+.pm-card{background:var(--dk3);border:1px solid var(--border);border-radius:var(--rd2);padding:28px;transition:all .3s;opacity:0;transform:translateY(20px)}
+.pm-card.visible{opacity:1;transform:translateY(0);transition:all .5s ease}
+.pm-card:hover{border-color:rgba(212,148,58,.35);transform:translateY(-4px)}
+.pm-card .ico{width:44px;height:44px;background:rgba(212,148,58,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--gd);margin-bottom:16px}
+.pm-card h4{font-size:.95rem;margin-bottom:8px;color:var(--sand)}
+.pm-card p{font-size:.82rem;color:var(--text2);line-height:1.6}
+
+/* ═══ AVIS / TESTIMONIALS ═══ */
+.avis-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px;margin-bottom:50px}
+.avis-card{background:var(--dk3);border:1px solid var(--border);border-radius:var(--rd2);padding:26px;transition:all .3s;opacity:0;transform:translateY(16px)}
+.avis-card.visible{opacity:1;transform:translateY(0);transition:all .5s ease}
+.avis-card:hover{border-color:rgba(212,148,58,.25);transform:translateY(-3px)}
+.avis-header{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.avis-avatar{width:48px;height:48px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(212,148,58,.3)}
+.avis-photo{width:100%;height:100%;object-fit:cover}
+.avis-photo-init{width:100%;height:100%;background:var(--gd);color:var(--dk);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem}
+.avis-name{display:block;font-size:.9rem;font-weight:600;color:var(--sand)}
+.avis-pays{display:block;font-size:.74rem;color:var(--text3);margin-top:2px}
+.avis-date{margin-left:auto;font-size:.72rem;color:var(--text3);white-space:nowrap}
+.avis-stars{margin-bottom:12px;display:flex;gap:3px}
+.avis-star{color:var(--dk3);font-size:1.1rem}
+.avis-star.lit{color:var(--gd)}
+.avis-text{font-size:.85rem;color:var(--text2);line-height:1.7;font-style:italic}
+/* Avis summary panel */
+.avis-summary{display:flex;gap:40px;align-items:center;background:var(--dk3);border:1px solid var(--border);border-radius:var(--rd2);padding:28px 32px;margin-bottom:36px;flex-wrap:wrap}
+.as-score{text-align:center;flex-shrink:0}
+.as-big{display:block;font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:300;color:var(--gd);line-height:1}
+.as-stars-row{font-size:1.3rem;margin:6px 0 4px;letter-spacing:2px}
+.as-total{font-size:.75rem;color:var(--text3);letter-spacing:.08em;text-transform:uppercase}
+.as-bars{flex:1;min-width:200px;display:flex;flex-direction:column;gap:8px}
+.as-bar-row{display:flex;align-items:center;gap:10px}
+.as-label{font-size:.75rem;color:var(--text3);width:22px;text-align:right;flex-shrink:0}
+.as-bar-track{flex:1;height:7px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+.as-bar-fill{height:100%;background:var(--gd);border-radius:4px;transition:width .6s ease}
+.as-count{font-size:.72rem;color:var(--text3);width:18px;text-align:left;flex-shrink:0}
+/* Toggle button */
+.avis-toggle-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--text3);border:1px solid var(--border);padding:11px 24px;border-radius:50px;font-size:.82rem;cursor:pointer;transition:all .25s}
+.avis-toggle-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.avis-toggle-btn:hover{color:var(--sand);border-color:rgba(255,255,255,.25)}
+
+/* Review form */
+.review-form-wrap{margin-top:40px}
+.review-toggle-btn{display:inline-flex;align-items:center;gap:10px;background:transparent;color:var(--gd);border:1.5px solid rgba(212,148,58,.4);padding:13px 28px;border-radius:50px;font-size:.88rem;font-weight:500;cursor:pointer;transition:all .25s;margin:0 auto;display:flex}
+.review-toggle-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.review-toggle-btn:hover{background:rgba(212,148,58,.1);border-color:var(--gd)}
+.review-form{background:var(--dk3);border-radius:var(--rd2);padding:32px;border:1px solid var(--border);margin-top:24px}
+.review-form h3{font-size:1.5rem;margin-bottom:24px;color:var(--sand)}
+.rv-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.rv-field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.rv-field label{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text3)}
+.rv-field input,.rv-field textarea{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:var(--rd);padding:11px 14px;color:var(--text1);font:inherit;font-size:.88rem;outline:none;transition:border .2s;resize:vertical}
+.rv-field input:focus,.rv-field textarea:focus{border-color:var(--gd)}
+.star-picker{display:flex;gap:6px;flex-direction:row-reverse;justify-content:flex-end}
+.star-picker input{display:none}
+.star-picker label{font-size:1.8rem;cursor:pointer;color:var(--text3);transition:color .15s;line-height:1}
+.star-picker label:hover,.star-picker label:hover~label,.star-picker input:checked~label{color:var(--gd)}
+.rv-photo-upload{display:flex;align-items:center;gap:16px;cursor:pointer;padding:14px;border:1.5px dashed rgba(255,255,255,.15);border-radius:var(--rd2);transition:border .2s}
+.rv-photo-upload:hover{border-color:var(--gd)}
+.rv-photo-preview{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.07);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text3);flex-shrink:0}
+.rv-photo-preview svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.5}
+.rv-photo-upload span{font-size:.82rem;color:var(--text3)}
+.rv-actions{display:flex;gap:12px;align-items:center;margin-top:20px;flex-wrap:wrap}
+.rv-submit{background:var(--gd);color:var(--dk);padding:12px 28px;border-radius:50px;font-size:.88rem;font-weight:600;border:none;cursor:pointer;transition:all .25s}
+.rv-submit:hover{background:var(--gd2)}
+.rv-success{display:flex;align-items:center;gap:12px;background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.3);border-radius:var(--rd);padding:16px;margin-top:16px;color:#4ade80;font-size:.88rem}
+.rv-success svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* ═══ CTA SECTION ═══ */
+.cta-overlay{position:absolute;inset:0;background:linear-gradient(135deg,rgba(8,19,31,.88),rgba(8,19,31,.65))}
+.cta-content{position:relative;z-index:2;text-align:center}
+.cta-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:36px 0 28px}
+.cta-garanties{display:flex;gap:28px;justify-content:center;flex-wrap:wrap}
+.cta-garanties span{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--text2);letter-spacing:.05em}
+.cta-garanties svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:var(--gd)}
+
+/* ═══ LOCALISATION ═══ */
+.loc-grid{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:start}
+.loc-map{border-radius:var(--rd2);overflow:hidden}
+.loc-info{}
+.loc-item{display:flex;gap:16px;margin-bottom:28px;align-items:flex-start}
+.loc-item .ico{width:40px;height:40px;background:rgba(0,150,199,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--oc);flex-shrink:0}
+.loc-item h4{font-size:.9rem;margin-bottom:5px;color:var(--sand)}
+.loc-item p{font-size:.83rem;color:var(--text2);line-height:1.6}
+
+/* ═══ CONTACT ═══ */
+.ct-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-bottom:40px}
+.ct-card{background:var(--dk3);border:1px solid var(--border);border-radius:var(--rd2);padding:28px;text-align:center;transition:all .3s}
+.ct-card:hover{border-color:rgba(212,148,58,.3);transform:translateY(-3px)}
+.ct-card .ico{width:48px;height:48px;background:rgba(212,148,58,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--gd);margin:0 auto 16px;font-size:1.2rem}
+.ct-card .ico svg{width:22px;height:22px}
+.ct-card h4{font-size:.95rem;margin-bottom:8px;color:var(--sand)}
+.ct-card p{font-size:.8rem;color:var(--text3);margin-bottom:16px}
+.ct-link{color:var(--gd);font-size:.88rem;font-weight:500;border-bottom:1px solid rgba(212,148,58,.3);padding-bottom:2px;transition:all .2s}
+.ct-link:hover{color:var(--gd2);border-color:var(--gd2)}
+.social-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;padding-top:8px}
+.soc-link{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:10px 20px;border-radius:50px;font-size:.82rem;color:var(--text2);transition:all .25s}
+.soc-link svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.soc-link:hover{background:rgba(212,148,58,.1);border-color:var(--gd);color:var(--gd)}
+
+/* ═══ FOOTER ═══ */
+.site-footer{background:rgba(0,0,0,.4);border-top:1px solid rgba(255,255,255,.06);padding:50px 0 30px}
+.footer-inner{display:grid;grid-template-columns:1.8fr 1fr 1fr;gap:50px}
+.footer-brand .nav-logo{margin-bottom:14px}
+.footer-brand p{font-size:.82rem;color:var(--text3);line-height:1.7}
+.footer-links,.footer-legal{display:flex;flex-direction:column;gap:10px}
+.footer-links h5,.footer-legal h5{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gd);margin-bottom:8px}
+.footer-links a{font-size:.82rem;color:var(--text3);transition:color .2s}
+.footer-links a:hover{color:var(--sand)}
+.footer-legal p{font-size:.78rem;color:var(--text3)}
+
+/* ═══ BOOKING OVERLAY ═══ */
+.bk-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1500;align-items:center;justify-content:center;display:flex;padding:20px}
+.bk-panel{background:var(--dk2);border:1px solid var(--border);border-radius:var(--rd2);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;position:relative;padding:36px}
+.bk-close{position:absolute;top:16px;right:20px;font-size:1.6rem;color:var(--text3);background:none;border:none;cursor:pointer;line-height:1;transition:color .2s}
+.bk-close:hover{color:var(--sand)}
+/* Progress */
+.bk-progress{display:flex;align-items:center;margin-bottom:36px;gap:0}
+.bk-prog-step{display:flex;flex-direction:column;align-items:center;gap:5px;flex:0 0 auto}
+.bk-prog-step span{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:600;color:var(--text3);transition:all .3s;background:var(--dk)}
+.bk-prog-step small{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);white-space:nowrap}
+.bk-prog-step.active span,.bk-prog-step.done span{background:var(--gd);color:var(--dk);border-color:var(--gd)}
+.bk-prog-step.active small{color:var(--gd)}
+.bk-prog-line{flex:1;height:2px;background:var(--border);transition:background .3s}
+.bk-prog-line.done{background:var(--gd)}
+/* Steps */
+.bk-step h3{font-size:1.5rem;margin-bottom:8px;color:var(--sand)}
+.bk-sub{font-size:.85rem;color:var(--text3);margin-bottom:24px}
+/* Rooms in modal */
+.bk-rooms{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-height:62vh;overflow-y:auto;padding-right:6px;padding-bottom:4px}
+.bk-rooms::-webkit-scrollbar{width:4px}.bk-rooms::-webkit-scrollbar-track{background:transparent}.bk-rooms::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.bk-room-card{display:flex;flex-direction:column;border:2px solid var(--border);border-radius:var(--rd2);overflow:hidden;cursor:pointer;transition:all .25s;background:var(--dk3)}
+.bk-room-card:hover{border-color:rgba(212,148,58,.4);transform:translateY(-2px)}
+.bk-room-card.selected{border-color:var(--gd);box-shadow:0 0 0 3px rgba(212,148,58,.15)}
+.bk-room-img{background-size:cover;background-position:center;height:130px;width:100%;position:relative;flex-shrink:0}
+.bk-room-img .bk-room-sqm{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;font-size:.62rem;padding:2px 7px;border-radius:20px;backdrop-filter:blur(4px)}
+.bk-room-body{padding:12px;display:flex;flex-direction:column;flex:1}
+.bk-room-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:6px}
+.bk-room-top h4{font-size:.88rem;color:var(--sand);line-height:1.3;flex:1}
+.bk-room-price{font-family:'Inter',sans-serif;font-size:.95rem;font-weight:700;color:var(--gd);white-space:nowrap;text-align:right;letter-spacing:-.01em}
+.bk-room-price small{font-family:'Inter',sans-serif;font-size:.58rem;color:var(--text3);display:block;font-weight:400;letter-spacing:.02em}
+.bk-room-desc{font-size:.72rem;color:var(--text2);margin-bottom:6px}
+.bk-room-meta{font-size:.72rem;color:var(--text3);display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.bk-room-meta svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.bk-room-cap{font-size:.7rem;color:var(--text3);display:flex;align-items:center;gap:4px;margin-top:auto;padding-top:6px}
+.bk-room-cap svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.bk-am-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
+.rm-ams{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.rm-am{font-size:.68rem;color:var(--text3);display:flex;align-items:center;gap:4px}
+@media(max-width:500px){.bk-rooms{grid-template-columns:1fr}}
+.rm-am svg{width:11px;height:11px;stroke:var(--gd);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.bk-room-cap{font-size:.72rem;color:var(--text3);display:flex;align-items:center;gap:5px}
+.bk-room-cap svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.bk-loading{display:flex;align-items:center;gap:12px;padding:30px;color:var(--text3);font-size:.88rem;justify-content:center}
+.spin{animation:spin 1s linear infinite}
+.spin path{stroke:var(--gd);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.bk-warn{background:rgba(231,111,81,.1);border:1px solid rgba(231,111,81,.3);border-radius:var(--rd);padding:14px 18px;font-size:.84rem;color:#f4a07a}
+/* Dates step */
+.bk-dates-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px}
+.bk-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.bk-field label{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text3)}
+.bk-field input,.bk-field select,.bk-field textarea{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:var(--rd);padding:11px 14px;color:var(--text1);font:inherit;font-size:.88rem;outline:none;transition:border .2s}
+.bk-field input:focus,.bk-field select:focus,.bk-field textarea:focus{border-color:var(--gd)}
+.bk-field select option{background:var(--dk2)}
+.bk-field-full{grid-column:1/-1}
+.bk-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+/* Totals */
+.bk-total-wrap{background:rgba(212,148,58,.07);border:1px solid rgba(212,148,58,.2);border-radius:var(--rd2);padding:20px;margin-bottom:20px}
+.bk-total-row{display:flex;justify-content:space-between;font-size:.86rem;color:var(--text2);padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.bk-total-row:last-child{border-bottom:none}
+.bk-total-main{font-size:1rem;font-weight:600;color:var(--sand);padding:10px 0}
+.bk-acompte{color:var(--gd)!important;font-weight:600!important}
+/* Payment */
+.bk-payment-opts{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
+.pm-opt{display:block;cursor:pointer}
+.pm-opt input{display:none}
+.pm-opt-body{display:flex;align-items:center;gap:14px;padding:16px 18px;background:var(--dk3);border:2px solid var(--border);border-radius:var(--rd2);transition:all .25s}
+.pm-opt input:checked+.pm-opt-body{border-color:var(--gd);background:rgba(212,148,58,.07)}
+.pm-opt-body .ico{width:38px;height:38px;background:rgba(212,148,58,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--gd);flex-shrink:0}
+.pm-opt-body strong{display:block;font-size:.9rem;color:var(--sand)}
+.pm-opt-body small{display:block;font-size:.75rem;color:var(--text3);margin-top:2px}
+.bk-pay-info{background:rgba(0,150,199,.07);border:1px solid rgba(0,150,199,.2);border-radius:var(--rd2);padding:18px;margin-bottom:16px;font-size:.84rem}
+.pay-info-box strong{display:block;color:var(--sand);margin-bottom:8px;font-size:.9rem}
+.pay-info-box p{color:var(--text2);margin-bottom:8px;line-height:1.6}
+.pay-number{font-size:1rem;font-weight:600;color:var(--gd);background:rgba(212,148,58,.1);padding:10px 16px;border-radius:var(--rd);display:inline-block;margin:8px 0;letter-spacing:.05em}
+/* Recap */
+.bk-recap{background:var(--dk3);border:1px solid var(--border);border-radius:var(--rd2);padding:18px;margin-bottom:16px}
+.bk-recap-title{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gd);margin-bottom:12px}
+.bk-recap-row{display:flex;justify-content:space-between;font-size:.83rem;color:var(--text2);padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.bk-recap-row:last-child{border-bottom:none}
+.bk-recap-acompte{color:var(--gd)!important;font-weight:600!important;font-size:.9rem!important}
+/* Footer buttons */
+.bk-footer{margin-top:24px;display:flex;justify-content:flex-end}
+.bk-footer-2btn{justify-content:space-between}
+.bk-btn-next{background:var(--gd);color:var(--dk);padding:12px 28px;border-radius:50px;font-size:.88rem;font-weight:600;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .25s}
+.bk-btn-next svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.bk-btn-next:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+.bk-btn-next:not(:disabled):hover{background:var(--gd2);transform:translateY(-1px)}
+.bk-btn-back{background:transparent;color:var(--text3);border:1px solid var(--border);padding:12px 24px;border-radius:50px;font-size:.86rem;cursor:pointer;transition:all .2s}
+.bk-btn-back:hover{border-color:var(--text3);color:var(--sand)}
+/* Confirmation */
+.bk-conf-icon{width:64px;height:64px;background:rgba(22,163,74,.1);border:2px solid rgba(22,163,74,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;color:#4ade80}
+.bk-conf-icon svg{width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bk-confirm-wrap{text-align:center;padding:10px 0}
+.bk-confirm-wrap h3{font-size:1.7rem;color:var(--sand);margin-bottom:10px}
+.bk-confirm-wrap>p{font-size:.9rem;color:var(--text2);margin-bottom:20px}
+.bk-conf-card{background:var(--dk3);border:1px solid var(--border);border-radius:var(--rd2);padding:20px;text-align:left;margin-bottom:20px}
+.bk-conf-next{font-size:.84rem;color:var(--text2);line-height:1.7;margin-bottom:24px}
+.bk-conf-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* ═══ TOAST ═══ */
+.toast{position:fixed;bottom:30px;right:30px;background:var(--dk3);border:1px solid var(--border);border-radius:var(--rd2);padding:14px 20px;font-size:.88rem;color:var(--text1);z-index:3000;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.warn{border-color:rgba(251,191,36,.4);color:#fbbf24}
+.toast.error{border-color:rgba(239,68,68,.4);color:#f87171}
+
+/* ═══ ICO SVG mono ═══ */
+.ico svg{stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;width:22px;height:22px}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:1024px){
+  .resto-grid,.loc-grid{grid-template-columns:1fr}
+  .footer-inner{grid-template-columns:1fr 1fr}
+}
+@media(max-width:900px){
+  .ct-grid{grid-template-columns:1fr 1fr}
+  .gal-masonry{columns:2}
+  .exp-grid{grid-template-columns:1fr 1fr}
+  .exp-card.tall{grid-row:auto}
+  .bk-dates-grid{grid-template-columns:1fr 1fr}
+  .bk-form-grid{grid-template-columns:1fr}
+}
+@media(max-width:680px){
+  #nav .nav-links{display:none}
+  #burger{display:flex}
+  #nav{padding:16px 20px}
+  .hero-content{padding:0 20px}
+  .hero-stats{gap:20px}
+  .rooms-grid{grid-template-columns:1fr}
+  .pm-grid{grid-template-columns:1fr 1fr}
+  .section{padding:60px 0}
+  .date-bar{flex-direction:column;align-items:stretch}
+  .db-btn{width:100%;justify-content:center}
+  .db-sep{display:none}
+  .footer-inner{grid-template-columns:1fr}
+  .bk-panel{padding:24px}
+  .bk-progress{gap:0}
+  .bk-prog-step small{display:none}
+  .bk-room-card{grid-template-columns:80px 1fr}
+}
+@media(max-width:520px){
+  .gal-masonry{columns:1}
+  .exp-grid{grid-template-columns:1fr}
+  .exp-card:first-child{grid-column:span 1}
+  .ct-grid{grid-template-columns:1fr}
+  .rv-row{grid-template-columns:1fr}
+  .bk-dates-grid{grid-template-columns:1fr}
+  .cta-actions,.hero-actions{flex-direction:column;align-items:center}
+}
+</style>
+</head>
+<body>
+<!-- NAV -->
+<nav id="nav">
+  <a class="nav-logo" href="#">
+    <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="var(--gd)" stroke-width="1.6"/><path d="M8 20c2-4 4-8 8-8s6 4 8 8" stroke="var(--gd)" stroke-width="1.4" stroke-linecap="round"/><path d="M6 20h20" stroke="var(--gd)" stroke-width="1.4" stroke-linecap="round"/></svg>
+    <span>Résidence Veraluz</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#espaces">Espaces</a></li>
+    <li><a href="#experiences">Expériences</a></li>
+    <li><a href="#restaurant">Restaurant</a></li>
+    <li><a href="#galerie">Galerie</a></li>
+    <li><a href="#avis">Avis</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <button class="back-os-btn" onclick="returnToOS()" title="Retour au tableau de bord">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Veraluz OS
+  </button>
+  <button class="nav-cta" onclick="openBk()">Réserver</button>
+  <button id="burger" aria-label="Menu" onclick="toggleMobileMenu()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div id="mobile-menu">
+  <a href="#espaces" onclick="closeMobileMenu()">Espaces</a>
+  <a href="#experiences" onclick="closeMobileMenu()">Expériences</a>
+  <a href="#restaurant" onclick="closeMobileMenu()">Restaurant</a>
+  <a href="#galerie" onclick="closeMobileMenu()">Galerie</a>
+  <a href="#avis" onclick="closeMobileMenu()">Avis</a>
+  <a href="#contact" onclick="closeMobileMenu()">Contact</a>
+  <button class="nav-cta" onclick="openBk();closeMobileMenu()">Réserver</button>
+</div>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <p class="hero-tag" id="cms-hero-tag">Face à l'Atlantique · Kribi, Cameroun</p>
+    <h1 id="cms-hero-title">Vivez l'Océan<br>Autrement</h1>
+    <p class="hero-lead" id="cms-hero-lead">Appartements meublés de luxe avec vue sur la mer. Séjours courts et longs. À deux pas de la plage.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="openBk()">
+        <svg viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+        Vérifier les disponibilités
+      </button>
+      <a href="#espaces" class="btn-ghost">Découvrir nos espaces</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-n" id="cms-stat1-n">7</span><span class="stat-l" id="cms-stat1-l">Appartements</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat"><span class="stat-n" id="cms-stat2-n">100m</span><span class="stat-l" id="cms-stat2-l">De la plage</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat"><span class="stat-n" id="cms-stat3-n">24/7</span><span class="stat-l" id="cms-stat3-l">Assistance</span></div>
+    </div>
+  </div>
+  <div class="hero-scroll" onclick="document.getElementById('espaces').scrollIntoView({behavior:'smooth'})">
+    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+  </div>
+</section>
+
+<!-- DATE BAR -->
+<div class="date-bar-wrap">
+  <div class="date-bar">
+    <div class="db-field">
+      <label>Arrivée</label>
+      <input type="date" id="db-checkin" oninput="syncDates()">
+    </div>
+    <div class="db-sep"></div>
+    <div class="db-field">
+      <label>Départ</label>
+      <input type="date" id="db-checkout" oninput="syncDates()">
+    </div>
+    <div class="db-sep"></div>
+    <div class="db-field">
+      <label>Voyageurs</label>
+      <select id="db-guests">
+        <option value="1">1 personne</option>
+        <option value="2" selected>2 personnes</option>
+        <option value="3">3 personnes</option>
+        <option value="4">4 personnes</option>
+        <option value="5">5 personnes</option>
+        <option value="6">6+ personnes</option>
+      </select>
+    </div>
+    <button class="db-btn" onclick="openBkWithDates()">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      Rechercher
+    </button>
+  </div>
+</div>
+
+<!-- ESPACES -->
+<section id="espaces" class="section section-light">
+  <div class="container">
+    <div class="sec-head">
+      <p class="sec-tag" id="cms-espaces-tag">Nos Hébergements</p>
+      <h2 id="cms-espaces-title">Chaque Espace,<br>une Sensation</h2>
+      <p class="sec-lead" id="cms-espaces-lead">Des intérieurs soignés pensés pour le confort et la beauté, face à l'immensité de l'Atlantique.</p>
+    </div>
+    <div class="rooms-grid" id="rooms-grid">
+      <!-- Injected by loadRooms() / renderRoomCards() -->
+      <div class="room-card skeleton"></div>
+      <div class="room-card skeleton"></div>
+      <div class="room-card skeleton"></div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERIENCES -->
+<section id="experiences" class="section section-dark">
+  <div class="container">
+    <div class="sec-head light">
+      <p class="sec-tag" id="cms-exp-tag">Vivez Kribi Autrement</p>
+      <h2 id="cms-exp-title">Expériences<br>Inoubliables</h2>
+      <p class="sec-lead" id="cms-exp-lead">La côte atlantique camerounaise recèle des trésors naturels et culturels d'une richesse rare.</p>
+    </div>
+    <div class="exp-grid">
+      <div class="exp-card tall" id="cms-exp-1" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/chutes.jpg')">
+        <div class="exp-card-body">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 6v6l4 2"/></svg></div>
+          <h3>Chutes de la Lobe</h3>
+          <p>Les seules chutes d'eau au monde qui se jettent directement dans l'océan. Un spectacle unique à 10 km.</p>
+        </div>
+      </div>
+      <div class="exp-card" id="cms-exp-2" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/kayak.jpg')">
+        <div class="exp-card-body">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M2 12h20M12 2v20"/><ellipse cx="12" cy="12" rx="10" ry="6"/></svg></div>
+          <h3>Kayak & Nautisme</h3>
+          <p>Pagayez le long de la côte atlantique, entre mangroves et plages secrètes.</p>
+        </div>
+      </div>
+      <div class="exp-card" id="cms-exp-3" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/pirogue.jpg')">
+        <div class="exp-card-body">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 18c0-3 3-6 9-6s9 3 9 6"/><path d="M12 12V6M8 9l4-3 4 3"/></svg></div>
+          <h3>Pirogue Traditionnelle</h3>
+          <p>Partez en mer avec les pêcheurs locaux au lever du soleil, une immersion authentique.</p>
+        </div>
+      </div>
+      <div class="exp-card" id="cms-exp-4" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/sunset_kribi.jpg')">
+        <div class="exp-card-body">
+          <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div>
+          <h3>Couchers de Soleil</h3>
+          <p>Les crépuscules sur l'Atlantique à Kribi comptent parmi les plus beaux d'Afrique centrale.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESTAURANT -->
+<section id="restaurant" class="section">
+  <div class="container">
+    <div class="sec-head">
+      <p class="sec-tag" id="cms-resto-tag">Saveurs & Sunset Lounge</p>
+      <h2 id="cms-resto-title">Restaurant<br>& Rooftop Bar</h2>
+      <p class="sec-lead" id="cms-resto-lead">Une cuisine créative qui sublime les produits de la mer frais du marché de Kribi, servis avec vue sur l'horizon.</p>
+    </div>
+    <div class="resto-grid">
+      <div class="resto-imgs">
+        <div class="resto-img-main" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/resto.jpg')"></div>
+        <div class="resto-img-row">
+          <div class="resto-img-sm" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/gambas.jpg')"></div>
+          <div class="resto-img-sm" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/rooftop.jpg')"></div>
+          <div class="resto-img-sm" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/crevettes.jpg')"></div>
+        </div>
+      </div>
+      <div class="resto-text">
+        <div class="resto-feat">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 2l1.5 1.5M3 8h4M7 2v6a4 4 0 01-4 4h0"/><path d="M21 15a9 9 0 01-9 9"/><path d="M13 2v4a5 5 0 005 5h3"/></svg></div>
+          <div>
+            <h4>Cuisine de la Mer</h4>
+            <p>Crevettes géantes, poissons grillés, gambas flambées — tout frais du marché local du matin.</p>
+          </div>
+        </div>
+        <div class="resto-feat">
+          <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2"/></svg></div>
+          <div>
+            <h4>Rooftop au Coucher du Soleil</h4>
+            <p>Notre bar panoramique au dernier étage offre une vue à 180° sur l'Atlantique — l'heure d'or à ne pas manquer.</p>
+          </div>
+        </div>
+        <div class="resto-feat">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></div>
+          <div>
+            <h4>Petit-Déjeuner Inclus</h4>
+            <p>Buffet tropical chaque matin : fruits frais, pains maison, jus naturels et spécialités locales.</p>
+          </div>
+        </div>
+        <div class="resto-feat">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586M3 2l18 18"/><path d="M15 5a2 2 0 00-2-2H4a2 2 0 00-2 2v6a2 2 0 002 2h2v4l4-4h2"/></svg></div>
+          <div>
+            <h4>Service en Chambre</h4>
+            <p>Commandez à toute heure — notre équipe livre directement dans votre appartement.</p>
+          </div>
+        </div>
+        <button class="btn-outline" id="cms-resto-cta" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+          Réserver une table
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GALERIE -->
+<section id="galerie" class="section section-sand">
+  <div class="container">
+    <div class="sec-head">
+      <p class="sec-tag">Notre Univers</p>
+      <h2>Galerie</h2>
+      <p class="sec-lead">Laissez-vous transporter par l'atmosphère unique de la Résidence Veraluz.</p>
+    </div>
+    <div class="gal-masonry" id="gallery-grid">
+      <div class="gal-item" onclick="openLightbox(this)" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/beach1.jpg')" data-src="https://ngams237.github.io/veraluz-os/assets/img/beach1.jpg" data-cap="La plage de Kribi"></div>
+      <div class="gal-item" onclick="openLightbox(this)" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/beach2.jpg')" data-src="https://ngams237.github.io/veraluz-os/assets/img/beach2.jpg" data-cap="Vue sur l'Atlantique"></div>
+      <div class="gal-item tall" onclick="openLightbox(this)" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/allee.jpg')" data-src="https://ngams237.github.io/veraluz-os/assets/img/allee.jpg" data-cap="Allée principale"></div>
+      <div class="gal-item" onclick="openLightbox(this)" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/rooftop.jpg')" data-src="https://ngams237.github.io/veraluz-os/assets/img/rooftop.jpg" data-cap="Rooftop Bar"></div>
+      <div class="gal-item" onclick="openLightbox(this)" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/kribi_view.jpg')" data-src="https://ngams237.github.io/veraluz-os/assets/img/kribi_view.jpg" data-cap="Vue sur Kribi"></div>
+      <div class="gal-item tall" onclick="openLightbox(this)" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/chutes.jpg')" data-src="https://ngams237.github.io/veraluz-os/assets/img/chutes.jpg" data-cap="Chutes de la Lobe"></div>
+      <div class="gal-item" onclick="openLightbox(this)" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/resto.jpg')" data-src="https://ngams237.github.io/veraluz-os/assets/img/resto.jpg" data-cap="Restaurant"></div>
+      <div class="gal-item" onclick="openLightbox(this)" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/beach3.jpg')" data-src="https://ngams237.github.io/veraluz-os/assets/img/beach3.jpg" data-cap="Plage privée"></div>
+      <div class="gal-item" onclick="openLightbox(this)" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/sunset_kribi.jpg')" data-src="https://ngams237.github.io/veraluz-os/assets/img/sunset_kribi.jpg" data-cap="Coucher de soleil"></div>
+    </div>
+  </div>
+</section>
+<!-- LIGHTBOX -->
+<div class="gal-lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="gal-lb-close" onclick="closeLightbox()">&times;</button>
+  <button class="gal-lb-prev" onclick="event.stopPropagation();lbNav(-1)">&#8249;</button>
+  <div class="gal-lb-inner">
+    <img id="lb-img" src="" alt="">
+    <p id="lb-cap"></p>
+  </div>
+  <button class="gal-lb-next" onclick="event.stopPropagation();lbNav(1)">&#8250;</button>
+</div>
+
+<!-- POURQUOI VERALUZ -->
+<section id="avantages" class="section section-light">
+  <div class="container">
+    <div class="sec-head">
+      <p class="sec-tag">Notre Différence</p>
+      <h2>Pourquoi Choisir<br>Veraluz ?</h2>
+    </div>
+    <div class="pm-grid">
+      <div class="pm-card">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <h4>Vue Mer Garantie</h4>
+        <p>Chaque appartement offre une vue directe ou dégagée sur l'Atlantique depuis les terrasses et baies vitrées.</p>
+      </div>
+      <div class="pm-card">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h4>Sécurité & Confort</h4>
+        <p>Gardien 24h/24, accès sécurisé par badge, climatisation, Wi-Fi haut débit inclus dans chaque espace.</p>
+      </div>
+      <div class="pm-card">
+        <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <h4>Flexibilité des Séjours</h4>
+        <p>Courte durée, semaine, mensuel — nous adaptons la formule et le tarif à votre projet de séjour.</p>
+      </div>
+      <div class="pm-card">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+        <h4>Emplacement Idéal</h4>
+        <p>À 100m de la plage, proche des restaurants, marchés et attractions de Kribi. Tout à pied.</p>
+      </div>
+      <div class="pm-card">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+        <h4>Service Personnalisé</h4>
+        <p>Une équipe dédiée répondant sur WhatsApp en moins de 15 minutes. Accueil chaleureux garanti.</p>
+      </div>
+      <div class="pm-card">
+        <div class="ico"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        <h4>Tarifs Transparents</h4>
+        <p>Aucune commission cachée. 30% d'acompte à la réservation, solde à l'arrivée. Annulation flexible.</p>
+      </div>
+      <div class="pm-card">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 10h18M3 14h18M3 18h18"/></svg></div>
+        <h4>Appartements Meublés</h4>
+        <p>Cuisine équipée, linge de maison premium, décoration soignée — tout le confort d'un chez-soi de luxe.</p>
+      </div>
+      <div class="pm-card">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+        <h4>Géré depuis le Canada</h4>
+        <p>Gestion professionnelle à distance avec présence terrain régulière — standards internationaux assurés.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEMOIGNAGES -->
+<section id="avis" class="section section-dark">
+  <div class="container">
+    <div class="sec-head light">
+      <p class="sec-tag" id="cms-avis-tag">Ce Qu'ils Disent</p>
+      <h2 id="cms-avis-title">Témoignages</h2>
+      <p class="sec-lead" id="cms-avis-lead">L'expérience Veraluz vue par nos hôtes.</p>
+    </div>
+    <div id="avis-summary"></div>
+    <div class="avis-grid" id="avis-grid"></div>
+    <div id="avis-ctrl" style="display:none;justify-content:center;margin-top:28px"></div>
+    <!-- ADD REVIEW FORM -->
+    <div class="review-form-wrap" id="review-form-wrap">
+      <button class="btn-ghost review-toggle-btn" onclick="toggleReviewForm()">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Partager mon expérience
+      </button>
+      <div class="review-form" id="review-form" style="display:none">
+        <h3>Votre avis</h3>
+        <div class="rv-row">
+          <div class="rv-field">
+            <label>Prénom</label>
+            <input type="text" id="rv-name" placeholder="Votre prénom">
+          </div>
+          <div class="rv-field">
+            <label>Pays d'origine</label>
+            <input type="text" id="rv-pays" placeholder="Ex: Cameroun, France...">
+          </div>
+        </div>
+        <div class="rv-field">
+          <label>Note globale</label>
+          <div class="star-picker" id="rv-stars">
+            <input type="radio" id="s5" name="rating" value="5"><label for="s5">★</label>
+            <input type="radio" id="s4" name="rating" value="4"><label for="s4">★</label>
+            <input type="radio" id="s3" name="rating" value="3"><label for="s3">★</label>
+            <input type="radio" id="s2" name="rating" value="2"><label for="s2">★</label>
+            <input type="radio" id="s1" name="rating" value="1"><label for="s1">★</label>
+          </div>
+        </div>
+        <div class="rv-field">
+          <label>Votre commentaire</label>
+          <textarea id="rv-text" rows="4" placeholder="Décrivez votre séjour à la Résidence Veraluz..."></textarea>
+        </div>
+        <div class="rv-field">
+          <label>Photo de profil (optionnel)</label>
+          <div class="rv-photo-upload" onclick="document.getElementById('rv-photo-input').click()">
+            <div class="rv-photo-preview" id="rv-photo-preview">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <span>Cliquez pour ajouter une photo</span>
+            <input type="file" id="rv-photo-input" accept="image/*" style="display:none" onchange="previewRvPhoto(this)">
+          </div>
+        </div>
+        <div class="rv-actions">
+          <button class="rv-submit" onclick="submitReview()">Publier mon avis</button>
+          <button class="btn-ghost" onclick="toggleReviewForm()">Annuler</button>
+        </div>
+        <div class="rv-success" id="rv-success" style="display:none">
+          <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Merci pour votre avis ! Il sera affiché après validation.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESERVATION CTA -->
+<section id="reservation" class="section section-cta" style="background-image:url('https://ngams237.github.io/veraluz-os/assets/img/beach2.jpg')">
+  <div class="cta-overlay"></div>
+  <div class="container cta-content">
+    <p class="sec-tag" id="cms-cta-tag">Réservez Dès Maintenant</p>
+    <h2 id="cms-cta-title">Votre Séjour de Rêve<br>Commence Ici</h2>
+    <p class="sec-lead" id="cms-cta-lead">30% d'acompte pour confirmer votre réservation. Solde à l'arrivée. Annulation flexible jusqu'à 48h avant.</p>
+    <div class="cta-actions">
+      <button class="btn-primary btn-lg" onclick="openBk()">
+        <svg viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+        Réserver un appartement
+      </button>
+      <a class="btn-wa" id="cms-wa-btn" href="https://wa.me/1234567890" target="_blank">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.999 2C6.478 2 2 6.478 2 12c0 1.85.505 3.58 1.385 5.07L2 22l5.073-1.368A9.95 9.95 0 0012 21.998C17.522 22 22 17.522 22 12S17.522 2 11.999 2zm.001 18.163a8.14 8.14 0 01-4.144-1.128l-.297-.177-3.066.827.836-3.002-.194-.308A8.163 8.163 0 013.837 12c0-4.507 3.666-8.173 8.173-8.173 4.507 0 8.163 3.666 8.163 8.173 0 4.507-3.656 8.163-8.173 8.163z"/></svg>
+        WhatsApp Direct
+      </a>
+    </div>
+    <div class="cta-garanties">
+      <span><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Paiement sécurisé</span>
+      <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Confirmation immédiate</span>
+      <span><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Annulation flexible</span>
+    </div>
+  </div>
+</section>
+
+<!-- LOCALISATION -->
+<section id="localisation" class="section">
+  <div class="container">
+    <div class="sec-head">
+      <p class="sec-tag">Où Nous Trouver</p>
+      <h2>Localisation</h2>
+      <p class="sec-lead">Kribi, Cameroun — Bord de mer, accès direct à la plage.</p>
+    </div>
+    <div class="loc-grid">
+      <div class="loc-map">
+        <iframe src="https://www.openstreetmap.org/export/embed.html?bbox=9.87,2.93,9.95,2.97&layer=mapnik&marker=2.9500,9.9100" width="100%" height="380" style="border:0;border-radius:12px" loading="lazy" title="Carte Kribi"></iframe>
+      </div>
+      <div class="loc-info">
+        <div class="loc-item">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div>
+            <h4>Adresse</h4>
+            <p id="cms-adresse">Résidence Veraluz, Bord de Mer<br>Kribi, Cameroun</p>
+          </div>
+        </div>
+        <div class="loc-item">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <div>
+            <h4>Accès</h4>
+            <p>À 10 min du centre-ville de Kribi<br>À 3h de Douala via l'autoroute</p>
+          </div>
+        </div>
+        <div class="loc-item">
+          <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div>
+            <h4>Check-in / Check-out</h4>
+            <p>Check-in dès 14h00<br>Check-out avant 12h00</p>
+          </div>
+        </div>
+        <div class="loc-item">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></div>
+          <div>
+            <h4>Contact Direct</h4>
+            <p id="cms-phone-loc">+237 6XX XXX XXX<br>Disponible 7j/7</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact" class="section section-dark">
+  <div class="container">
+    <div class="sec-head light">
+      <p class="sec-tag">Parlons-en</p>
+      <h2>Nous Contacter</h2>
+    </div>
+    <div class="ct-grid">
+      <div class="ct-card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.999 2C6.478 2 2 6.478 2 12c0 1.85.505 3.58 1.385 5.07L2 22l5.073-1.368A9.95 9.95 0 0012 21.998C17.522 22 22 17.522 22 12S17.522 2 11.999 2zm.001 18.163a8.14 8.14 0 01-4.144-1.128l-.297-.177-3.066.827.836-3.002-.194-.308A8.163 8.163 0 013.837 12c0-4.507 3.666-8.173 8.173-8.173 4.507 0 8.163 3.666 8.173 8.173 0 4.507-3.656 8.163-8.163 8.163z"/></svg></div>
+        <h4>WhatsApp</h4>
+        <p>Réponse en moins de 15 minutes</p>
+        <a class="ct-link" id="cms-wa-main" href="https://wa.me/1234567890" target="_blank">Ouvrir WhatsApp</a>
+      </div>
+      <div class="ct-card">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+        <h4>Email</h4>
+        <p>Devis et informations détaillées</p>
+        <a class="ct-link" id="cms-email-link" href="mailto:contact@veraluz.com">contact@veraluz.com</a>
+      </div>
+      <div class="ct-card">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></div>
+        <h4>Téléphone</h4>
+        <p>Pour les urgences et check-in</p>
+        <a class="ct-link" id="cms-phone-link" href="tel:+2376000000">+237 6XX XXX XXX</a>
+      </div>
+    </div>
+    <div class="social-row" id="cms-social-row">
+      <!-- injected by applyCMS -->
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <a class="nav-logo" href="#">
+        <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="var(--gd)" stroke-width="1.6"/><path d="M8 20c2-4 4-8 8-8s6 4 8 8" stroke="var(--gd)" stroke-width="1.4" stroke-linecap="round"/><path d="M6 20h20" stroke="var(--gd)" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <span>Résidence Veraluz</span>
+      </a>
+      <p>Appartements meublés de luxe<br>avec vue sur la mer · Kribi, Cameroun</p>
+    </div>
+    <div class="footer-links">
+      <h5>Navigation</h5>
+      <a href="#espaces">Nos Espaces</a>
+      <a href="#experiences">Expériences</a>
+      <a href="#restaurant">Restaurant</a>
+      <a href="#galerie">Galerie</a>
+      <a href="#avis">Témoignages</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <div class="footer-legal">
+      <h5>Informations</h5>
+      <p>Réservation : 30% d'acompte</p>
+      <p>Annulation flexible 48h avant</p>
+      <p>Check-in 14h · Check-out 12h</p>
+      <p id="footer-year"></p>
+    </div>
+  </div>
+</footer>
+
+<!-- BOOKING OVERLAY -->
+<div class="bk-overlay" id="bookingOverlay" style="display:none">
+  <div class="bk-panel">
+    <button class="bk-close" onclick="closeBk()">&times;</button>
+    <!-- Progress bar -->
+    <div class="bk-progress">
+      <div class="bk-prog-step active" id="prog-1">
+        <span>1</span><small>Espace</small>
+      </div>
+      <div class="bk-prog-line" id="prog-l1"></div>
+      <div class="bk-prog-step" id="prog-2">
+        <span>2</span><small>Dates</small>
+      </div>
+      <div class="bk-prog-line" id="prog-l2"></div>
+      <div class="bk-prog-step" id="prog-3">
+        <span>3</span><small>Vos infos</small>
+      </div>
+      <div class="bk-prog-line" id="prog-l3"></div>
+      <div class="bk-prog-step" id="prog-4">
+        <span>4</span><small>Paiement</small>
+      </div>
+      <div class="bk-prog-line" id="prog-l4"></div>
+      <div class="bk-prog-step" id="prog-5">
+        <span>5</span><small>Confirmation</small>
+      </div>
+    </div>
+    <!-- Step 1: Choose room -->
+    <div class="bk-step" id="bk-step-1">
+      <h3>Choisissez votre espace</h3>
+      <p class="bk-sub">Sélectionnez l'appartement qui correspond à vos besoins.</p>
+      <div class="bk-rooms" id="bk-rooms">
+        <div class="bk-loading">
+          <svg viewBox="0 0 24 24" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Chargement des disponibilités...
+        </div>
+      </div>
+      <div class="bk-footer">
+        <button class="bk-btn-next" id="bk-btn-s1" onclick="goS(2)" disabled>Continuer</button>
+      </div>
+    </div>
+    <!-- Step 2: Dates -->
+    <div class="bk-step" id="bk-step-2" style="display:none">
+      <h3>Choisissez vos dates</h3>
+      <p class="bk-sub">Sélectionnez vos dates d'arrivée et de départ.</p>
+      <div class="bk-dates-grid">
+        <div class="bk-field">
+          <label>Date d'arrivée</label>
+          <input type="date" id="bk-checkin" oninput="calcTotal()">
+        </div>
+        <div class="bk-field">
+          <label>Date de départ</label>
+          <input type="date" id="bk-checkout" oninput="calcTotal()">
+        </div>
+        <div class="bk-field">
+          <label>Nombre de voyageurs</label>
+          <select id="bk-guests">
+            <option value="1">1 personne</option>
+            <option value="2" selected>2 personnes</option>
+            <option value="3">3 personnes</option>
+            <option value="4">4 personnes</option>
+            <option value="5">5 personnes</option>
+            <option value="6">6+ personnes</option>
+          </select>
+        </div>
+      </div>
+      <div class="bk-total-wrap" id="bk-total-wrap" style="display:none">
+        <div class="bk-total-row"><span>Durée du séjour</span><span id="bk-nights-label">-</span></div>
+        <div class="bk-total-row"><span>Tarif par nuit</span><span id="bk-price-night">-</span></div>
+        <div class="bk-total-row bk-total-main"><span>Total</span><span id="bk-total-price">-</span></div>
+        <div class="bk-total-row bk-acompte"><span>Acompte (30%)</span><span id="bk-acompte-price">-</span></div>
+      </div>
+      <div class="bk-footer bk-footer-2btn">
+        <button class="bk-btn-back" onclick="goS(1)">Retour</button>
+        <button class="bk-btn-next" id="bk-btn-s2" onclick="goS(3)" disabled>Continuer</button>
+      </div>
+    </div>
+    <!-- Step 3: Guest info -->
+    <div class="bk-step" id="bk-step-3" style="display:none">
+      <h3>Vos informations</h3>
+      <p class="bk-sub">Ces informations sont nécessaires pour confirmer votre réservation.</p>
+      <div class="bk-form-grid">
+        <div class="bk-field">
+          <label>Prénom *</label>
+          <input type="text" id="bk-fname" placeholder="Prénom" oninput="validateStep3()">
+        </div>
+        <div class="bk-field">
+          <label>Nom *</label>
+          <input type="text" id="bk-lname" placeholder="Nom de famille" oninput="validateStep3()">
+        </div>
+        <div class="bk-field bk-field-full">
+          <label>Email *</label>
+          <input type="email" id="bk-email" placeholder="votre@email.com" oninput="validateStep3()">
+        </div>
+        <div class="bk-field">
+          <label>Téléphone / WhatsApp *</label>
+          <input type="tel" id="bk-phone" placeholder="+237 6XX XXX XXX" oninput="validateStep3()">
+        </div>
+        <div class="bk-field">
+          <label>Nationalité</label>
+          <input type="text" id="bk-nationality" placeholder="Ex: Camerounais(e)">
+        </div>
+        <div class="bk-field bk-field-full">
+          <label>Demandes spéciales (optionnel)</label>
+          <textarea id="bk-notes" rows="3" placeholder="Arrivée tardive, lit bébé, régime alimentaire..."></textarea>
+        </div>
+      </div>
+      <div class="bk-footer bk-footer-2btn">
+        <button class="bk-btn-back" onclick="goS(2)">Retour</button>
+        <button class="bk-btn-next" id="bk-btn-s3" onclick="goS(4)" disabled>Continuer</button>
+      </div>
+    </div>
+    <!-- Step 4: Payment info -->
+    <div class="bk-step" id="bk-step-4" style="display:none">
+      <h3>Mode de paiement</h3>
+      <p class="bk-sub">Choisissez comment vous souhaitez régler l'acompte de 30%.</p>
+      <div class="bk-payment-opts">
+        <label class="pm-opt">
+          <input type="radio" name="bk-mode" value="mobile_money" id="bk-mm" checked onchange="updatePayMode()">
+          <div class="pm-opt-body">
+            <div class="ico"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
+            <div>
+              <strong>Mobile Money</strong>
+              <small>MTN MoMo / Orange Money</small>
+            </div>
+          </div>
+        </label>
+        <label class="pm-opt">
+          <input type="radio" name="bk-mode" value="virement" id="bk-vir" onchange="updatePayMode()">
+          <div class="pm-opt-body">
+            <div class="ico"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+            <div>
+              <strong>Virement bancaire</strong>
+              <small>Virement BEAC / international</small>
+            </div>
+          </div>
+        </label>
+        <label class="pm-opt">
+          <input type="radio" name="bk-mode" value="especes" id="bk-esp" onchange="updatePayMode()">
+          <div class="pm-opt-body">
+            <div class="ico"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+            <div>
+              <strong>Espèces à l'arrivée</strong>
+              <small>Pour réservations locales confirmées</small>
+            </div>
+          </div>
+        </label>
+      </div>
+      <div class="bk-pay-info" id="bk-pay-info">
+        <!-- Injected by updatePayMode() -->
+      </div>
+      <div class="bk-recap" id="bk-recap">
+        <!-- Injected by buildRecap() -->
+      </div>
+      <div class="bk-footer bk-footer-2btn">
+        <button class="bk-btn-back" onclick="goS(3)">Retour</button>
+        <button class="bk-btn-next" onclick="submitBooking()">
+          <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Confirmer la réservation
+        </button>
+      </div>
+    </div>
+    <!-- Step 5: Confirmation -->
+    <div class="bk-step" id="bk-step-5" style="display:none">
+      <div class="bk-confirm-wrap" id="bk-confirm-wrap">
+        <!-- Injected by showConfirmation() -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast" style="display:none"></div>
+<script>
+/* ═══════════════════════════════════════════════════════
+   RÉSIDENCE VERALUZ — Booking Engine JS
+   ═══════════════════════════════════════════════════════ */
+
+/* ── CONSTANTS ── */
+var SB = '', SK = '';  // Supabase URL + anon key (set by applyHotelInfo)
+var _selRoom = null;   // currently selected room object
+var _bkData  = {};     // accumulates booking data across steps
+
+/* ── ELEGANT NAMES MAP ── */
+var ELEGANT_NAMES = {
+  std:'Chambre Azur', sea:'Chambre Lumière', apt:'Ocean Family',
+  suite:'Veraluz Royale', villa:'Villa Riviera', studio:'Studio Horizon',
+  loft:'Loft Horizon', penthouse:'Suite Panorama'
+};
+
+/* Amenities SVG icons — monochrome stroke */
+var AM_ICONS = {
+  wifi:   '<svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>',
+  clim:   '<svg viewBox="0 0 24 24"><path d="M8 3h8M12 3v18M6 8l6 4 6-4M6 16l6-4 6 4"/></svg>',
+  tv:     '<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+  mer:    '<svg viewBox="0 0 24 24"><path d="M2 18c1.4-1.4 2.6-2 4-2 2.8 0 2.8 2 5.6 2 2.8 0 2.8-2 5.6-2 1.4 0 2.6.6 4 2"/><path d="M2 12c1.4-1.4 2.6-2 4-2 2.8 0 2.8 2 5.6 2 2.8 0 2.8-2 5.6-2 1.4 0 2.6.6 4 2"/></svg>',
+  cuisine:'<svg viewBox="0 0 24 24"><path d="M3 3v7a4 4 0 004 4h0a4 4 0 004-4V3"/><line x1="7" y1="3" x2="7" y2="10"/><path d="M16 3h0a3 3 0 013 3v4a4 4 0 01-4 4h0V3z"/><line x1="16" y1="14" x2="16" y2="21"/><line x1="21" y1="21" x2="3" y2="21"/></svg>',
+  terrasse:'<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  jacuzzi:'<svg viewBox="0 0 24 24"><path d="M2 14c1.4-1.4 2.6-2 4-2 2.8 0 2.8 2 5.6 2 2.8 0 2.8-2 5.6-2 1.4 0 2.6.6 4 2"/><circle cx="12" cy="8" r="3"/><line x1="12" y1="11" x2="12" y2="22"/></svg>',
+  parking:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 010 6H9"/></svg>',
+  piscine:'<svg viewBox="0 0 24 24"><path d="M2 20c2-2 4-3 6-3s4 1 6 3 4 3 6 3M2 14c2-2 4-3 6-3s4 1 6 3 4 3 6 3"/><line x1="12" y1="3" x2="12" y2="11"/><path d="M8 7l4-4 4 4"/></svg>',
+  breakfast:'<svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>'
+};
+
+/* Données complètes par type d'unité */
+var UNIT_DATA = {
+  std:   { name:'Chambre Azur',     beds:'1 lit double', capacity:2, sqm:28,
+           amenities:['clim','wifi','tv','mer','terrasse'] },
+  sea:   { name:'Chambre Lumière',  beds:'1 lit king', capacity:2, sqm:35,
+           amenities:['clim','wifi','tv','mer','terrasse','jacuzzi'] },
+  studio:{ name:'Studio Horizon',   beds:'1 lit double + canapé', capacity:3, sqm:38,
+           amenities:['clim','wifi','tv','cuisine','terrasse'] },
+  apt:   { name:'Ocean Family',     beds:'2 chambres · 2 lits', capacity:5, sqm:65,
+           amenities:['clim','wifi','tv','cuisine','mer','terrasse','parking'] },
+  suite: { name:'Veraluz Royale',   beds:'1 lit king size', capacity:2, sqm:55,
+           amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast'] },
+  villa: { name:'Villa Riviera',    beds:'3 chambres', capacity:6, sqm:120,
+           amenities:['clim','wifi','tv','cuisine','mer','terrasse','piscine','parking','breakfast'] },
+  loft:  { name:'Loft Horizon',     beds:'Mezzanine · 1 lit king', capacity:2, sqm:50,
+           amenities:['clim','wifi','tv','cuisine','mer'] },
+  penthouse:{ name:'Suite Panorama',beds:'1 lit king · salon', capacity:2, sqm:80,
+           amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast'] }
+};
+
+var AM_LABELS = {
+  wifi:'Wi-Fi', clim:'Climatisation', tv:'TV écran plat', mer:'Vue mer',
+  cuisine:'Cuisine équipée', terrasse:'Terrasse privée', jacuzzi:'Jacuzzi',
+  parking:'Parking', piscine:'Piscine', breakfast:'Petit-déjeuner'
+};
+
+/* ── ROOM PHOTO MAP ── */
+function getBEPhoto(r){
+  /* Priorité: images Supabase/Paramètres (cache) → ROOM_PHOTOS par type → défaut */
+  var imgs = r.images || r._images || [];
+  if(typeof imgs==='string'){try{imgs=JSON.parse(imgs);}catch(e){imgs=[];}}
+  if(Array.isArray(imgs)&&imgs.length&&imgs[0]) return imgs[0];
+  return ROOM_PHOTOS[r.type]||'https://ngams237.github.io/veraluz-os/assets/img/site_main.jpg';
+}
+var ROOM_PHOTOS = {
+  std:'https://ngams237.github.io/veraluz-os/assets/img/site_main.jpg',
+  sea:'https://ngams237.github.io/veraluz-os/assets/img/beach1.jpg',
+  apt:'https://ngams237.github.io/veraluz-os/assets/img/kribi_view.jpg',
+  suite:'https://ngams237.github.io/veraluz-os/assets/img/rooftop.jpg',
+  villa:'https://ngams237.github.io/veraluz-os/assets/img/allee.jpg',
+  studio:'https://ngams237.github.io/veraluz-os/assets/img/beach3.jpg',
+  loft:'https://ngams237.github.io/veraluz-os/assets/img/kribi_wide.jpg',
+  penthouse:'https://ngams237.github.io/veraluz-os/assets/img/beach2.jpg'
+};
+
+/* ── DEFAULT REVIEWS ── */
+var DEFAULT_REVIEWS = [
+  {
+    name:'Marie-Claire D.',
+    pays:'Douala, Cameroun',
+    stars:5,
+    text:'Un séjour absolument magique ! La vue sur l\'océan depuis notre terrasse était à couper le souffle. Le service est irréprochable et l\'équipe toujours disponible. Nous reviendrons à coup sûr !',
+    date:'Mars 2025',
+    photo:'https://ngams237.github.io/veraluz-os/assets/img/experience.jpg'
+  },
+  {
+    name:'Christophe M.',
+    pays:'Paris, France',
+    stars:5,
+    text:'La Résidence Veraluz dépasse toutes mes attentes. Les appartements sont luxueux, la plage est à deux pas, et le restaurant du rooftop est exceptionnel. Je recommande vivement !',
+    date:'Avril 2025',
+    photo:''
+  },
+  {
+    name:'Adaeze O.',
+    pays:'Lagos, Nigeria',
+    stars:4,
+    text:'Superbe endroit pour décompresser. L\'appartement est spacieux et très bien décoré. Les chutes de la Lobe à proximité sont spectaculaires. Une destination unique en Afrique centrale.',
+    date:'Janvier 2025',
+    photo:''
+  }
+];
+
+/* ═══ HOTEL INFO (from localStorage/Core) ═══ */
+function getAmenities(unit){
+  var data = UNIT_DATA[unit.type] || {};
+  var ams = unit.amenities;
+  /* Supabase peut retourner les amenities comme string JSON */
+  if(typeof ams === 'string'){ try{ ams=JSON.parse(ams); }catch(e){ ams=[]; } }
+  if(!Array.isArray(ams) || !ams.length) ams = data.amenities || [];
+  return ams;
+}
+
+function renderAmBadges(ams, max){
+  max = max || 5;
+  return ams.slice(0, max).map(function(a){
+    return '<span class="am-badge" title="'+(AM_LABELS[a]||a)+'">'+(AM_ICONS[a]||'')+'<span>'+(AM_LABELS[a]||a)+'</span></span>';
+  }).join('') + (ams.length > max ? '<span class="am-more">+' + (ams.length-max) + '</span>' : '');
+}
+
+function returnToOS(){
+  /* Envoie un message au Core (iframe parent) pour naviguer vers les réservations */
+  try{
+    window.parent.postMessage({
+      source: 'booking-engine',
+      type:   'navigate',
+      data:   {pageId: 'reservations'}
+    }, '*');
+  }catch(e){}
+  /* Si pas dans un iframe, essaie window.history.back() */
+  if(window.parent === window){
+    try{ window.history.back(); }catch(e){}
+  }
+}
+
+function applyHotelInfo(){
+  try{
+    var d=JSON.parse(localStorage.getItem('vz_hotel_info')||'{}');
+    if(d.supabase_url) SB=d.supabase_url;
+    if(d.supabase_key) SK=d.supabase_key;
+    if(d.whatsapp){
+      var wnum=d.whatsapp.replace(/\D/g,'');
+      document.querySelectorAll('.cms-wa-btn,[id^=cms-wa]').forEach(function(el){
+        if(el.href!==undefined) el.href='https://wa.me/'+wnum;
+      });
+      var waBtn=document.getElementById('cms-wa-btn');
+      if(waBtn) waBtn.href='https://wa.me/'+wnum;
+      var waMain=document.getElementById('cms-wa-main');
+      if(waMain) waMain.href='https://wa.me/'+wnum;
+    }
+    if(d.email){
+      var eLink=document.getElementById('cms-email-link');
+      if(eLink){ eLink.href='mailto:'+d.email; eLink.textContent=d.email; }
+    }
+    if(d.phone){
+      var pLink=document.getElementById('cms-phone-link');
+      if(pLink){ pLink.href='tel:'+d.phone.replace(/\s/g,''); pLink.textContent=d.phone; }
+      var pLoc=document.getElementById('cms-phone-loc');
+      if(pLoc) pLoc.innerHTML=d.phone+'<br>Disponible 7j/7';
+    }
+    if(d.address){
+      var adr=document.getElementById('cms-adresse');
+      if(adr) adr.innerHTML=d.address.replace(/\n/g,'<br>');
+    }
+  }catch(e){}
+}
+
+/* ═══ CMS APPLY ═══ */
+function loadCMSContent(){
+  try{ return JSON.parse(localStorage.getItem('vz_cms_content')||'null'); }
+  catch(e){ return null; }
+}
+function loadMediaLibrary(){
+  try{ return JSON.parse(localStorage.getItem('vz_media_library')||'{}'); }
+  catch(e){ return {}; }
+}
+function setText(id,val){
+  var el=document.getElementById(id);
+  if(el&&val) el.textContent=val;
+}
+function setHTML(id,val){
+  var el=document.getElementById(id);
+  if(el&&val) el.innerHTML=val;
+}
+
+function applyCMS(){
+  var cms=loadCMSContent();
+  if(!cms) return;
+  var h=cms.hero||{};
+  setText('cms-hero-tag',h.tag);
+  setHTML('cms-hero-title',h.title);
+  setText('cms-hero-lead',h.lead);
+  setText('cms-stat1-n',h.stat1_n); setText('cms-stat1-l',h.stat1_l);
+  setText('cms-stat2-n',h.stat2_n); setText('cms-stat2-l',h.stat2_l);
+  setText('cms-stat3-n',h.stat3_n); setText('cms-stat3-l',h.stat3_l);
+  if(h.bg_url){
+    var hero=document.getElementById('hero');
+    if(hero) hero.style.backgroundImage="url('"+h.bg_url+"')";
+  }
+
+  var es=cms.espaces||{};
+  setText('cms-espaces-tag',es.tag);
+  setHTML('cms-espaces-title',es.title);
+  setText('cms-espaces-lead',es.lead);
+
+  var ex=cms.experiences||{};
+  setText('cms-exp-tag',ex.tag);
+  setHTML('cms-exp-title',ex.title);
+  setText('cms-exp-lead',ex.lead);
+  for(var i=1;i<=4;i++){
+    var card=document.getElementById('cms-exp-'+i);
+    var ci=ex['card'+i]||{};
+    if(card){
+      if(ci.img) card.style.backgroundImage="url('"+ci.img+"')";
+      var h3=card.querySelector('h3'); if(h3&&ci.title) h3.textContent=ci.title;
+      var p=card.querySelector('p'); if(p&&ci.text) p.textContent=ci.text;
+    }
+  }
+
+  var rs=cms.restaurant||{};
+  setText('cms-resto-tag',rs.tag);
+  setHTML('cms-resto-title',rs.title);
+  setText('cms-resto-lead',rs.lead);
+  var ctaBtn=document.getElementById('cms-resto-cta');
+  if(ctaBtn&&rs.cta) ctaBtn.textContent=rs.cta;
+
+  var av=cms.temoignages||{};
+  setText('cms-avis-tag',av.tag);
+  setHTML('cms-avis-title',av.title);
+  setText('cms-avis-lead',av.lead);
+  if(av.items&&av.items.length) renderAvis(av.items);
+
+  var ct=cms.contact||{};
+  if(ct.whatsapp){
+    var wn=ct.whatsapp.replace(/\D/g,'');
+    var waB=document.getElementById('cms-wa-btn'); if(waB) waB.href='https://wa.me/'+wn;
+    var waM=document.getElementById('cms-wa-main'); if(waM) waM.href='https://wa.me/'+wn;
+  }
+  if(ct.email){
+    var eL=document.getElementById('cms-email-link');
+    if(eL){ eL.href='mailto:'+ct.email; eL.textContent=ct.email; }
+  }
+  if(ct.phone){
+    var pL=document.getElementById('cms-phone-link');
+    if(pL){ pL.href='tel:'+ct.phone.replace(/\s/g,''); pL.textContent=ct.phone; }
+  }
+
+  var br=cms.branding||{};
+  if(br.color_gold) document.documentElement.style.setProperty('--gd',br.color_gold);
+  if(br.color_ocean) document.documentElement.style.setProperty('--oc',br.color_ocean);
+  if(br.color_dark) document.documentElement.style.setProperty('--dk',br.color_dark);
+
+  var cta=cms.cta||{};
+  setText('cms-cta-tag',cta.tag);
+  setHTML('cms-cta-title',cta.title);
+  setText('cms-cta-lead',cta.lead);
+
+  var soc=cms.social||{};
+  var sr=document.getElementById('cms-social-row');
+  if(sr){
+    var sh='';
+    if(soc.instagram) sh+='<a href="'+soc.instagram+'" target="_blank" class="soc-link"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>Instagram</a>';
+    if(soc.facebook) sh+='<a href="'+soc.facebook+'" target="_blank" class="soc-link"><svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>Facebook</a>';
+    if(soc.tiktok) sh+='<a href="'+soc.tiktok+'" target="_blank" class="soc-link"><svg viewBox="0 0 24 24"><path d="M9 12a4 4 0 104 4V4a5 5 0 005 5"/></svg>TikTok</a>';
+    sr.innerHTML=sh;
+  }
+
+  // Media library → gallery
+  var lib=loadMediaLibrary();
+  var allImgs=[];
+  ['chambres','plage','restaurant','rooftop','activites','lobby'].forEach(function(cat){
+    var imgs=lib[cat]||[];
+    imgs.forEach(function(b64){ allImgs.push({src:b64,cap:cat}); });
+  });
+  if(allImgs.length){
+    var gg=document.getElementById('gallery-grid');
+    if(gg){
+      allImgs.slice(0,12).forEach(function(img,idx){
+        var div=document.createElement('div');
+        div.className='gal-item'+(idx%5===2?' tall':'');
+        div.style.backgroundImage="url('"+img.src+"')";
+        div.setAttribute('data-src',img.src);
+        div.setAttribute('data-cap',img.cap);
+        div.onclick=function(){ openLightbox(this); };
+        gg.appendChild(div);
+      });
+    }
+  }
+}
+
+/* ═══ REVIEWS / AVIS ═══ */
+var _reviews = [];
+
+var _avis_expanded = false;
+var _avis_per_page  = 3;
+var _currentAvisList = [];
+
+function renderAvis(items){
+  var list = items || DEFAULT_REVIEWS;
+  _currentAvisList = list;
+  renderAvisSummary(list);
+  renderAvisCards(list, _avis_expanded);
+}
+
+function renderAvisSummary(list){
+  var wrap = document.getElementById('avis-summary');
+  if(!wrap) return;
+  if(!list.length){ wrap.innerHTML=''; return; }
+  var total = list.length;
+  var avg = list.reduce(function(a,r){return a+(r.stars||5);},0)/total;
+  var counts = {5:0,4:0,3:0,2:0,1:0};
+  list.forEach(function(r){
+    var st=Math.min(5,Math.max(1,Math.round(r.stars||5)));
+    counts[st]++;
+  });
+  var starsDisplay='';
+  for(var i=1;i<=5;i++) starsDisplay+='<span style="color:'+(i<=Math.round(avg)?'var(--gd)':'rgba(212,148,58,.2)')+'">&#9733;</span>';
+  var bars='';
+  for(var st=5;st>=1;st--){
+    var pct=total?Math.round((counts[st]/total)*100):0;
+    bars+='<div class="as-bar-row">'
+      +'<span class="as-label">'+st+'&#9733;</span>'
+      +'<div class="as-bar-track"><div class="as-bar-fill" style="width:'+pct+'%"></div></div>'
+      +'<span class="as-count">'+counts[st]+'</span>'
+    +'</div>';
+  }
+  wrap.innerHTML='<div class="avis-summary">'
+    +'<div class="as-score">'
+    +'<span class="as-big">'+avg.toFixed(1)+'</span>'
+    +'<div class="as-stars-row">'+starsDisplay+'</div>'
+    +'<span class="as-total">'+total+' avis</span>'
+    +'</div>'
+    +'<div class="as-bars">'+bars+'</div>'
+    +'</div>';
+}
+
+function renderAvisCards(list, expanded){
+  var grid = document.getElementById('avis-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  var visible = expanded ? list : list.slice(0, _avis_per_page);
+  visible.forEach(function(r){
+    var stars='';
+    for(var i=1;i<=5;i++) stars+='<span class="avis-star'+(i<=r.stars?' lit':'')+'">&#9733;</span>';
+    var photoHTML = r.photo
+      ? '<img class="avis-photo" src="'+r.photo+'" alt="'+r.name+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">'
+        +'<div class="avis-photo-init" style="display:none">'+r.name.charAt(0).toUpperCase()+'</div>'
+      : '<div class="avis-photo-init">'+r.name.charAt(0).toUpperCase()+'</div>';
+    grid.insertAdjacentHTML('beforeend',
+      '<div class="avis-card">'
+      +'<div class="avis-header"><div class="avis-avatar">'+photoHTML+'</div>'
+      +'<div><strong class="avis-name">'+r.name+'</strong><small class="avis-pays">'+r.pays+'</small></div>'
+      +'<div class="avis-date">'+r.date+'</div></div>'
+      +'<div class="avis-stars">'+stars+'</div>'
+      +'<p class="avis-text">&laquo;&nbsp;'+(r.text||'')+'&nbsp;&raquo;</p>'
+      +'</div>');
+  });
+  var ctrl=document.getElementById('avis-ctrl');
+  if(ctrl){
+    if(list.length > _avis_per_page){
+      ctrl.style.display='flex';
+      ctrl.innerHTML = expanded
+        ? '<button class="avis-toggle-btn" onclick="toggleAvis()"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg> Masquer les avis</button>'
+        : '<button class="avis-toggle-btn" onclick="toggleAvis()"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg> Voir tous les avis ('+list.length+')</button>';
+    } else {
+      ctrl.style.display='none';
+    }
+  }
+}
+
+function toggleAvis(){
+  _avis_expanded = !_avis_expanded;
+  renderAvisCards(_currentAvisList, _avis_expanded);
+}
+
+function toggleReviewForm(){
+  var f=document.getElementById('review-form');
+  var btn=document.querySelector('.review-toggle-btn');
+  if(!f) return;
+  if(f.style.display==='none'){
+    f.style.display='block';
+    if(btn) btn.style.display='none';
+  } else {
+    f.style.display='none';
+    if(btn) btn.style.display='inline-flex';
+    document.getElementById('rv-success').style.display='none';
+  }
+}
+
+function previewRvPhoto(input){
+  var file=input.files[0];
+  if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var prev=document.getElementById('rv-photo-preview');
+    if(prev) prev.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    prev._photoData=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function submitReview(){
+  var name=(document.getElementById('rv-name').value||'').trim();
+  var pays=(document.getElementById('rv-pays').value||'').trim();
+  var text=(document.getElementById('rv-text').value||'').trim();
+  var rating=document.querySelector('input[name="rating"]:checked');
+  var stars=rating?parseInt(rating.value):0;
+  if(!name||!text||!stars){ showToast('Remplissez votre nom, commentaire et note.','warn'); return; }
+  var prev=document.getElementById('rv-photo-preview');
+  var photo=(prev&&prev._photoData)||'';
+  var newRev={
+    name:name, pays:pays||'Anonyme', text:text, stars:stars,
+    date:new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'}),
+    photo:photo
+  };
+  // Save to localStorage
+  var saved=[];
+  try{ saved=JSON.parse(localStorage.getItem('vz_user_reviews')||'[]'); }catch(e){}
+  saved.push(newRev);
+  localStorage.setItem('vz_user_reviews',JSON.stringify(saved));
+  // Re-render including new review (pending validation indicator)
+  var allRevs=DEFAULT_REVIEWS.concat(saved);
+  renderAvis(allRevs);
+  document.getElementById('rv-success').style.display='flex';
+  // Reset form after 2s
+  setTimeout(function(){
+    document.getElementById('rv-name').value='';
+    document.getElementById('rv-pays').value='';
+    document.getElementById('rv-text').value='';
+    document.getElementById('rv-photo-preview').innerHTML='<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    delete document.getElementById('rv-photo-preview')._photoData;
+    if(rating) rating.checked=false;
+    toggleReviewForm();
+  },2500);
+}
+
+/* ═══ LIGHTBOX ═══ */
+var _lbItems=[], _lbIdx=0;
+
+function openLightbox(el){
+  var items=document.querySelectorAll('.gal-item');
+  _lbItems=Array.prototype.slice.call(items);
+  _lbIdx=_lbItems.indexOf(el);
+  showLbItem(_lbIdx);
+  document.getElementById('lightbox').style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function showLbItem(idx){
+  if(idx<0) idx=_lbItems.length-1;
+  if(idx>=_lbItems.length) idx=0;
+  _lbIdx=idx;
+  var el=_lbItems[idx];
+  document.getElementById('lb-img').src=el.getAttribute('data-src')||'';
+  document.getElementById('lb-cap').textContent=el.getAttribute('data-cap')||'';
+}
+function lbNav(dir){ showLbItem(_lbIdx+dir); }
+function closeLightbox(){
+  document.getElementById('lightbox').style.display='none';
+  document.body.style.overflow='';
+}
+
+/* ═══ BOOKING OVERLAY ═══ */
+var _rooms=[];
+
+function openBk(){
+  document.getElementById('bookingOverlay').style.display='flex';
+  document.body.style.overflow='hidden';
+  goS(1);
+  loadRooms();
+  initDates();
+}
+function openBkWithDates(){
+  var ci=document.getElementById('db-checkin').value;
+  var co=document.getElementById('db-checkout').value;
+  var gu=document.getElementById('db-guests').value;
+  openBk();
+  if(ci){ document.getElementById('bk-checkin').value=ci; }
+  if(co){ document.getElementById('bk-checkout').value=co; }
+  if(gu){ document.getElementById('bk-guests').value=gu; }
+  if(ci&&co) setTimeout(calcTotal,100);
+}
+function closeBk(){
+  document.getElementById('bookingOverlay').style.display='none';
+  document.body.style.overflow='';
+}
+
+function goS(n){
+  for(var i=1;i<=5;i++){
+    var s=document.getElementById('bk-step-'+i);
+    if(s) s.style.display=(i===n?'block':'none');
+    var p=document.getElementById('prog-'+i);
+    if(p){ p.classList.toggle('active',i<=n); p.classList.toggle('done',i<n); }
+    var l=document.getElementById('prog-l'+i);
+    if(l) l.classList.toggle('done',i<n);
+  }
+  if(n===4) buildRecap();
+}
+
+function initDates(){
+  var today=new Date();
+  var tom=new Date(); tom.setDate(tom.getDate()+1);
+  var fmt=function(d){ return d.toISOString().split('T')[0]; };
+  var ci=document.getElementById('bk-checkin');
+  var co=document.getElementById('bk-checkout');
+  if(ci){ ci.min=fmt(today); if(!ci.value) ci.value=fmt(today); }
+  if(co){ co.min=fmt(tom);   if(!co.value) co.value=fmt(tom);   }
+}
+
+function syncDates(){
+  var ci=document.getElementById('db-checkin').value;
+  var co=document.getElementById('db-checkout').value;
+  var bci=document.getElementById('bk-checkin');
+  var bco=document.getElementById('bk-checkout');
+  if(bci&&ci) bci.value=ci;
+  if(bco&&co) bco.value=co;
+  calcTotal();
+}
+
+/* ── LOAD ROOMS ── */
+function loadFromCache(){
+  /* Niveau 2 — vlz_cache_rooms écrit par le module Réservations (Paramètres) */
+  try{
+    var cached=JSON.parse(localStorage.getItem('vlz_cache_rooms')||'[]');
+    if(cached&&cached.length){
+      _rooms=cached.map(function(r){
+        r._dynStatus=r.status==='active'?'available':r.status;
+        /* Fusionner les images: Supabase/cache + localStorage per-room */
+        var imgs = r.images||[];
+        if(typeof imgs==='string'){try{imgs=JSON.parse(imgs);}catch(e){imgs=[];}}
+        try{
+          var stored=JSON.parse(localStorage.getItem('vlz_room_images_'+r.id)||'[]');
+          imgs=imgs.concat(stored).filter(function(x,i,a){return x&&a.indexOf(x)===i;});
+        }catch(e){}
+        r.images=imgs; r._images=imgs;
+        if(!Array.isArray(r.amenities)){
+          try{r.amenities=JSON.parse(r.amenities||'[]');}catch(e){r.amenities=[];}
+        }
+        return r;
+      });
+      renderBkRooms();
+      return;
+    }
+  }catch(e){}
+  /* Niveau 3 — UNIT_DATA fallback (aucune connexion ni cache) */
+  renderFallbackRooms();
+}
+
+function loadRooms(){
+  var cont=document.getElementById('bk-rooms');
+  if(!cont) return;
+  cont.innerHTML='<div class="bk-loading"><svg viewBox="0 0 24 24" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Chargement des disponibilités...</div>';
+
+  if(!SB||!SK){
+    /* Pas de Supabase — essayer le cache du module Réservations */
+    loadFromCache();
+    return;
+  }
+  /* Niveau 1 — Supabase (même source que le module Réservations) */
+  fetch(SB+'/rest/v1/veraluz_units?select=*&order=price.asc,id.asc',{
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'}
+  })
+  .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+  .then(function(data){
+    var active=(data||[]).filter(function(r){return r.status==='active'||r.status==='available';});
+    if(!active.length){ loadFromCache(); return; }
+    _rooms=active.map(function(r){
+      /* Fusionner images Supabase + localStorage per-room */
+      var imgs = r.images||[];
+      if(typeof imgs==='string'){try{imgs=JSON.parse(imgs);}catch(e){imgs=[];}}
+      try{
+        var stored=JSON.parse(localStorage.getItem('vlz_room_images_'+r.id)||'[]');
+        imgs=imgs.concat(stored).filter(function(x,i,a){return x&&a.indexOf(x)===i;});
+      }catch(e){}
+      r.images=imgs; r._images=imgs;
+      if(typeof r.amenities==='string'){try{r.amenities=JSON.parse(r.amenities);}catch(e){r.amenities=[];}}
+      return r;
+    });
+    /* Mettre à jour le cache pour les autres modules */
+    try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms)); }catch(e){}
+    renderBkRooms();
+  })
+  .catch(function(){ loadFromCache(); });
+}
+
+function renderFallbackRooms(){
+  /* Fallback si Supabase indisponible — utilise UNIT_DATA comme source de vérité */
+  _rooms=[
+    {id:'fallback-std',   type:'std',       price:35000,  price_per_night:35000,  capacity:2},
+    {id:'fallback-sea',   type:'sea',       price:50000,  price_per_night:50000,  capacity:2},
+    {id:'fallback-studio',type:'studio',    price:45000,  price_per_night:45000,  capacity:3},
+    {id:'fallback-apt',   type:'apt',       price:75000,  price_per_night:75000,  capacity:5},
+    {id:'fallback-suite', type:'suite',     price:120000, price_per_night:120000, capacity:2},
+    {id:'fallback-villa', type:'villa',     price:200000, price_per_night:200000, capacity:6},
+    {id:'fallback-loft',  type:'loft',      price:80000,  price_per_night:80000,  capacity:2},
+    {id:'fallback-pent',  type:'penthouse', price:150000, price_per_night:150000, capacity:2}
+  ];
+  renderBkRooms();
+}
+
+function renderBkRooms(){
+  var cont=document.getElementById('bk-rooms');
+  var rg=document.getElementById('rooms-grid');
+  if(!cont) return;
+  cont.innerHTML='';
+
+  _rooms.forEach(function(r){
+    var ud=UNIT_DATA[r.type]||{};
+    var nm=r.name||ud.name||ELEGANT_NAMES[r.type]||r.type;
+    var photo=getBEPhoto(r);
+    var price=fmtXAF(r.price_per_night||r.price||0);
+    var ams=getAmenities(r);
+    var cap=r.capacity||ud.capacity||2;
+    var sqm=r.sqm||ud.sqm||'';
+    var beds=r.description||ud.beds||'';
+
+    /* Image ou dégradé de fond */
+    var imgStyle=photo
+      ?'background-image:url(\''+photo+'\')'
+      :'background:linear-gradient(135deg,var(--oc),var(--dk))';
+
+    /* Amenities — max 4 dans le modal pour ne pas surcharger */
+    var amHtml=ams.slice(0,4).map(function(a){
+      return '<span class="am-badge" title="'+(AM_LABELS[a]||a)+'">'+( AM_ICONS[a]||'')+'<span>'+(AM_LABELS[a]||a)+'</span></span>';
+    }).join('')+(ams.length>4?'<span class="am-more">+'+(ams.length-4)+'</span>':'');
+
+    var card=document.createElement('div');
+    card.className='bk-room-card';
+    card.id='bkr-'+r.id;
+    card.onclick=function(){ selRoom(r.id); };
+    card.innerHTML=
+      '<div class="bk-room-img" style="'+imgStyle+'">'
+        +(sqm?'<span class="bk-room-sqm">'+sqm+' m²</span>':'')
+      +'</div>'
+      +'<div class="bk-room-body">'
+        +'<div class="bk-room-top">'
+          +'<h4>'+nm+'</h4>'
+          +'<div class="bk-room-price">'+price+'<small>/nuit</small></div>'
+        +'</div>'
+        +(beds?'<div class="bk-room-meta"><svg viewBox="0 0 24 24"><path d="M2 4v16M2 8h18a2 2 0 012 2v8"/><path d="M2 17h20M6 8v9"/></svg>'+beds+'</div>':'')
+        +(amHtml?'<div class="bk-am-row">'+amHtml+'</div>':'')
+        +'<div class="bk-room-cap"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>'
+          +'Jusqu\'à '+cap+' personne'+(cap>1?'s':'')
+        +'</div>'
+      +'</div>';
+    cont.appendChild(card);
+  });
+
+  /* Mettre à jour aussi la section Nos Espaces */
+  if(rg) renderLandingRooms(rg);
+}
+
+
+function renderLandingRooms(container){
+  container.innerHTML='';
+  _rooms.forEach(function(r){
+    var ud=UNIT_DATA[r.type]||{};
+    var nm=r.name||ud.name||ELEGANT_NAMES[r.type]||r.type;
+    var photo=getBEPhoto(r);
+    var price=fmtXAF(r.price_per_night||r.price||0);
+    var ams=getAmenities(r);
+    var amHtml=renderAmBadges(ams,4);
+    var cap=r.capacity||ud.capacity||2;
+    var sqm=ud.sqm?' · '+ud.sqm+' m²':'';
+    container.insertAdjacentHTML('beforeend',
+      '<div class="room-card">'
+      +'<div class="room-card-img" style="background-image:url(\''+photo+'\')">'
+      +'<div class="room-badge">Disponible</div>'
+      +'<div class="room-cap-badge"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>'+cap+' pers'+sqm+'</div>'
+      +'</div>'
+      +'<div class="room-card-body">'
+      +'<h3>'+nm+'</h3>'
+      +(ud.beds?'<p class="room-beds">'+ud.beds+'</p>':'')
+      +'<div class="room-am-row">'+amHtml+'</div>'
+      +'<div class="room-card-footer"><span class="room-price">'+price+'<small>/nuit</small></span>'
+      +'<button onclick="openBk()" class="room-bk-btn">Réserver</button>'
+      +'</div></div></div>');
+  });;
+}
+
+function selRoom(id){
+  _selRoom=null;
+  _rooms.forEach(function(r){ if(r.id==id) _selRoom=r; });
+  document.querySelectorAll('.bk-room-card').forEach(function(c){ c.classList.remove('selected'); });
+  var card=document.getElementById('bkr-'+id);
+  if(card) card.classList.add('selected');
+  document.getElementById('bk-btn-s1').disabled=!_selRoom;
+}
+
+/* ── DATE / TOTAL CALC ── */
+function calcTotal(){
+  var ci=document.getElementById('bk-checkin').value;
+  var co=document.getElementById('bk-checkout').value;
+  var tw=document.getElementById('bk-total-wrap');
+  var btn=document.getElementById('bk-btn-s2');
+  if(!ci||!co){ if(tw) tw.style.display='none'; if(btn) btn.disabled=true; return; }
+  var d1=new Date(ci), d2=new Date(co);
+  var nights=Math.round((d2-d1)/(86400000));
+  if(nights<1){ showToast('Le départ doit être après l\'arrivée','warn'); if(btn) btn.disabled=true; return; }
+  var ppn=(_selRoom&&(_selRoom.price_per_night||_selRoom.price))||0;
+  var total=nights*ppn;
+  var acompte=Math.round(total*0.3);
+  if(tw){
+    tw.style.display='block';
+    setText('bk-nights-label',nights+(nights>1?' nuits':' nuit'));
+    setText('bk-price-night',fmtXAF(ppn));
+    setText('bk-total-price',fmtXAF(total));
+    setText('bk-acompte-price',fmtXAF(acompte));
+  }
+  if(btn) btn.disabled=false;
+  _bkData.nights=nights; _bkData.total=total; _bkData.acompte=acompte;
+}
+
+/* ── STEP 3 VALIDATION ── */
+function validateStep3(){
+  var f=document.getElementById('bk-fname').value.trim();
+  var l=document.getElementById('bk-lname').value.trim();
+  var e=document.getElementById('bk-email').value.trim();
+  var p=document.getElementById('bk-phone').value.trim();
+  var ok=f&&l&&e&&p&&e.includes('@');
+  document.getElementById('bk-btn-s3').disabled=!ok;
+}
+
+/* ── PAYMENT MODE ── */
+function updatePayMode(){
+  var mode=document.querySelector('input[name="bk-mode"]:checked');
+  if(!mode) return;
+  var info=document.getElementById('bk-pay-info');
+  if(!info) return;
+  var d=JSON.parse(localStorage.getItem('vz_hotel_info')||'{}');
+  var html='';
+  if(mode.value==='mobile_money'){
+    html='<div class="pay-info-box"><strong>Instructions Mobile Money</strong><p>Envoyez l\'acompte de <strong>'+fmtXAF(_bkData.acompte||0)+'</strong> au numéro :</p>'
+      +'<div class="pay-number">'+(d.momo_number||'+237 6XX XXX XXX — MTN/Orange')+'</div>'
+      +'<p>Mentionnez votre nom complet comme référence. Envoyez la capture d\'écran sur WhatsApp.</p></div>';
+  } else if(mode.value==='virement'){
+    html='<div class="pay-info-box"><strong>Virement Bancaire</strong><p>Acompte de <strong>'+fmtXAF(_bkData.acompte||0)+'</strong></p>'
+      +'<p>Coordonnées bancaires disponibles sur demande par WhatsApp ou email.</p></div>';
+  } else {
+    html='<div class="pay-info-box"><strong>Paiement à l\'arrivée</strong><p>Acompte réglé en espèces lors du check-in. Valable pour réservations confirmées par le gestionnaire.</p></div>';
+  }
+  info.innerHTML=html;
+}
+
+function buildRecap(){
+  var r=_selRoom;
+  var ci=document.getElementById('bk-checkin').value;
+  var co=document.getElementById('bk-checkout').value;
+  var fn=document.getElementById('bk-fname').value;
+  var ln=document.getElementById('bk-lname').value;
+  var em=document.getElementById('bk-email').value;
+  var ph=document.getElementById('bk-phone').value;
+  var nm=r?ELEGANT_NAMES[r.type]||r.name||r.type:'—';
+  var recap=document.getElementById('bk-recap');
+  if(recap){
+    recap.innerHTML='<div class="bk-recap-title">Récapitulatif</div>'
+    +'<div class="bk-recap-row"><span>Espace</span><span>'+nm+'</span></div>'
+    +'<div class="bk-recap-row"><span>Arrivée</span><span>'+fmtDate(ci)+'</span></div>'
+    +'<div class="bk-recap-row"><span>Départ</span><span>'+fmtDate(co)+'</span></div>'
+    +'<div class="bk-recap-row"><span>Durée</span><span>'+(_bkData.nights||1)+((_bkData.nights||1)>1?' nuits':' nuit')+'</span></div>'
+    +'<div class="bk-recap-row"><span>Client</span><span>'+fn+' '+ln+'</span></div>'
+    +'<div class="bk-recap-row"><span>Email</span><span>'+em+'</span></div>'
+    +'<div class="bk-recap-row"><span>Total</span><span>'+fmtXAF(_bkData.total||0)+'</span></div>'
+    +'<div class="bk-recap-row bk-recap-acompte"><span>Acompte à régler (30%)</span><span>'+fmtXAF(_bkData.acompte||0)+'</span></div>';
+  }
+  updatePayMode();
+}
+
+/* ── SUBMIT BOOKING ── */
+function submitBooking(){
+  var r=_selRoom;
+  var ci=document.getElementById('bk-checkin').value;
+  var co=document.getElementById('bk-checkout').value;
+  var fn=document.getElementById('bk-fname').value.trim();
+  var ln=document.getElementById('bk-lname').value.trim();
+  var em=document.getElementById('bk-email').value.trim();
+  var ph=document.getElementById('bk-phone').value.trim();
+  var nat=document.getElementById('bk-nationality').value.trim();
+  var notes=document.getElementById('bk-notes').value.trim();
+  var mode=document.querySelector('input[name="bk-mode"]:checked');
+  if(!r||!ci||!co||!fn||!ln||!em||!ph){ showToast('Veuillez remplir tous les champs obligatoires.','warn'); return; }
+
+  var unitNm = r.name||ELEGANT_NAMES[r.type]||(UNIT_DATA[r.type]||{}).name||r.type;
+  var payload={
+    /* Champs locaux (sync/affichage) */
+    client_name:fn+' '+ln,
+    client_first:fn,
+    client_last:ln,
+    client_email:em,
+    client_phone:ph,
+    nationality:nat,
+    unit_name:unitNm,
+    unit_type:r.type,
+    total_amount:_bkData.total||0,
+    acompte:_bkData.acompte||0,
+    payment_mode:mode?mode.value:'mobile_money',
+    /* Champs Supabase (schéma veraluz_reservations) */
+    unit_id:r.id,
+    client_email:em,
+    client_phone:ph,
+    guests:parseInt(document.getElementById('bk-guests').value)||2,
+    check_in:ci,
+    check_out:co,
+    checkin:ci,
+    checkout:co,
+    nights:_bkData.nights||1,
+    total:_bkData.total||0,
+    paid:_bkData.acompte||0,
+    notes:notes,
+    source:'booking-engine',
+    status:'pending',
+    created_at:new Date().toISOString()
+  };
+
+  // Try Supabase — sync sauvegardé APRÈS avoir l'ID (dans doConfirm)
+  var doConfirm=function(id){
+    payload.id = id || ('BK-'+Date.now());
+    /* Sauvegarder dans le sync queue avec l'ID correct */
+    try{
+      var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
+      var dup=sync.some(function(s){return s.id&&s.id===payload.id;});
+      if(!dup){ sync.push(payload); localStorage.setItem('vlz_booking_sync',JSON.stringify(sync)); }
+    }catch(e){}
+    goS(5);
+    showConfirmation(payload);
+    /* Notifier le module Réservations */
+    try{ window.parent.postMessage({veraluzEvent:true,source:'booking-engine',type:'new_booking',data:payload},'*'); }catch(e){}
+  };
+
+  if(SB&&SK){
+    /* N'envoyer que les colonnes présentes dans le schéma Supabase */
+    var sbPayload={
+      unit_id:    payload.unit_id,
+      client_name:payload.client_name,
+      client_email:payload.client_email,
+      client_phone:payload.client_phone,
+      guests:     payload.guests,
+      check_in:   payload.check_in||payload.checkin,
+      check_out:  payload.check_out||payload.checkout,
+      nights:     payload.nights,
+      total:      payload.total||payload.total_amount||0,
+      paid:       payload.paid||payload.acompte||0,
+      status:     payload.status||'pending',
+      source:     payload.source||'booking-engine',
+      notes:      payload.notes||null
+    };
+    fetch(SB+'/rest/v1/veraluz_reservations',{
+      method:'POST',
+      headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=representation'},
+      body:JSON.stringify(sbPayload)
+    })
+    .then(function(res){ if(!res.ok) throw new Error(res.status); return res.json(); })
+    .then(function(data){ doConfirm(data&&data[0]&&data[0].id); })
+    .catch(function(e){ console.warn('BE Supabase insert failed:',e); doConfirm(); });
+  } else {
+    doConfirm();
+  }
+}
+
+function showConfirmation(d){
+  var nm=d.unit_name||d.unit_type||'—';
+  var wa='https://wa.me/'+((JSON.parse(localStorage.getItem('vz_hotel_info')||'{}').whatsapp||'').replace(/\D/g,'')||'1234567890');
+  var wrap=document.getElementById('bk-confirm-wrap');
+  if(wrap){
+    wrap.innerHTML=
+      '<div class="bk-conf-icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>'
+      +'<h3>Réservation Envoyée !</h3>'
+      +'<p>Merci <strong>'+d.client_first+'</strong>, votre demande a été enregistrée avec succès.</p>'
+      +'<div class="bk-conf-card">'
+      +'<div class="bk-recap-row"><span>Référence</span><span>'+(d.id||'En cours...')+'</span></div>'
+      +'<div class="bk-recap-row"><span>Espace</span><span>'+nm+'</span></div>'
+      +'<div class="bk-recap-row"><span>Arrivée</span><span>'+fmtDate(d.checkin)+'</span></div>'
+      +'<div class="bk-recap-row"><span>Départ</span><span>'+fmtDate(d.checkout)+'</span></div>'
+      +'<div class="bk-recap-row"><span>Total</span><span>'+fmtXAF(d.total_amount)+'</span></div>'
+      +'<div class="bk-recap-row bk-recap-acompte"><span>Acompte (30%)</span><span>'+fmtXAF(d.acompte)+'</span></div>'
+      +'</div>'
+      +'<p class="bk-conf-next">Notre équipe vous contactera dans les <strong>15 minutes</strong> pour confirmer votre réservation et les modalités de paiement.</p>'
+      +'<div class="bk-conf-actions">'
+      +'<a href="'+wa+'" target="_blank" class="btn-wa">Contacter sur WhatsApp</a>'
+      +'<button class="btn-ghost" onclick="closeBk()">Fermer</button>'
+      +'</div>';
+  }
+}
+
+/* ═══ TOAST ═══ */
+function showToast(msg,type){
+  var t=document.getElementById('toast');
+  if(!t) return;
+  t.textContent=msg;
+  t.className='toast '+(type||'info');
+  t.style.display='block';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(function(){ t.style.display='none'; },3500);
+}
+
+/* ═══ NAV ═══ */
+function toggleMobileMenu(){
+  var m=document.getElementById('mobile-menu');
+  if(m) m.classList.toggle('open');
+}
+function closeMobileMenu(){
+  var m=document.getElementById('mobile-menu');
+  if(m) m.classList.remove('open');
+}
+
+window.addEventListener('scroll',function(){
+  var nav=document.getElementById('nav');
+  if(nav) nav.classList.toggle('scrolled',window.scrollY>60);
+},{passive:true});
+
+/* ═══ UTILS ═══ */
+function fmtXAF(n){
+  return (Math.round(n)||0).toLocaleString('fr-FR')+' XAF';
+}
+function fmtDate(s){
+  if(!s) return '—';
+  var d=new Date(s);
+  return d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+}
+function setText(id,val){
+  var el=document.getElementById(id);
+  if(el&&val!==undefined&&val!==null) el.textContent=val;
+}
+function setHTML(id,val){
+  var el=document.getElementById(id);
+  if(el&&val!==undefined&&val!==null) el.innerHTML=val;
+}
+
+/* ═══ KEYBOARD ═══ */
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    if(document.getElementById('lightbox').style.display!=='none') closeLightbox();
+    if(document.getElementById('bookingOverlay').style.display!=='none') closeBk();
+  }
+  if(document.getElementById('lightbox').style.display!=='none'){
+    if(e.key==='ArrowLeft') lbNav(-1);
+    if(e.key==='ArrowRight') lbNav(1);
+  }
+});
+
+/* ═══ INIT ═══ */
+document.addEventListener('DOMContentLoaded',function(){
+  // Footer year
+  var fy=document.getElementById('footer-year');
+  if(fy) fy.textContent='© '+new Date().getFullYear()+' Résidence Veraluz — Tous droits réservés';
+
+  // Apply hotel info + CMS
+  applyHotelInfo();
+  applyCMS();
+
+  // Init default reviews (merge with saved user reviews)
+  var saved=[];
+  try{ saved=JSON.parse(localStorage.getItem('vz_user_reviews')||'[]'); }catch(e){}
+  renderAvis(DEFAULT_REVIEWS.concat(saved));
+
+  // Listen for Core storage updates
+  window.addEventListener('storage',function(e){
+    if(e.key==='vz_hotel_info') applyHotelInfo();
+    /* Rechargement des chambres si le module Réservations a modifié les unités */
+    if(e.key==='vlz_units_updated'||e.key==='vlz_cache_rooms'){
+      var sect=document.getElementById('espaces');
+      if(sect&&sect.getBoundingClientRect().top<window.innerHeight) loadRooms();
+    }
+    if(e.key==='vz_cms_content'||e.key==='vz_media_library') applyCMS();
+  });
+
+  // Init date bar defaults
+  var today=new Date();
+  var tom=new Date(); tom.setDate(tom.getDate()+1);
+  var fmt=function(d){ return d.toISOString().split('T')[0]; };
+  var dci=document.getElementById('db-checkin');
+  var dco=document.getElementById('db-checkout');
+  if(dci){ dci.min=fmt(today); dci.value=fmt(today); }
+  if(dco){ dco.min=fmt(tom); dco.value=fmt(tom); }
+
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(function(a){
+    a.addEventListener('click',function(e){
+      var target=document.querySelector(this.getAttribute('href'));
+      if(target){ e.preventDefault(); target.scrollIntoView({behavior:'smooth',block:'start'}); }
+    });
+  });
+
+  // Lazy load images via IntersectionObserver
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          var el=en.target;
+          el.classList.add('visible');
+          io.unobserve(el);
+        }
+      });
+    },{threshold:0.1});
+    document.querySelectorAll('.pm-card,.avis-card,.exp-card,.room-card,.ct-card').forEach(function(el){
+      io.observe(el);
+    });
+  }
+
+  // Remove skeleton if rooms not loaded
+  setTimeout(function(){
+    var rg=document.getElementById('rooms-grid');
+    if(rg&&rg.querySelector('.skeleton')&&!_rooms.length){
+      renderFallbackRooms();
+    }
+  },3000);
+});
+</script>
+</body>
+</html>
