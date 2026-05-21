@@ -494,6 +494,8 @@ function sbPost(path,data){
 function norm(r){
   /* Garantir un ID stable — sans ID, Confirmer/Check-in ne peuvent pas fonctionner */
   if(!r.id) r.id = 'local-'+(r.created_at||Date.now())+'-'+(r.client_name||'').replace(/\s+/g,'').slice(0,6);
+  /* Toujours convertir en String — les IDs Supabase sont des entiers, les onclick les passent en string */
+  r.id = String(r.id);
   r.guest_name  = r.guest_name  || r.client_name   || '';
   r.guest_email = r.guest_email || r.client_email  || '';
   r.guest_phone = r.guest_phone || r.client_phone  || '';
@@ -582,14 +584,14 @@ function loadAll(cb){
     var fromSB = Array.isArray(data) ? data.map(norm) : [];
     /* Réintégrer les entrées locales non-présentes dans Supabase */
     var stillLocal = _localEntries.filter(function(loc){
-      return !fromSB.some(function(s){ return s.id && loc.id && s.id===loc.id; });
+      return !fromSB.some(function(s){ return s.id && loc.id && String(s.id)===String(loc.id); });
     });
     _rez = fromSB.concat(stillLocal);
     /* Fusionner les notifications en attente (vlz_booking_sync non encore importées) */
     try{
       var pending=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
       pending.forEach(function(s){
-        var exists=_rez.some(function(r){return r.id&&s.id&&r.id===s.id;});
+        var exists=_rez.some(function(r){return r.id&&s.id&&String(r.id)===String(s.id);});
         if(!exists) _rez.unshift(norm(Object.assign({},s,{_fromSync:true})));
       });
     }catch(e){}
@@ -601,7 +603,7 @@ function loadAll(cb){
     try{
       var pending=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
       pending.forEach(function(s){
-        var exists=_rez.some(function(r){return r.id&&s.id&&r.id===s.id;});
+        var exists=_rez.some(function(r){return r.id&&s.id&&String(r.id)===String(s.id);});
         if(!exists) _rez.unshift(norm(Object.assign({},s,{_fromSync:true,status:'pending'})));
       });
     }catch(e){}
@@ -1431,7 +1433,7 @@ function openSyncModal(){
     }
     list.innerHTML='<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#22c55e">✅ Ces réservations sont déjà enregistrées dans Supabase. Cliquez <b>Voir dans la liste</b> pour les consulter.</div>';
     list.innerHTML=sync.map(function(s,i){
-      return '<div class="sync-item"><div class="sync-item-name">'+esc(s.guest_name||'—')+'</div>'+
+      return '<div class="sync-item"><div class="sync-item-name">'+esc(s.guest_name||s.client_name||'—')+'</div>'+
         '<div class="sync-item-sub">'+esc(elegantName(s)||s.unit_name||'—')+' · '+fmtDate(s.check_in)+' → '+fmtDate(s.check_out)+'</div>'+
         '<div class="sync-item-price">'+fmtMoney(s.total||s.paid||s.total_amount||0)+'</div>'+
         '<div class="sync-item-btns"><button class="btn-import" onclick="importSync('+i+')">✓ Voir dans la liste</button>'+
@@ -1448,7 +1450,7 @@ function importSync(i){
     var item=sync[i];
     if(item){
       /* Normaliser et insérer dans _rez s'il n'y est pas déjà */
-      var exists=_rez.some(function(r){return r.id&&item.id&&r.id===item.id;});
+      var exists=_rez.some(function(r){return r.id&&item.id&&String(r.id)===String(item.id);});
       if(!exists){
         var localRez=norm(Object.assign({},item,{_fromSync:true,status:item.status||'pending'}));
         _rez.unshift(localRez);
@@ -1816,6 +1818,9 @@ document.addEventListener('DOMContentLoaded', function(){
     if(ev.key==='vlz_booking_sync'||ev.key==='vlz_rez_ts'){
       checkBkSync();
       updateBadges();
+    }
+    if(ev.key==='vlz_rez_updated'){
+      loadAll(function(){ enrichStatuses(); refresh(); checkBkSync(); });
     }
   });
 });
