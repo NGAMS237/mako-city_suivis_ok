@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0d1a">
+<title>Veraluz OS — Kribi</title>
+<style>
+:root{
+  --bg:#0d0d1a;--bg2:#12121f;--bg3:#1a1a2e;--bg4:#22223a;
+  --accent:#22d3a5;--acc2:#818cf8;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --border:rgba(255,255,255,.07);
+  --warn:#f59e0b;--err:#f43f5e;--ok:#22d3a5;
+  --sb-w:220px;--tb-h:54px;--bn-h:62px;
+  --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);display:flex;height:100vh;}
+
+/* ── SIDEBAR ─────────────────────────────────────────────────── */
+#sidebar{width:var(--sb-w);min-width:var(--sb-w);background:var(--bg2);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;
+  padding-top:var(--sat);flex-shrink:0;}
+.sb-logo{padding:20px 16px 12px;display:flex;align-items:center;gap:10px;}
+.sb-logo-icon{width:36px;height:36px;border-radius:10px;flex-shrink:0;overflow:hidden;
+  background:linear-gradient(135deg,#d4943a,#e09b3a);
+  display:flex;align-items:center;justify-content:center;font-size:16px;}
+.sb-logo-name{font-size:15px;font-weight:700;}
+.sb-logo-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+.sb-divider{height:1px;background:var(--border);margin:6px 12px;}
+.sb-section{font-size:10px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.8px;padding:8px 16px 4px;font-weight:600;}
+.sb-nav{flex:1;padding:4px 8px;overflow-y:auto;}
+.sb-btn{width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;
+  border-radius:8px;border:none;background:transparent;color:var(--text2);
+  cursor:pointer;font-size:13px;font-weight:500;text-align:left;transition:all .15s;}
+.sb-btn:hover{background:var(--bg3);color:var(--text);}
+.sb-btn.active{background:rgba(34,211,165,.12);color:var(--accent);}
+.sb-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.sb-future{width:100%;display:flex;align-items:center;gap:10px;padding:8px 10px;
+  border-radius:8px;background:transparent;color:var(--text3);
+  font-size:12px;opacity:.55;margin-bottom:2px;}
+.sb-bottom{padding:12px 8px calc(12px + var(--sab));border-top:1px solid var(--border);}
+.sb-user{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;}
+.sb-avatar{width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--acc2));
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
+.sb-uname{font-size:12px;font-weight:600;}
+.sb-urole{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;}
+
+/* ── MAIN ────────────────────────────────────────────────────── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+
+/* ── Topbar ──────────────────────────────────────────────────── */
+#topbar{height:var(--tb-h);padding-top:var(--sat);background:var(--bg2);
+  border-bottom:1px solid var(--border);display:flex;align-items:center;
+  padding-left:14px;padding-right:14px;gap:10px;flex-shrink:0;z-index:50;}
+.tb-menu{display:none;width:32px;height:32px;border-radius:7px;
+  border:1px solid var(--border);background:var(--bg3);color:var(--text2);
+  cursor:pointer;font-size:16px;align-items:center;justify-content:center;}
+.tb-title{font-size:15px;font-weight:700;flex:1;}
+.tb-sub{font-size:11px;color:var(--text3);}
+.tb-actions{display:flex;gap:8px;margin-left:auto;align-items:center;}
+.tb-btn{height:30px;padding:0 12px;border-radius:6px;border:none;background:var(--bg3);
+  color:var(--text2);cursor:pointer;font-size:12px;display:flex;align-items:center;
+  gap:5px;transition:all .15s;}
+.tb-btn:hover{background:var(--bg4);color:var(--text);}
+.tb-tag{font-size:10px;background:rgba(34,211,165,.15);color:var(--accent);
+  padding:2px 8px;border-radius:10px;font-weight:600;}
+
+/* ── Content ─────────────────────────────────────────────────── */
+#content{flex:1;position:relative;overflow:hidden;}
+
+/* ── Vues ────────────────────────────────────────────────────── */
+.view{position:absolute;inset:0;display:none;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;}
+.view.active{display:block;}
+#view-module{overflow:hidden;}
+#module-frame{width:100%;height:100%;border:none;background:var(--bg);display:block;}
+
+/* ── Loader ──────────────────────────────────────────────────── */
+#loader{position:absolute;inset:0;background:var(--bg);display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:20;}
+#loader.show{display:flex;}
+.ld-ring{width:40px;height:40px;border-radius:50%;border:3px solid var(--bg4);
+  border-top-color:var(--accent);animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ld-text{font-size:13px;color:var(--text3);}
+
+/* ── Erreur ──────────────────────────────────────────────────── */
+#mod-error{position:absolute;inset:0;background:var(--bg);display:none;
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;z-index:20;text-align:center;padding:24px;}
+#mod-error.show{display:flex;}
+.err-ico{font-size:40px;}.err-title{font-size:16px;font-weight:700;}
+.err-msg{font-size:12px;color:var(--text3);max-width:280px;}
+.err-retry{padding:9px 22px;border-radius:8px;border:none;background:var(--accent);
+  color:#000;font-weight:700;cursor:pointer;font-size:13px;margin-top:4px;}
+
+/* ── Dashboard ───────────────────────────────────────────────── */
+#view-dashboard{padding:16px;padding-bottom:calc(var(--bn-h) + var(--sab) + 16px);}
+@media(min-width:768px){#view-dashboard{padding:24px;padding-bottom:24px;}}
+.dash-greeting{font-size:20px;font-weight:700;margin-bottom:4px;}
+.dash-sub{font-size:13px;color:var(--text3);margin-bottom:20px;}
+.dash-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+@media(min-width:640px){.dash-stats{grid-template-columns:repeat(4,1fr);}}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.stat-val{font-size:26px;font-weight:700;margin-bottom:2px;}
+.stat-label{font-size:11px;color:var(--text3);}
+.stat-val.a{color:var(--accent);}.stat-val.w{color:var(--warn);}
+.dash-section{font-size:11px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.7px;font-weight:600;margin-bottom:12px;}
+.modules-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px;}
+@media(min-width:640px){.modules-grid{grid-template-columns:repeat(3,1fr);}}
+.mod-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:16px;cursor:pointer;transition:all .15s;text-align:left;
+  border-color:transparent;color:var(--text);width:100%;}
+.mod-card:hover{background:var(--bg3);transform:translateY(-1px);}
+.mod-card.dim{cursor:default;opacity:.4;border:1px dashed var(--border);background:transparent;}
+.mod-card.dim:hover{transform:none;background:transparent;}
+.mod-icon{font-size:24px;margin-bottom:8px;}
+.mod-name{font-size:13px;font-weight:700;margin-bottom:3px;}
+.mod-desc{font-size:11px;color:var(--text3);}
+.mod-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;
+  border-radius:8px;margin-top:6px;background:rgba(34,211,165,.15);color:var(--accent);}
+.mod-badge.s{background:rgba(100,116,139,.15);color:var(--text3);}
+.recent-list{display:flex;flex-direction:column;gap:8px;}
+.rec-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;display:flex;align-items:center;gap:12px;}
+.rec-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.rec-dot.ok{background:var(--ok);}.rec-dot.w{background:var(--warn);}.rec-dot.i{background:var(--acc2);}
+.rec-text{flex:1;font-size:13px;}.rec-time{font-size:11px;color:var(--text3);flex-shrink:0;}
+
+/* ── Bottom nav ──────────────────────────────────────────────── */
+#bottom-nav{display:none;background:var(--bg2);border-top:1px solid var(--border);
+  flex-shrink:0;padding-bottom:var(--sab);}
+@media(max-width:767px){#bottom-nav{display:flex;}.tb-menu{display:flex;}}
+.bn-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:10px 4px;border:none;background:transparent;color:var(--text3);
+  cursor:pointer;font-size:10px;transition:color .15s;}
+.bn-btn:hover{color:var(--text2);}.bn-btn.active{color:var(--accent);}
+.bn-icon{font-size:20px;line-height:1;}.bn-label{font-size:10px;font-weight:500;}
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px;}
+
+.notif-badge-btn{position:relative;height:30px;padding:0 12px;border-radius:6px;border:none;
+  background:var(--bg3);color:var(--text2);cursor:pointer;font-size:16px;
+  display:flex;align-items:center;transition:all .15s;}
+.notif-badge-btn:hover{background:var(--bg4);color:var(--text);}
+.notif-badge{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;
+  background:#ef4444;color:#fff;border-radius:8px;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;padding:0 3px;
+  opacity:0;transition:opacity .2s;}
+.notif-badge.visible{opacity:1;}
+
+/* ── Auth Overlay ────────────────────────────────────────────── */
+#auth-overlay {
+  position:fixed; inset:0; z-index:9999;
+  background:linear-gradient(160deg,#0d1117 0%,#0f1e1a 50%,#0d1117 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Inter',system-ui,sans-serif;
+  padding:16px;
+}
+#auth-overlay.hidden { display:none; }
+.auth-box {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:20px; padding:28px 24px; width:100%; max-width:380px;
+  box-shadow:0 24px 64px rgba(0,0,0,.6);
+  animation:authIn .4s cubic-bezier(.16,1,.3,1);
+}
+@keyframes authIn { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+.auth-logo { text-align:center; margin-bottom:20px; }
+.auth-logo .al-icon { font-size:40px; display:block; margin-bottom:6px; }
+.auth-logo .al-title { font-size:20px; font-weight:700; color:var(--fg); }
+.auth-logo .al-sub   { font-size:12px; color:var(--fg2); margin-top:3px; }
+
+/* Employee picker */
+.auth-emp-pick { margin-bottom:16px; }
+.auth-emp-pick label { display:block; font-size:11px; font-weight:600;
+  color:var(--fg2); margin-bottom:6px; text-transform:uppercase; letter-spacing:.06em; }
+.auth-emp-select {
+  width:100%; box-sizing:border-box;
+  background:var(--bg); border:1.5px solid var(--border); border-radius:10px;
+  padding:11px 14px; font-size:15px; color:var(--fg); outline:none;
+  transition:border-color .2s; cursor:pointer; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center;
+  padding-right:36px;
+}
+.auth-emp-select:focus { border-color:var(--acc); }
+.auth-emp-select option { background:var(--bg2); }
+
+/* PIN display */
+.auth-pin-lbl { font-size:11px; font-weight:600; color:var(--fg2);
+  text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; display:block; }
+.auth-pin-display {
+  display:flex; gap:10px; justify-content:center; margin-bottom:16px;
+}
+.auth-pin-dot {
+  width:18px; height:18px; border-radius:50%;
+  border:2px solid var(--border); background:transparent;
+  transition:all .15s;
+}
+.auth-pin-dot.filled { background:var(--acc); border-color:var(--acc); }
+
+/* PIN pad */
+.auth-pin-pad {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+  margin-bottom:14px;
+}
+.auth-pin-btn {
+  aspect-ratio:1; border:1.5px solid var(--border); border-radius:12px;
+  background:var(--bg3); color:var(--fg); font-size:22px; font-weight:600;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .12s; user-select:none; -webkit-user-select:none;
+}
+.auth-pin-btn:hover { background:var(--bg4); border-color:var(--acc); }
+.auth-pin-btn:active { transform:scale(.93); background:var(--acc); color:#000; }
+.auth-pin-btn.del { font-size:18px; }
+.auth-pin-btn.zero { grid-column:2; }
+
+/* Connect btn */
+.auth-btn {
+  width:100%; padding:13px; border:none; border-radius:12px;
+  background:var(--acc); color:#fff; font-size:15px; font-weight:600;
+  cursor:pointer; transition:opacity .2s, transform .1s;
+}
+.auth-btn:hover  { opacity:.9; }
+.auth-btn:active { transform:scale(.98); }
+.auth-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+/* Admin mode fields */
+.auth-field { margin-bottom:14px; }
+.auth-field label { display:block; font-size:11px; font-weight:600;
+  color:var(--fg2); margin-bottom:5px; text-transform:uppercase; letter-spacing:.06em; }
+.auth-field input {
+  width:100%; box-sizing:border-box;
+  background:var(--bg); border:1.5px solid var(--border); border-radius:10px;
+  padding:10px 13px; font-size:14px; color:var(--fg); outline:none;
+  transition:border-color .2s;
+}
+.auth-field input:focus { border-color:var(--acc); }
+.auth-field input::placeholder { color:var(--fg2); }
+.auth-remember { display:flex; align-items:center; gap:8px;
+  font-size:13px; color:var(--fg2); margin-bottom:16px; cursor:pointer; }
+.auth-remember input[type=checkbox] { accent-color:var(--acc); width:15px; height:15px; cursor:pointer; }
+
+.auth-error {
+  background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3);
+  color:#f87171; border-radius:8px; padding:10px 14px;
+  font-size:13px; margin-bottom:14px; display:none;
+}
+.auth-error.show { display:block; }
+.auth-hint { text-align:center; margin-top:12px; font-size:11px; color:var(--fg2); }
+.auth-mode-toggle {
+  text-align:center; margin-top:10px; font-size:12px; color:var(--fg2);
+}
+.auth-mode-toggle a { color:var(--acc); cursor:pointer; text-decoration:none; }
+#auth-admin-mode { display:none; }
+/* topbar user chip */
+.tb-user { display:flex; align-items:center; gap:8px; }
+.tb-user-name { font-size:13px; font-weight:600; color:var(--fg); max-width:90px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tb-user-role { font-size:10px; color:var(--acc); font-weight:600;
+  background:rgba(99,102,241,.15); padding:2px 7px; border-radius:20px; }
+.tb-logout-btn {
+  background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.25);
+  color:#f87171; border-radius:8px; padding:5px 10px;
+  font-size:12px; font-weight:600; cursor:pointer; transition:background .2s;
+}
+.tb-logout-btn:hover { background:rgba(239,68,68,.22); }
+
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-icon" id="sb-logo-wrap">
+      <img id="sb-logo-img" src="" alt="Logo" style="width:36px;height:36px;object-fit:cover;display:none;">
+      <svg id="sb-logo-emoji" width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <text x="11" y="16.5" font-family="Georgia,serif" font-size="17" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="-0.5">V</text>
+      </svg>
+    </div>
+    <div>
+      <div class="sb-logo-name" id="sb-hotel-name">Veraluz OS</div>
+      <div class="sb-logo-sub">Kribi · Cameroun</div>
+    </div>
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-nav">
+    <div class="sb-section">Navigation</div>
+    <button class="sb-btn active" id="nav-dashboard" onclick="goTo('dashboard')">
+      <span class="sb-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Dashboard
+    </button>
+    <div id="sb-modules"></div>
+    <div class="sb-divider" style="margin-top:10px"></div>
+    <div class="sb-section">À venir</div>
+    <div id="sb-coming"></div>
+  </div>
+  <div class="sb-bottom">
+    <div id="sb-pointage-wrap" style="display:none;padding:0 8px 10px;">
+      <button class="sb-btn" id="sb-pointage-btn"
+        style="background:rgba(34,211,165,.1);color:var(--accent);border:1px solid rgba(34,211,165,.2);"
+        onclick="openPointagePanel()">
+        <span class="sb-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Mon Pointage
+      </button>
+    </div>
+    <div class="sb-user">
+      <div class="sb-avatar">S</div>
+      <div>
+        <div class="sb-uname">Smith</div>
+        <div class="sb-urole">Super Admin</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <button class="tb-menu" onclick="toggleMobileSidebar()" aria-label="Menu">&#9776;</button>
+    <div style="flex:1;min-width:0">
+      <div class="tb-title" id="tb-title">Dashboard</div>
+      <div class="tb-sub" id="tb-sub">Résidence Veraluz · Kribi</div>
+    </div>
+    <div class="tb-actions">
+      <div class="tb-user" id="tb-user-info" style="display:none">
+        <span class="tb-user-name" id="tb-user-name">-</span>
+        <span class="tb-user-role" id="tb-user-role">-</span>
+        <button class="tb-logout-btn" onclick="logout()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sortir</button>
+      </div>
+      <span class="tb-tag">LIVE</span>
+      <button class="notif-badge-btn" id="notif-bell-btn" onclick="openNotifications()" title="Notifications">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="notif-badge" id="notif-badge"></span>
+      </button>
+      <button class="tb-btn" id="tb-pointage-btn" onclick="openPointagePanel()"
+        style="display:none;" title="Mon Pointage"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+      <button class="tb-btn" onclick="refreshCurrent()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></button>
+    </div>
+  </div>
+
+  <div id="content">
+    <div id="loader">
+      <div class="ld-ring"></div>
+      <div class="ld-text" id="ld-text">Chargement...</div>
+    </div>
+    <div id="mod-error">
+      <div class="err-ico">&#9888;&#65039;</div>
+      <div class="err-title">Module inaccessible</div>
+      <div class="err-msg" id="err-msg">Impossible de charger le module.</div>
+      <button class="err-retry" onclick="retryModule()">Réessayer</button>
+    </div>
+    <div id="view-dashboard" class="view active">
+      <div class="dash-greeting" id="dash-greeting">Bonjour &#128075;</div>
+      <div class="dash-sub" id="dash-date">Résidence Veraluz · Kribi</div>
+      <div class="dash-stats">
+        <div class="stat-card"><div class="stat-val a" id="st-rez">…</div><div class="stat-label">Réservations actives</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-pay">…</div><div class="stat-label">Paiements en attente</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-units">…</div><div class="stat-label">Unités disponibles</div></div>
+        <div class="stat-card"><div class="stat-val w" id="st-rev">…</div><div class="stat-label">Revenus validés (FCFA)</div></div>
+      </div>
+      <div class="dash-section">Modules actifs</div>
+      <div class="modules-grid" id="dash-grid"></div>
+      <div class="dash-section">Réservations récentes</div>
+      <div class="recent-list" id="recent-list">
+        <div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Chargement…</div></div>
+      </div>
+    </div>
+    <div id="view-module" class="view">
+      <iframe id="module-frame" title="Module Veraluz OS"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups">
+      </iframe>
+    </div>
+  </div>
+
+  <nav id="bottom-nav">
+    <button class="bn-btn active" id="bn-dashboard" onclick="goTo('dashboard')">
+      <span class="bn-icon">&#127968;</span><span class="bn-label">Dashboard</span>
+    </button>
+    <div id="bn-modules" style="display:contents"></div>
+  </nav>
+</div>
+
+<div id="sb-ov" onclick="closeMobileSidebar()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;"></div>
+
+<script>
+'use strict';
+
+/* ================================================================
+   VERALUZ OS CORE — v3.1
+   RÈGLE : Ne jamais éditer ce fichier avec l'outil Edit.
+            Utiliser rebuild_core.py pour toute modification.
+   ================================================================ */
+
+/* ── Supabase ─────────────────────────────────────────────── */
+var SB_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+
+function sbGet(path) {
+  return fetch(SB_URL + path, {
+    headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, Accept:'application/json' }
+  }).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); });
+}
+
+/* ================================================================
+   MODULES — SEULE SECTION À MODIFIER VIA rebuild_core.py
+   Pour ajouter un module :
+     { id:'monmodule', label:'Mon Module', icon:'🔧',
+       file:'MONMODULE_EMBEDDED.html', desc:'Description courte' }
+   ================================================================ */
+var MODULES = [
+  { id:'reservations', label:'Réservations', icon:'🛏️',
+    file:'RESERVATIONS_EMBEDDED.html', desc:'Planning & Check-in/out' },
+  { id:'paiements',    label:'Paiements',    icon:'💳',
+    file:'PAIEMENTS_EMBEDDED.html',    desc:'Transactions & Validations' },
+  { id:'housekeeping', label:'Housekeeping', icon:'🧹',
+    file:'HOUSEKEEPING_EMBEDDED.html', desc:'Nettoyage & Maintenance' },
+  { id:'restaurant',   label:'Restaurant',   icon:'🍽️',
+    file:'RESTAURANT_EMBEDDED.html',   desc:'POS · Bar · Room Service' },
+  { id:'finance',      label:'Finance',      icon:'📊',
+    file:'FINANCE_EMBEDDED.html',      desc:'Revenus · Dépenses · Caisse' },
+  { id:'rh',           label:'RH',           icon:'👥',
+    file:'RH_EMBEDDED.html',           desc:'Employés · Paie · Horaires' },
+  { id:'contacts',     label:'Contacts',     icon:'👥',
+    file:'CONTACTS_EMBEDDED.html',     desc:'Clients · Employés · Prestataires · Historique' },
+  { id:'notifications', label:'Notifications', icon:'🔔',
+    file:'NOTIFICATIONS_EMBEDDED.html', desc:'Alertes & Centre de notifications' },
+  { id:'analytics',     label:'Analytics',     icon:'📈',
+    file:'ANALYTICS_EMBEDDED.html',     desc:'KPIs · Revenus · Rapports' },
+  { id:'audit',         label:'Audit',         icon:'🔍',
+    file:'AUDIT_EMBEDDED.html',         desc:'Logs · Sécurité · Traçabilité' },
+  { id:'settings',      label:'Settings',      icon:'⚙️',
+    file:'SETTINGS_EMBEDDED.html',      desc:'Config · Tarifs · Permissions' },
+  { id:'eventbus',      label:'Event Bus',     icon:'⚡',
+    file:'EVENTBUS_EMBEDDED.html',      desc:'Pub/Sub · Routage · Monitoring' },
+  { id:'auth',      label:'Auth',      icon:'🔐',
+    file:'AUTH_EMBEDDED.html',      desc:'Utilisateurs · Rôles · Sessions' },
+  { id:'appro',     label:'Appro',     icon:'📦',
+    file:'APPRO_EMBEDDED.html',     desc:'Inventaire · Achats · Fournisseurs' },
+  { id:'integrations', label:'Intégrations', icon:'🔗',
+    file:'INTEGRATIONS_EMBEDDED.html', desc:'WhatsApp · CinetPay · Journal' },
+];
+
+/* ── Monochrome SVG icons for sidebar ─────────────────────────────── */
+var SVG_ICONS = {
+  'contacts': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  dashboard:     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  reservations:  '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V6a1 1 0 011-1h16a1 1 0 011 1v3"/><path d="M3 9h18v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/><path d="M8 5V3m8 2V3"/><path d="M7 14h.01M12 14h.01M17 14h.01"/></svg>',
+  paiements:     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>',
+  housekeeping:  '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6L4 21"/><path d="M9 6c0 0 1-2 3-2s4 2 4 2l1 3H8L9 6z"/><path d="M8 9c0 0-4 2-4 6h16c0-4-4-6-4-6"/></svg>',
+  restaurant:    '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2s-5 2-5 9v4"/><path d="M16 22v-3"/></svg>',
+  finance:       '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-8"/></svg>',
+  rh:            '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75"/><path d="M21 21v-2a4 4 0 00-3-3.87"/></svg>',
+  notifications: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>',
+  analytics:     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+  audit:         '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>',
+  settings:      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+  eventbus:      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+  auth:          '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+  appro:         '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+  integrations:  '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>',
+  pointage:      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  notif_bell:    '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>',
+  logout:        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+  refresh:       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>'
+};
+
+
+var COMING = [];
+
+/* ── État ─────────────────────────────────────────────────── */
+var currentPage   = 'dashboard';
+var currentModule = null;
+var loadTimer     = null;
+
+/* ── Navigation ───────────────────────────────────────────── */
+function goTo(pageId) {
+  var mod = MODULES.find(function(m){ return m.id === pageId; });
+  closeMobileSidebar();
+  setActive(pageId);
+  currentPage = pageId;
+  if (pageId === 'dashboard') {
+    currentModule = null;
+    setTopbar('Dashboard','Résidence Veraluz · Kribi');
+    showDashView();
+    return;
+  }
+  if (!mod) return;
+  currentModule = mod;
+  setTopbar(mod.icon+' '+mod.label, mod.desc||'');
+  loadModuleFrame(mod);
+}
+
+function loadModuleFrame(mod) {
+  var iframe = document.getElementById('module-frame');
+  var loader = document.getElementById('loader');
+  iframe.onload = null;
+  iframe.onerror = null;
+  var _authIframe = iframe;
+  if (loadTimer){ clearTimeout(loadTimer); loadTimer = null; }
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.getElementById('mod-error').classList.remove('show');
+  document.getElementById('ld-text').textContent = 'Chargement '+mod.label+'…';
+  loader.classList.add('show');
+  iframe.src = 'about:blank';
+  setTimeout(function(){
+    var done = false;
+    function onReady(){
+      if(done) return; done = true;
+      if(loadTimer){ clearTimeout(loadTimer); loadTimer = null; }
+      loader.classList.remove('show');
+      showView('module');
+      sendAuthContext(_authIframe);
+    }
+    iframe.onload  = function(){ onReady(); };
+    iframe.onerror = function(){
+      if(loadTimer) clearTimeout(loadTimer);
+      loader.classList.remove('show');
+      document.getElementById('err-msg').textContent = 'Impossible de charger '+mod.file;
+      document.getElementById('mod-error').classList.add('show');
+    };
+    loadTimer = setTimeout(onReady, 8000);
+    iframe.src = mod.file + "?v=" + Date.now();
+  }, 80);
+}
+
+function refreshCurrent(){
+  if(currentPage==='dashboard') loadDashboardData();
+  else if(currentModule) loadModuleFrame(currentModule);
+}
+
+function retryModule(){
+  document.getElementById('mod-error').classList.remove('show');
+  if(currentModule) loadModuleFrame(currentModule);
+}
+
+function showView(name){
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.getElementById('view-'+name).classList.add('active');
+}
+function showDashView(){
+  document.getElementById('loader').classList.remove('show');
+  document.getElementById('mod-error').classList.remove('show');
+  showView('dashboard');
+}
+function setTopbar(title,sub){
+  document.getElementById('tb-title').textContent = title;
+  document.getElementById('tb-sub').textContent   = sub;
+}
+function setActive(id){
+  document.querySelectorAll('.sb-btn,.bn-btn').forEach(function(b){ b.classList.remove('active'); });
+  var sb = document.getElementById('nav-'+id);
+  var bn = document.getElementById('bn-'+id);
+  if(sb) sb.classList.add('active');
+  if(bn) bn.classList.add('active');
+}
+
+/* ── Build nav — construit UNE SEULE FOIS au DOMContentLoaded ─ */
+function buildNav(){
+  var sbMods   = document.getElementById('sb-modules');
+  var sbComing = document.getElementById('sb-coming');
+  var bnMods   = document.getElementById('bn-modules');
+  var grid     = document.getElementById('dash-grid');
+  sbMods.innerHTML = bnMods.innerHTML = sbComing.innerHTML = grid.innerHTML = '';
+
+  var visibleModules = (currentUser && ROLES[currentUser.role])
+    ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0; })
+    : MODULES;
+
+  visibleModules.forEach(function(m){
+    var sb = document.createElement('button');
+    sb.className='sb-btn'; sb.id='nav-'+m.id;
+    sb.innerHTML='<span class="sb-icon">'+(SVG_ICONS[m.id]||m.icon)+'</span> '+m.label;
+    sb.onclick=function(){ goTo(m.id); };
+    sbMods.appendChild(sb);
+
+    var bn = document.createElement('button');
+    bn.className='bn-btn'; bn.id='bn-'+m.id;
+    bn.innerHTML='<span class="bn-icon">'+m.icon+'</span><span class="bn-label">'+m.label+'</span>';
+    bn.onclick=function(){ goTo(m.id); };
+    bnMods.appendChild(bn);
+
+    var card = document.createElement('button');
+    card.className='mod-card';
+    card.innerHTML='<div class="mod-icon">'+m.icon+'</div>'
+      +'<div class="mod-name">'+m.label+'</div>'
+      +'<div class="mod-desc">'+m.desc+'</div>'
+      +'<span class="mod-badge">Actif</span>';
+    card.onclick=function(){ goTo(m.id); };
+    grid.appendChild(card);
+  });
+
+  COMING.forEach(function(c){
+    var el = document.createElement('div');
+    el.className='sb-future';
+    el.innerHTML='<span style="font-size:15px">'+c.icon+'</span> '+c.label;
+    sbComing.appendChild(el);
+
+    var card = document.createElement('div');
+    card.className='mod-card dim';
+    card.innerHTML='<div class="mod-icon">'+c.icon+'</div>'
+      +'<div class="mod-name">'+c.label+'</div>'
+      +'<span class="mod-badge s">Bientôt</span>';
+    grid.appendChild(card);
+  });
+}
+
+/* ── Dashboard data ───────────────────────────────────────── */
+function loadDashboardData(){
+  Promise.all([
+    sbGet('/rest/v1/veraluz_reservations?select=id,status,client_name,unit_id,check_in&order=created_at.desc&limit=6'),
+    sbGet('/rest/v1/veraluz_payments?select=id,status,amount&order=created_at.desc'),
+    sbGet('/rest/v1/veraluz_units?select=id,status'),
+  ]).then(function(r){
+    var rezs  = r[0]||[];
+    var pays  = r[1]||[];
+    var units = r[2]||[];
+    var active  = rezs.filter(function(x){ return x.status==='checkedin'||x.status==='confirmed'; });
+    var pending = pays.filter(function(x){ return x.status==='pending'; });
+    var avail   = units.filter(function(x){ return x.status==='available'; });
+    var rev     = pays.filter(function(x){ return x.status==='validated'; })
+                      .reduce(function(s,p){ return s+(p.amount||0); },0);
+    document.getElementById('st-rez').textContent   = active.length;
+    document.getElementById('st-pay').textContent   = pending.length;
+    document.getElementById('st-units').textContent = avail.length;
+    document.getElementById('st-rev').textContent   = rev.toLocaleString('fr-FR');
+    var list = document.getElementById('recent-list');
+    if(!rezs.length){
+      list.innerHTML='<div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Aucune réservation</div></div>';
+      return;
+    }
+    list.innerHTML=rezs.slice(0,5).map(function(r){
+      var dot=r.status==='checkedin'?'ok':r.status==='confirmed'?'i':'w';
+      var lbl={checkedin:'En séjour',confirmed:'Confirmée',checkedout:'Départ',cancelled:'Annulée'}[r.status]||r.status;
+      return '<div class="rec-item">'
+        +'<div class="rec-dot '+dot+'"></div>'
+        +'<div class="rec-text"><strong>'+(r.client_name||'—')+'</strong> — Unité '+(r.unit_id||'—')+' · '+lbl+'</div>'
+        +'<div class="rec-time">'+(r.check_in||'')+'</div>'
+        +'</div>';
+    }).join('');
+  }).catch(function(e){
+    console.warn('[Core] Supabase error:',e);
+    ['st-rez','st-pay','st-units','st-rev'].forEach(function(id){
+      document.getElementById(id).textContent='—';
+    });
+  });
+}
+
+/* ── Greeting ─────────────────────────────────────────────── */
+function initGreeting(){
+  var h=new Date().getHours();
+  var s=h<12?'Bonjour':h<18?'Bon après-midi':'Bonsoir';
+  document.getElementById('dash-greeting').textContent=s+', Smith 👋';
+  document.getElementById('dash-date').textContent='Résidence Veraluz · '
+    +new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+/* ── Sidebar mobile ───────────────────────────────────────── */
+function toggleMobileSidebar(){
+  var sb=document.getElementById('sidebar');
+  var ov=document.getElementById('sb-ov');
+  if(ov.style.display==='block'){ closeMobileSidebar(); return; }
+  sb.style.cssText='display:flex!important;position:fixed;top:0;left:0;bottom:0;z-index:210;width:260px;box-shadow:4px 0 20px rgba(0,0,0,.5);';
+  ov.style.display='block';
+}
+function closeMobileSidebar(){
+  document.getElementById('sidebar').style.cssText='';
+  document.getElementById('sb-ov').style.display='none';
+}
+
+/* ================================================================
+   INIT — DOMContentLoaded
+   IMPORTANT : Ce bloc est suivi d'un buffer de sécurité de 60 lignes.
+   Ne jamais le déplacer vers la fin du fichier.
+   ================================================================ */
+
+/* ================================================================
+   AUTH ENGINE — Veraluz OS v2.0
+   ================================================================ */
+/* ── Supabase config ───────────────────────────────────────────────── */
+var SUPA_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+
+/* ── Role mapping: Supabase role → Core role ──────────────────────── */
+var ROLE_MAP = {
+  gerant:         'superadmin',
+  directeur:      'superadmin',
+  manager:        'manager',
+  superviseur:    'manager',
+  receptionniste: 'reception',
+  agent_accueil:  'reception',
+  comptable:      'comptable',
+  financier:      'comptable',
+  barman:         'restaurant',
+  cuisinier:      'restaurant',
+  serveur:        'restaurant',
+  femme_chambre:  'housekeeping',
+  agent_menage:   'housekeeping',
+  technicien:     'housekeeping',
+  agent_securite: 'housekeeping',
+  rh:             'rh',
+  admin:          'superadmin'
+};
+
+var ROLES = {
+  superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'rh',
+    modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
+             'notifications','analytics','audit','settings','eventbus','auth','contacts','appro','integrations'] },
+  manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'rh',
+    modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
+             'notifications','analytics','auth','contacts','appro','integrations'] },
+  reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981', primaryModule:'reservations',
+    modules:['reservations','paiements','notifications','rh','contacts'] },
+  rh:          { label:'RH',               icon:'👥',  color:'#f59e0b', primaryModule:'rh',
+    modules:['rh','notifications','analytics'] },
+  comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'finance',
+    modules:['finance','paiements','analytics','audit','notifications'] },
+  restaurant:  { label:'Restaurant',       icon:'🍽️',  color:'#f97316', primaryModule:'restaurant',
+    modules:['restaurant','notifications','rh'] },
+  housekeeping:{ label:'Housekeeping',     icon:'🧹',  color:'#84cc16', primaryModule:'housekeeping',
+    modules:['housekeeping','notifications','rh'] }
+};
+
+/* ── Admin fallback users (accès admin uniquement) ─────────────────── */
+var DEFAULT_USERS = [
+  { username:'admin',   password:'admin123',   role:'superadmin', name:'Administrateur', active:true },
+  { username:'manager', password:'manager123', role:'manager',    name:'Manager',        active:true }
+];
+
+/* ── Employee cache ─────────────────────────────────────────────────── */
+var _empCache = [];
+
+function getEmployeesFromSupabase(cb) {
+  var cached = localStorage.getItem('vlz_emp_login_cache');
+  if (cached) {
+    try {
+      var data = JSON.parse(cached);
+      // Cache valide 5 min ET doit contenir au moins 1 employé
+      if (data.ts && (Date.now() - data.ts) < 5 * 60 * 1000 &&
+          Array.isArray(data.employees) && data.employees.length > 0) {
+        _empCache = data.employees;
+        if (cb) cb(_empCache);
+        return;
+      }
+    } catch(e) {}
+  }
+  fetch(SUPA_URL + '/rest/v1/veraluz_employees?select=id,full_name,role,pin_code,status&status=eq.actif&order=full_name.asc', {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    _empCache = Array.isArray(data) ? data : [];
+    localStorage.setItem('vlz_emp_login_cache', JSON.stringify({ ts: Date.now(), employees: _empCache }));
+    if (cb) cb(_empCache);
+  })
+  .catch(function() {
+    _empCache = [];
+    if (cb) cb([]);
+  });
+}
+
+var currentUser = null;
+
+function getUsers() {
+  /* Always keep DEFAULT_USERS (admin) accessible even if AUTH module
+     overwrites veraluz_users_v1 with a different employee list */
+  var base = DEFAULT_USERS.slice(); // guaranteed admin entry
+  try {
+    var stored = localStorage.getItem('veraluz_users_v1');
+    if (stored) {
+      var parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        /* Merge: add stored entries that are NOT already in base */
+        parsed.forEach(function(u) {
+          var exists = base.some(function(b){ return b.username === u.username; });
+          if (!exists) base.push(u);
+        });
+      }
+    }
+  } catch(e){}
+  return base;
+}
+
+/* PIN input state */
+var _pinBuffer = '';
+var _pinMax = 4;
+
+function pinPress(d) {
+  if (_pinBuffer.length >= _pinMax) return;
+  _pinBuffer += d;
+  updatePinDisplay();
+  if (_pinBuffer.length === _pinMax) {
+    setTimeout(doLoginPin, 200);
+  }
+}
+function pinDel() {
+  _pinBuffer = _pinBuffer.slice(0, -1);
+  updatePinDisplay();
+}
+function updatePinDisplay() {
+  for (var i = 0; i < _pinMax; i++) {
+    var dot = document.getElementById('pin-dot-' + i);
+    if (dot) dot.className = 'auth-pin-dot' + (i < _pinBuffer.length ? ' filled' : '');
+  }
+}
+
+function showAuthOverlay() {
+  _pinBuffer = '';
+  updatePinDisplay();
+  var ov = document.getElementById('auth-overlay');
+  if (ov) ov.classList.remove('hidden');
+  // Afficher un état de chargement pendant la requête Supabase
+  var sel = document.getElementById('auth-emp-select');
+  if (sel) sel.innerHTML = '<option value="">⏳ Chargement des employés...</option>';
+  // Charger la liste des employés actifs depuis Supabase
+  getEmployeesFromSupabase(function(emps) {
+    var sel2 = document.getElementById('auth-emp-select');
+    if (!sel2) return;
+    if (!emps || emps.length === 0) {
+      sel2.innerHTML = '<option value="">⚠ Aucun employé trouvé</option>';
+      return;
+    }
+    sel2.innerHTML = '<option value="">— Sélectionnez votre nom —</option>';
+    emps.forEach(function(e) {
+      var opt = document.createElement('option');
+      opt.value = e.id;
+      opt.setAttribute('data-pin',  e.pin_code  || '1234');
+      opt.setAttribute('data-role', e.role      || 'femme_chambre');
+      opt.setAttribute('data-name', e.full_name || '');
+      opt.textContent = e.full_name || e.id;
+      sel2.appendChild(opt);
+    });
+  });
+}
+
+function checkAuth() {
+  try {
+    var sessionStr = localStorage.getItem('veraluz_auth_v1');
+    if (!sessionStr) { showAuthOverlay(); return; }
+    var session = JSON.parse(sessionStr);
+    if (session.expires && session.expires < Date.now()) {
+      localStorage.removeItem('veraluz_auth_v1');
+      showAuthOverlay(); return;
+    }
+    currentUser = { username: session.username, name: session.name, role: session.role,
+                    employee_id: session.employee_id || null };
+    if (!currentUser.name || !currentUser.role) { showAuthOverlay(); return; }
+    hideAuthOverlay();
+    updateTopbarUser();
+    buildNav();
+    initGreeting();
+    loadDashboardData();
+    // Auto-navigate to primary module for employee roles
+    if (session.primaryModule) {
+      setTimeout(function() { navigateTo(session.primaryModule); }, 500);
+    }
+  } catch(e) {
+    showAuthOverlay();
+  }
+}
+
+/* ── PIN Login (employees) ───────────────────────────────────────── */
+function doLoginPin() {
+  var errEl = document.getElementById('auth-error');
+  errEl.classList.remove('show');
+
+  var sel = document.getElementById('auth-emp-select');
+  if (!sel || !sel.value) {
+    errEl.textContent = 'Veuillez sélectionner votre nom.';
+    errEl.classList.add('show');
+    _pinBuffer = ''; updatePinDisplay();
+    return;
+  }
+  var empId   = sel.value;
+  var selOpt  = sel.options[sel.selectedIndex];
+  var empName = selOpt.getAttribute('data-name') || selOpt.textContent;
+  var empRole = selOpt.getAttribute('data-role') || 'femme_chambre';
+  var empPin  = selOpt.getAttribute('data-pin')  || '1234';
+
+  if (_pinBuffer !== empPin) {
+    errEl.textContent = 'NIP incorrect. Réessayez.';
+    errEl.classList.add('show');
+    _pinBuffer = ''; updatePinDisplay();
+    return;
+  }
+
+  // Map Supabase role to Core role
+  var coreRole = ROLE_MAP[empRole] || 'housekeeping';
+  var roleConf = ROLES[coreRole] || ROLES['housekeeping'];
+  var primaryModule = roleConf.primaryModule || 'housekeeping';
+
+  var expires = Date.now() + 8 * 60 * 60 * 1000; // 8h session
+  var session = {
+    username: empId, name: empName, role: coreRole,
+    employee_id: empId, primaryModule: primaryModule,
+    loginAt: Date.now(), expires: expires
+  };
+  localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+  logAuthEvent('pin-login', empName, coreRole);
+
+  currentUser = { username: empId, name: empName, role: coreRole, employee_id: empId };
+  hideAuthOverlay();
+  updateTopbarUser();
+  buildNav();
+  initGreeting();
+  loadDashboardData();
+  // Navigate to their primary module
+  setTimeout(function() { navigateTo(primaryModule); }, 400);
+}
+
+/* ── Admin Login (email + password) ──────────────────────────────── */
+function doLogin() {
+  var username = (document.getElementById('auth-username').value || '').trim();
+  var password = (document.getElementById('auth-password').value || '').trim();
+  var remember = document.getElementById('auth-remember') && document.getElementById('auth-remember').checked;
+  var errEl    = document.getElementById('auth-error');
+  errEl.classList.remove('show');
+
+  if (!username || !password) {
+    errEl.textContent = 'Veuillez saisir votre identifiant et mot de passe.';
+    errEl.classList.add('show'); return;
+  }
+
+  var users = getUsers();
+  var user  = users.find(function(u){
+    return u.username === username && u.password === password && u.active !== false;
+  });
+
+  if (!user) {
+    errEl.textContent = 'Identifiants incorrects. Réessayez.';
+    errEl.classList.add('show');
+    var pw = document.getElementById('auth-password');
+    if (pw) { pw.value = ''; pw.focus(); }
+    logAuthEvent('failed', username, '?');
+    return;
+  }
+
+  var roleConf = ROLES[user.role] || ROLES['superadmin'];
+  var expires = remember ? Date.now() + 7*24*60*60*1000 : Date.now() + 8*60*60*1000;
+  var session = { username: user.username, role: user.role, name: user.name,
+                  primaryModule: roleConf.primaryModule || null,
+                  loginAt: Date.now(), expires: expires };
+  localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+  logAuthEvent('admin-login', user.username, user.role);
+
+  currentUser = { username: user.username, name: user.name, role: user.role };
+  hideAuthOverlay();
+  updateTopbarUser();
+  buildNav();
+  initGreeting();
+  loadDashboardData();
+}
+
+function navigateTo(id) { goTo(id); }
+
+function toggleAdminMode() {
+  var emp = document.getElementById('auth-emp-mode');
+  var adm = document.getElementById('auth-admin-mode');
+  var lnk = document.getElementById('auth-mode-lnk');
+  if (!emp || !adm) return;
+  var showAdmin = adm.style.display === 'none';
+  adm.style.display = showAdmin ? 'block' : 'none';
+  emp.style.display  = showAdmin ? 'none'  : 'block';
+  if (lnk) lnk.textContent = showAdmin ? '← Retour connexion employé' : '🔐 Accès administrateur';
+  _pinBuffer = ''; updatePinDisplay();
+  document.getElementById('auth-error').classList.remove('show');
+}
+
+function logout() {
+  if (!confirm('Confirmer la déconnexion ?')) return;
+  logAuthEvent('logout', currentUser ? currentUser.name||currentUser.username : '?',
+                         currentUser ? currentUser.role : '?');
+  localStorage.removeItem('veraluz_auth_v1');
+  currentUser = null;
+  _pinBuffer = '';
+  updateTopbarUser();
+  var ids = ['sb-modules','sb-coming','bn-modules','dash-grid'];
+  ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.innerHTML=''; });
+  // Reset admin fields if they exist
+  var pu = document.getElementById('auth-username'); if (pu) pu.value = '';
+  var pp = document.getElementById('auth-password'); if (pp) pp.value = '';
+  // Ensure employee mode is shown on next open
+  showAuthOverlay();
+}
+
+function logAuthEvent(type, username, role) {
+  try {
+    var log = JSON.parse(localStorage.getItem('veraluz_auth_log') || '[]');
+    log.unshift({ type:type, username:username, role:role,
+                  ts:new Date().toISOString(), ip:'local', device:'Web App' });
+    if (log.length > 200) log = log.slice(0, 200);
+    localStorage.setItem('veraluz_auth_log', JSON.stringify(log));
+  } catch(e){}
+}
+
+/* showAuthOverlay() est définie plus haut avec la logique de chargement Supabase */
+
+function hideAuthOverlay() {
+  var ov = document.getElementById('auth-overlay');
+  if (ov) ov.classList.add('hidden');
+}
+
+function updateTopbarUser() {
+  var info   = document.getElementById('tb-user-info');
+  var nameEl = document.getElementById('tb-user-name');
+  var roleEl = document.getElementById('tb-user-role');
+  if (!info) return;
+  if (currentUser) {
+    info.style.display = 'flex';
+    if (nameEl) nameEl.textContent = currentUser.name || currentUser.username;
+    if (roleEl) {
+      var rd = ROLES[currentUser.role];
+      roleEl.textContent = rd ? rd.label : currentUser.role;
+    }
+  } else {
+    info.style.display = 'none';
+  }
+  // Afficher le bouton pointage uniquement pour les employés (pas les admins purs)
+  var isEmployee = currentUser && currentUser.employee_id;
+  var sbWrap = document.getElementById('sb-pointage-wrap');
+  var tbBtn  = document.getElementById('tb-pointage-btn');
+  if (sbWrap) sbWrap.style.display = isEmployee ? 'block' : 'none';
+  if (tbBtn)  tbBtn.style.display  = isEmployee ? 'flex'  : 'none';
+}
+
+function sendAuthContext(iframe) {
+  if (!currentUser || !iframe) return;
+  try {
+    var rd = ROLES[currentUser.role] || {};
+    iframe.contentWindow.postMessage({
+      source: 'veraluz-core',
+      type:   'auth-context',
+      data: {
+        username:    currentUser.username,
+        name:        currentUser.name,
+        role:        currentUser.role,
+        roleLabel:   rd.label || currentUser.role,
+        roleIcon:    rd.icon  || '👤',
+        modules:     rd.modules || [],
+        employee_id: currentUser.employee_id || null
+      }
+    }, '*');
+  } catch(e){}
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  checkAuth();
+  /* ─── Restore logo from localStorage on boot ─── */
+  (function() {
+    var savedLogo = localStorage.getItem('vz_logo_url');
+    if (savedLogo) {
+      var li = document.getElementById('sb-logo-img');
+      var le = document.getElementById('sb-logo-emoji');
+      if (li) { li.src = savedLogo; li.style.display = 'block'; }
+      if (le) le.style.display = 'none';
+    }
+  })();
+});
+
+/* ================================================================
+   BUFFER DE SÉCURITÉ ANTI-TRONCATURE
+   Ces lignes sont volontairement placées APRÈS l'init pour garantir
+   que même si l'outil d'édition tronque la fin du fichier, le code
+   critique (DOMContentLoaded) reste intact et fonctionnel.
+   Ne pas supprimer ces commentaires.
+   ================================================================
+   [GUARD-LINE-001] Veraluz OS Core Safety Buffer
+   [GUARD-LINE-002] Module: Core Platform
+   [GUARD-LINE-003] Version: 3.1
+   [GUARD-LINE-004] Author: Veraluz OS
+   [GUARD-LINE-005] Project: Résidence Veraluz, Kribi, Cameroun
+   [GUARD-LINE-006] Architecture: Embedded Modules
+   [GUARD-LINE-007] Supabase: dfdmasejsoibxrvubegu
+   [GUARD-LINE-008] GitHub: ngams237/veraluz-os
+   [GUARD-LINE-009] Pages: ngams237.github.io/veraluz-os
+   [GUARD-LINE-010] Last rebuilt: 2026-05-15
+   [GUARD-LINE-011] --- DO NOT EDIT BELOW THIS LINE ---
+   [GUARD-LINE-012] --- USE rebuild_core.py INSTEAD ---
+   [GUARD-LINE-013] ............................................
+   [GUARD-LINE-014] ............................................
+   [GUARD-LINE-015] ............................................
+   [GUARD-LINE-016] ............................................
+   [GUARD-LINE-017] ............................................
+   [GUARD-LINE-018] ............................................
+   [GUARD-LINE-019] ............................................
+   [GUARD-LINE-020] ............................................
+   [GUARD-LINE-021] ............................................
+   [GUARD-LINE-022] ............................................
+   [GUARD-LINE-023] ............................................
+   [GUARD-LINE-024] ............................................
+   [GUARD-LINE-025] ............................................
+   [GUARD-LINE-026] ............................................
+   [GUARD-LINE-027] ............................................
+   [GUARD-LINE-028] ............................................
+   [GUARD-LINE-029] ............................................
+   [GUARD-LINE-030] ............................................
+   ================================================================ */
+
+/* ═══════════════════════════════════════════════════════════
+   VERALUZ OS — CENTRAL EVENT BUS ENGINE v2.0
+   Pub/Sub · Routing Rules · Persistence · Error Handling
+   ═════════════════════════════════════════════════════════ */
+
+/* ── Notification Badge ──────────────────────────────────── */
+var _notifCount = 0;
+function updateNotifBadge(count) {
+  _notifCount = count || 0;
+  var badge = document.getElementById('notif-badge');
+  if (!badge) return;
+  if (_notifCount > 0) {
+    badge.textContent = _notifCount > 99 ? '99+' : String(_notifCount);
+    badge.classList.add('visible');
+  } else {
+    badge.classList.remove('visible');
+  }
+}
+function openNotifications() { loadModule('notifications'); }
+
+/* ── Core Toast ─────────────────────────────────────── */
+function showCoreToast(msg, type){
+  var el = document.getElementById('core-toast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'core-toast';
+    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
+      +'background:#1e2535;border:1px solid #22d3a5;color:#e2e8f0;padding:10px 20px;'
+      +'border-radius:10px;font-size:13px;z-index:9999;display:none;max-width:80%;text-align:center;'
+      +'box-shadow:0 4px 20px rgba(0,0,0,.4);';
+    document.body.appendChild(el);
+  }
+  if(type==='err'){ el.style.borderColor='#ef4444'; el.style.color='#fca5a5'; }
+  else { el.style.borderColor='#22d3a5'; el.style.color='#e2e8f0'; }
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.style.display='none'; }, 4000);
+}
+
+/* ── EventBus Engine ─────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   VZ_Email — Moteur email centralisé (EmailJS REST API)
+   Public Key : MqrKcqvO952CD5HOA  |  Service : service_mwiart1
+   Template   : configuré dans Settings → Email
+══════════════════════════════════════════════════════════════ */
+var VZ_Email = {
+  SERVICE_ID : 'service_mwiart1',
+  PUBLIC_KEY : 'MqrKcqvO952CD5HOA',
+
+  templateId: function(){ try{return localStorage.getItem('vz_email_template')||'';}catch(e){return '';} },
+
+  send: function(to_email, to_name, subject, body_html, onOk, onErr) {
+    var tpl = this.templateId();
+    if (!tpl) {
+      var msg='[Email] Template ID non configuré — allez dans Settings → Email';
+      console.warn(msg);
+      if(onErr) onErr(msg);
+      return;
+    }
+    fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        service_id  : this.SERVICE_ID,
+        template_id : tpl,
+        user_id     : this.PUBLIC_KEY,
+        template_params: {
+          to_email  : to_email,
+          to_name   : to_name || to_email,
+          subject   : subject,
+          body_html : body_html,
+          from_name : 'Résidence Veraluz',
+          reply_to  : 'residenceveraluz@gmail.com'
+        }
+      })
+    })
+    .then(function(r){
+      if(r.ok){ console.log('[Email] Envoyé à',to_email); if(onOk) onOk(); }
+      else { r.text().then(function(t){ console.warn('[Email] Erreur:',t); if(onErr) onErr(t); }); }
+    })
+    .catch(function(e){ console.warn('[Email] Fetch error:',e); if(onErr) onErr(e.message); });
+  },
+
+  /* ── Templates HTML ─────────────────────────────── */
+  tplBooking: function(d){
+    var h=d.hotel||{}; var phone=h.phone||'+237 6XX XXX XXX';
+    return '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#023047;color:#e8f4f8;border-radius:12px;overflow:hidden;">'
+      +'<div style="background:#c9a84c;padding:24px;text-align:center;">'
+      +'<h1 style="margin:0;color:#023047;font-size:22px;">'+(h.name||'Résidence Veraluz')+'</h1>'
+      +'<p style="margin:5px 0 0;color:#023047;font-size:13px;">'+(h.address||'Kribi · Cameroun')+'</p>'
+      +'</div>'
+      +'<div style="padding:30px;">'
+      +'<h2 style="color:#c9a84c;margin-top:0;">✓ Réservation confirmée</h2>'
+      +'<p>Bonjour <strong>'+escapeHtml(d.guest_name)+'</strong>,</p>'
+      +'<p>Votre réservation est confirmée. Nous avons hâte de vous accueillir !</p>'
+      +'<div style="background:#012030;border-radius:8px;padding:20px;margin:20px 0;">'
+      +'<table style="width:100%;border-collapse:collapse;">'
+      +row('#1a4a6b','Logement',    escapeHtml(d.unit_name||''))
+      +row('#1a4a6b','Arrivée',     escapeHtml(d.check_in||'')+' — 14h00')
+      +row('#1a4a6b','Départ',      escapeHtml(d.check_out||'')+' — 11h00')
+      +row('#1a4a6b','Durée',       (d.nights||'?')+' nuit'+(d.nights>1?'s':''))
+      +'<tr><td style="padding:10px 0 0;color:#7fb3c8;font-size:13px;">Montant total</td>'
+      +'<td style="padding:10px 0 0;color:#c9a84c;font-weight:700;font-size:16px;">'+(d.total||0).toLocaleString('fr-FR')+' XAF</td></tr>'
+      +'</table></div>'
+      +'<p style="font-size:12px;color:#7fb3c8;">Référence : <strong style="color:#e8f4f8;">'+escapeHtml(d.reference||'')+'</strong></p>'
+      +'<p>📞 '+phone+'<br>✉️ residenceveraluz@gmail.com</p>'
+      +'</div>'
+      +'<div style="background:#012030;padding:14px;text-align:center;font-size:11px;color:#5a8a9f;">'
+      +'© '+new Date().getFullYear()+' '+(h.name||'Résidence Veraluz')+' · Tous droits réservés'
+      +'</div></div>';
+  },
+
+  tplPayslip: function(d){
+    var lines='';
+    if(d.overtime)   lines+='<tr><td style="padding:7px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;">Heures supp.</td><td style="text-align:right;padding:7px 0;border-bottom:1px solid #e2e8f0;">+'+Number(d.overtime).toLocaleString('fr-FR')+' XAF</td></tr>';
+    if(d.bonuses)    lines+='<tr><td style="padding:7px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;">Primes</td><td style="text-align:right;padding:7px 0;border-bottom:1px solid #e2e8f0;">+'+Number(d.bonuses).toLocaleString('fr-FR')+' XAF</td></tr>';
+    if(d.deductions) lines+='<tr><td style="padding:7px 0;border-bottom:1px solid #e2e8f0;color:#ef4444;font-size:13px;">Retenues</td><td style="text-align:right;padding:7px 0;border-bottom:1px solid #e2e8f0;color:#ef4444;">-'+Number(d.deductions).toLocaleString('fr-FR')+' XAF</td></tr>';
+    return '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;border-radius:12px;overflow:hidden;">'
+      +'<div style="background:#1e293b;padding:24px;text-align:center;">'
+      +'<h1 style="margin:0;color:#22d3a5;font-size:20px;">Résidence Veraluz</h1>'
+      +'<p style="margin:5px 0 0;color:#94a3b8;font-size:13px;">Bulletin de paie — '+escapeHtml(d.month||'')+'</p>'
+      +'</div>'
+      +'<div style="padding:30px;">'
+      +'<p>Bonjour <strong>'+escapeHtml(d.employee_name||'')+'</strong>,</p>'
+      +'<p>Veuillez trouver ci-dessous le récapitulatif de votre bulletin de paie pour <strong>'+escapeHtml(d.month||'')+'</strong>.</p>'
+      +'<div style="background:#f1f5f9;border-radius:8px;padding:20px;margin:20px 0;">'
+      +'<table style="width:100%;border-collapse:collapse;">'
+      +'<tr><td style="padding:7px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;">Salaire de base</td><td style="text-align:right;padding:7px 0;border-bottom:1px solid #e2e8f0;">'+Number(d.base_salary||0).toLocaleString('fr-FR')+' XAF</td></tr>'
+      +lines
+      +'<tr><td style="padding:10px 0 0;font-weight:700;font-size:15px;">Net à payer</td>'
+      +'<td style="text-align:right;padding:10px 0 0;font-weight:700;font-size:15px;color:#22d3a5;">'+Number(d.net_salary||0).toLocaleString('fr-FR')+' XAF</td></tr>'
+      +'</table></div>'
+      +'<p style="color:#64748b;font-size:12px;">Période : '+escapeHtml(d.period||d.month||'')+'</p>'
+      +'<p>Cordialement,<br><strong>Direction — Résidence Veraluz</strong></p>'
+      +'</div>'
+      +'<div style="background:#1e293b;padding:14px;text-align:center;font-size:11px;color:#64748b;">'
+      +'Résidence Veraluz · Kribi, Cameroun · residenceveraluz@gmail.com'
+      +'</div></div>';
+  },
+
+  tplAlert: function(d){
+    var colors={'critique':'#ef4444','warning':'#f59e0b','info':'#3b82f6'};
+    var c=colors[d.level]||'#3b82f6';
+    return '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">'
+      +'<div style="background:'+c+';padding:20px;text-align:center;border-radius:12px 12px 0 0;">'
+      +'<h2 style="margin:0;color:#fff;">🚨 Alerte — Veraluz OS</h2>'
+      +'<p style="margin:5px 0 0;color:rgba(255,255,255,.85);font-size:13px;">'+escapeHtml(d.type||'Notification')+'</p>'
+      +'</div>'
+      +'<div style="background:#f9fafb;padding:24px;border-radius:0 0 12px 12px;">'
+      +'<p style="font-size:16px;font-weight:600;color:#1e293b;">'+escapeHtml(d.message||'')+'</p>'
+      +'<p style="color:#64748b;font-size:13px;">Module : '+escapeHtml(d.module||'')+'</p>'
+      +'<p style="color:#94a3b8;font-size:12px;">'+new Date(d.ts||Date.now()).toLocaleString('fr-FR')+'</p>'
+      +'</div></div>';
+  }
+};
+
+function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function row(border,label,val){
+  return '<tr><td style="padding:7px 0;border-bottom:1px solid '+border+';color:#7fb3c8;font-size:13px;">'+label+'</td>'
+    +'<td style="padding:7px 0;border-bottom:1px solid '+border+';">'+val+'</td></tr>';
+}
+
+var EventBus = {
+  LS_KEY : 'veraluz_event_log',
+  MAX_LOG: 300,
+  stats  : { total:0, routed:0, errors:0 },
+
+  /* Routing rules: trigger × from → targets[] */
+  RULES: [
+    { trigger:'reservation-created',  from:'veraluz-reservations', targets:['veraluz-notifications','veraluz-audit','veraluz-finance'] },
+    { trigger:'checkout-completed',   from:'veraluz-reservations', targets:['veraluz-housekeeping','veraluz-notifications','veraluz-audit'] },
+    { trigger:'checkin-completed',    from:'veraluz-reservations', targets:['veraluz-notifications','veraluz-audit'] },
+    { trigger:'reservation-cancelled',from:'veraluz-reservations', targets:['veraluz-notifications','veraluz-audit','veraluz-finance'] },
+    { trigger:'payment-validated',    from:'veraluz-paiements',    targets:['veraluz-finance','veraluz-notifications','veraluz-audit'] },
+    { trigger:'payment-failed',       from:'veraluz-paiements',    targets:['veraluz-notifications','veraluz-audit'] },
+    { trigger:'refund-issued',        from:'veraluz-paiements',    targets:['veraluz-finance','veraluz-audit'] },
+    { trigger:'cleaning-completed',   from:'veraluz-housekeeping', targets:['veraluz-reservations','veraluz-notifications','veraluz-audit'] },
+    { trigger:'maintenance-reported', from:'veraluz-housekeeping', targets:['veraluz-notifications','veraluz-audit'] },
+    { trigger:'room-ready',           from:'veraluz-housekeeping', targets:['veraluz-reservations','veraluz-audit'] },
+    { trigger:'order-placed',         from:'veraluz-restaurant',   targets:['veraluz-finance','veraluz-audit'] },
+    { trigger:'stock-alert',          from:'veraluz-restaurant',   targets:['veraluz-notifications','veraluz-audit'] },
+    { trigger:'employee-added',       from:'veraluz-rh',           targets:['veraluz-notifications','veraluz-audit'] },
+    { trigger:'employee-updated',     from:'veraluz-rh',           targets:['veraluz-audit'] },
+    { trigger:'payroll-processed',    from:'veraluz-rh',           targets:['veraluz-finance','veraluz-notifications','veraluz-audit'] },
+    { trigger:'attendance-recorded',  from:'veraluz-rh',           targets:['veraluz-audit'] },
+    { trigger:'settings-updated',     from:'veraluz-settings',     targets:['veraluz-audit','veraluz-notifications'] },
+    { trigger:'permissions-updated',   from:'veraluz-settings',     targets:['veraluz-audit'] },
+    { trigger:'settings-reset',       from:'veraluz-settings',     targets:['veraluz-audit','veraluz-notifications'] },
+    { trigger:'analytics-export',     from:'veraluz-analytics',    targets:['veraluz-audit'] },
+    { trigger:'audit-export',         from:'veraluz-audit',        targets:[] },
+    { trigger:'logs-cleared',         from:'veraluz-settings',     targets:['veraluz-audit'] },
+    /* Wildcard: all module-ready events go to audit */
+    { trigger:'module-ready',         from:'*',                    targets:['veraluz-audit','veraluz-eventbus'] },
+    /* Notification badge update */
+    { trigger:'notification-count',   from:'veraluz-notifications',targets:['__core__'] },
+    /* All events → EventBus dashboard for monitoring */
+    { trigger:'*',                    from:'*',                    targets:['veraluz-eventbus'] },
+    { trigger:'logo-updated',         from:'veraluz-settings',     targets:['__core__'] },
+    { trigger:'hotel-info-updated',    from:'veraluz-settings',     targets:['__core__'] },
+    { trigger:'send-email',            from:'*',                    targets:['__core__'] },
+    { trigger:'locale-updated',       from:'veraluz-settings',     targets:['veraluz-reservations','veraluz-finance','veraluz-restaurant','veraluz-analytics','veraluz-audit','__core__'] },
+  ],
+
+  /* Resolve targets for a given source + event type */
+  resolve: function(source, type) {
+    var targets = {};
+    this.RULES.forEach(function(r) {
+      var srcOk  = r.from    === '*' || r.from    === source;
+      var typOk  = r.trigger === '*' || r.trigger === type;
+      if (srcOk && typOk) {
+        r.targets.forEach(function(t){ targets[t] = true; });
+      }
+    });
+    return Object.keys(targets);
+  },
+
+  /* Persist event to localStorage */
+  persist: function(entry) {
+    try {
+      var log = JSON.parse(localStorage.getItem(this.LS_KEY) || '[]');
+      log.unshift(entry);
+      if (log.length > this.MAX_LOG) log.length = this.MAX_LOG;
+      localStorage.setItem(this.LS_KEY, JSON.stringify(log));
+    } catch(e) { this.stats.errors++; }
+  },
+
+  /* Route event to the active iframe */
+  routeToIframe: function(source, type, data) {
+    var frame = document.getElementById('module-frame');
+    if (!frame || !frame.contentWindow) return;
+    try {
+      frame.contentWindow.postMessage({
+        source : 'veraluz-core',
+        type   : 'module-event',
+        data   : { originalSource: source, originalType: type, payload: data }
+      }, '*');
+      this.stats.routed++;
+    } catch(e) { this.stats.errors++; }
+  },
+
+  /* Handle an incoming message from any module */
+  handle: function(msg) {
+    var source = msg.source;
+    var type   = msg.type;
+    var data   = msg.data || {};
+
+    /* ── Core-level side-effects ── */
+    if (source === 'veraluz-notifications' && type === 'notification-count') {
+      updateNotifBadge(data && data.unread ? data.unread : 0);
+    }
+
+    /* ── Envoi email depuis modules ── */
+    if (type === 'send-email' && data && data.to_email) {
+      var _src = source;
+      VZ_Email.send(
+        data.to_email,
+        data.to_name || data.to_email,
+        data.subject || 'Message — Résidence Veraluz',
+        data.body_html || data.message || '',
+        function(){
+          console.log('[Core] Email envoyé à', data.to_email);
+          showCoreToast('✉ Email envoyé à ' + data.to_email, 'ok');
+          // Broadcast back so modules can show feedback too
+          MODULES.forEach(function(m){
+            var fr = document.getElementById('frame-'+m.id);
+            if(fr) try{ fr.contentWindow.postMessage({veraluzEvent:true,source:'__core__',type:'email-sent',data:{to:data.to_email}},'*'); }catch(e){}
+          });
+        },
+        function(err){
+          console.warn('[Core] Email error:', err);
+          showCoreToast('⚠ Erreur email : ' + String(err).slice(0,80), 'err');
+        }
+      );
+    }
+
+        /* ── Logo mis à jour depuis Settings ── */
+    if (source === 'veraluz-settings' && type === 'logo-updated' && data.logo_url) {
+      var logoImg   = document.getElementById('sb-logo-img');
+      var logoEmoji = document.getElementById('sb-logo-emoji');
+      if (logoImg) {
+        logoImg.src = data.logo_url;
+        logoImg.style.display = 'block';
+        if(logoEmoji) logoEmoji.style.display = 'none';
+        logoImg.style.display = 'block';
+        if (logoEmoji) logoEmoji.style.display = 'none';
+        try { localStorage.setItem('vz_logo_url', data.logo_url); } catch(e){}
+      }
+      console.log('[Core] Logo mis à jour:', data.logo_url);
+    }
+
+    /* ── Locale (langue/devise/taxes) mis à jour depuis Settings ── */
+    if (source === 'veraluz-settings' && type === 'locale-updated') {
+      try { localStorage.setItem('vz_locale', JSON.stringify(data)); } catch(e){}
+      console.log('[Core] Locale mis à jour:', data);
+    }
+
+        /* ── Appliquer les permissions mises à jour depuis Settings ── */
+    if (source === 'veraluz-settings' && type === 'permissions-updated' && data.permissions) {
+      var permsMap = data.permissions;
+      /* Mettre à jour dynamiquement ROLES[role].modules selon la matrice */
+      Object.keys(permsMap).forEach(function(role) {
+        if (!ROLES[role]) return;
+        var mods = permsMap[role];
+        ROLES[role].modules = Object.keys(mods).filter(function(mod){ return mods[mod] === true; });
+      });
+      /* Rafraîchir la barre latérale si un utilisateur est connecté */
+      if (currentUser) renderSidebar();
+      console.log('[Core] Permissions mises à jour depuis Settings');
+    }
+
+    /* ── WhatsApp open depuis un module ── */
+    if (type === 'whatsapp-open' && data && data.phone) {
+      var phone = String(data.phone).replace(/[^0-9]/g,'');
+      var msg   = data.message || '';
+      var waUrl = 'https://wa.me/' + phone + (msg ? '?text=' + encodeURIComponent(msg) : '');
+      window.open(waUrl, '_blank');
+      showCoreToast('💬 WhatsApp ouvert pour ' + (data.client_name || phone), 'ok');
+      console.log('[Core] WhatsApp ouvert:', phone);
+    }
+
+    /* ── Mise à jour paiement CinetPay ── */
+    if (type === 'payment-update' && data) {
+      var status = data.status || 'pending';
+      var amt    = data.amount ? Number(data.amount).toLocaleString('fr-FR') + ' FCFA' : '';
+      var icon   = status === 'success' ? '✅' : status === 'failed' ? '❌' : '⏳';
+      showCoreToast(icon + ' Paiement ' + status + (amt ? ' · ' + amt : ''), status === 'success' ? 'ok' : 'err');
+      console.log('[Core] CinetPay payment-update:', data);
+    }
+
+    /* ── Dépense créée depuis Appro/Intégrations ── */
+    if (type === 'expense-created' && data) {
+      console.log('[Core] Dépense enregistrée:', data);
+    }
+
+    /* ── Log entry ── */
+    this.stats.total++;
+    var entry = {
+      id:     'ev_' + Date.now(),
+      ts:     new Date().toISOString(),
+      source: source,
+      type:   type,
+      data:   data,
+      routes: this.resolve(source, type).filter(function(t){ return t !== '__core__'; })
+    };
+    this.persist(entry);
+
+    /* ── Route to active iframe (for all except pure core events) ── */
+    if (source !== 'veraluz-core') {
+      /* ── Booking Engine → navigate to module ── */
+    if (source === 'booking-engine' && type === 'navigate') {
+      var pageId = data.pageId || 'reservations';
+      try { goTo(pageId); } catch(e) {}
+      return;
+    }
+
+    /* ── Booking Engine → nouvelle réservation ── */
+    if (source === 'booking-engine' && type === 'new_booking') {
+      /* Écrire un timestamp pour que REZ sache qu'une réservation est arrivée */
+      try{ localStorage.setItem('vlz_rez_updated', String(Date.now())); }catch(e){}
+      /* Notifier l'iframe active si c'est REZ (single iframe model) */
+      var activeFrame = document.getElementById('module-frame');
+      if (activeFrame && activeFrame.contentWindow) {
+        try {
+          activeFrame.contentWindow.postMessage({
+            veraluzEvent: true,
+            source: 'veraluz-core',
+            type: 'new_booking',
+            data: data
+          }, '*');
+        } catch(e) {}
+      }
+      showCoreToast('🛏 Nouvelle réservation reçue !', 'ok');
+      return;
+    }
+
+  this.routeToIframe(source, type, data);
+    }
+  }
+};
+
+/* ── Global message listener ─────────────────────────────── */
+window.addEventListener('message', function(ev) {
+  if (!ev.data || !ev.data.source) return;
+  /* Ignore messages originating from the Core itself */
+  if (ev.data.source === 'veraluz-core') return;
+  try {
+    EventBus.handle(ev.data);
+  } catch(e) {
+    EventBus.stats.errors++;
+    console.warn('[EventBus] Error handling event:', e);
+  }
+});
+
+</script>
+
+<!-- ── Auth Overlay ──────────────────────────────────────────── -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <span class="al-icon">🏖️</span>
+      <div class="al-title">Veraluz OS</div>
+      <div class="al-sub">Residence · Kribi · Cameroun</div>
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+
+    <!-- ── Mode employé (par défaut) ── -->
+    <div id="auth-emp-mode">
+      <div class="auth-emp-pick">
+        <label>Qui êtes-vous ?</label>
+        <select class="auth-emp-select" id="auth-emp-select">
+          <option value="">⏳ Chargement des employés...</option>
+        </select>
+      </div>
+      <span class="auth-pin-lbl">Votre NIP (4 chiffres)</span>
+      <div class="auth-pin-display">
+        <div class="auth-pin-dot" id="pin-dot-0"></div>
+        <div class="auth-pin-dot" id="pin-dot-1"></div>
+        <div class="auth-pin-dot" id="pin-dot-2"></div>
+        <div class="auth-pin-dot" id="pin-dot-3"></div>
+      </div>
+      <div class="auth-pin-pad">
+        <button class="auth-pin-btn" onclick="pinPress('1')">1</button>
+        <button class="auth-pin-btn" onclick="pinPress('2')">2</button>
+        <button class="auth-pin-btn" onclick="pinPress('3')">3</button>
+        <button class="auth-pin-btn" onclick="pinPress('4')">4</button>
+        <button class="auth-pin-btn" onclick="pinPress('5')">5</button>
+        <button class="auth-pin-btn" onclick="pinPress('6')">6</button>
+        <button class="auth-pin-btn" onclick="pinPress('7')">7</button>
+        <button class="auth-pin-btn" onclick="pinPress('8')">8</button>
+        <button class="auth-pin-btn" onclick="pinPress('9')">9</button>
+        <button class="auth-pin-btn del" onclick="pinDel()">⌫</button>
+        <button class="auth-pin-btn zero" onclick="pinPress('0')">0</button>
+      </div>
+      <button class="auth-btn" onclick="doLoginPin()">✅ Se connecter</button>
+    </div>
+
+    <!-- ── Mode admin (secondaire) ── -->
+    <div id="auth-admin-mode" style="display:none;">
+      <div class="auth-field">
+        <label>Identifiant admin</label>
+        <input type="text" id="auth-username" placeholder="admin"
+               autocomplete="username"
+               onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+      </div>
+      <div class="auth-field">
+        <label>Mot de passe</label>
+        <input type="password" id="auth-password" placeholder="••••••••"
+               autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="auth-field" style="flex-direction:row;align-items:center;gap:8px;">
+        <input type="checkbox" id="auth-remember" style="width:auto;">
+        <label for="auth-remember" style="font-size:12px;color:var(--text2);">Se souvenir de moi (7 jours)</label>
+      </div>
+      <button class="auth-btn" onclick="doLogin()">🔐 Connexion admin</button>
+    </div>
+
+    <!-- ── Toggle mode ── -->
+    <div class="auth-mode-toggle">
+      <a id="auth-mode-lnk" onclick="toggleAdminMode()">🔐 Accès administrateur</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Panneau Pointage Rapide ──────────────────────────────── -->
+<style>
+#pointage-panel {
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+#pointage-panel.hidden{display:none;}
+.pp-box {
+  background:var(--bg2);border-radius:16px;width:100%;max-width:420px;
+  padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.pp-hdr {display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.pp-hdr h3 {font-size:18px;font-weight:700;}
+.pp-close {background:transparent;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px;}
+.pp-time {font-size:36px;font-weight:800;color:var(--accent);text-align:center;margin:8px 0;}
+.pp-date {font-size:13px;color:var(--text2);text-align:center;margin-bottom:16px;}
+.pp-status {text-align:center;font-size:14px;margin-bottom:16px;min-height:20px;}
+.pp-btns {display:flex;gap:10px;margin-bottom:20px;}
+.pp-btn-in  {flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;
+  background:rgba(34,211,165,.15);color:var(--accent);font-weight:700;font-size:15px;}
+.pp-btn-out {flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;
+  background:rgba(244,63,94,.15);color:var(--err);font-weight:700;font-size:15px;}
+.pp-btn-in:hover  {background:rgba(34,211,165,.25);}
+.pp-btn-out:hover {background:rgba(244,63,94,.25);}
+.pp-section {font-size:11px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.7px;margin-bottom:8px;font-weight:600;}
+.att-history {max-height:220px;overflow-y:auto;}
+.att-row {display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);}
+.att-row:last-child{border:none;}
+</style>
+
+<div id="pointage-panel" class="hidden">
+  <div class="pp-box">
+    <div class="pp-hdr">
+      <h3>⏱ Mon Pointage</h3>
+      <button class="pp-close" onclick="closePointagePanel()">✕</button>
+    </div>
+    <div class="pp-time" id="punch-clock">--:--</div>
+    <div class="pp-date" id="punch-date"></div>
+    <div class="pp-status" id="punch-status">Chargement...</div>
+    <div class="pp-btns">
+      <button class="pp-btn-in"  id="punch-btn-in"  onclick="doPunchIn()"  style="display:none">▶ Arrivée</button>
+      <button class="pp-btn-out" id="punch-btn-out" onclick="doPunchOut()" style="display:none">⏹ Départ</button>
+    </div>
+    <div class="pp-section">Présences récentes (14 jours)</div>
+    <div class="att-history" id="att-history">
+      <div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Chargement...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Horloge en temps réel dans le panneau pointage
+setInterval(function(){
+  var el = docum
