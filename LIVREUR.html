@@ -537,8 +537,10 @@ function toggleOnline(){
    ORDERS
 ══════════════════════════════════════════ */
 function loadOrders(){
+  if(!LIVREUR_ACTIF)return;
   var today=new Date().toISOString().slice(0,10);
-  sbFetch('veraluz_food_orders?delivery_type=eq.delivery&created_at=gte.'+today+'T00:00:00&order=created_at.desc')
+  // Filtrer par livreur_id pour ne voir que SES commandes
+  sbFetch('veraluz_food_orders?delivery_type=eq.delivery&livreur_id=eq.'+LIVREUR_ACTIF.id+'&created_at=gte.'+today+'T00:00:00&order=created_at.desc')
     .then(function(rows){
       _orders=rows;
       renderOrders();
@@ -548,7 +550,8 @@ function loadOrders(){
 }
 
 function filteredOrders(){
-  if(_orderTab==='pickup')     return _orders.filter(function(o){return o.status==='ready';});
+  // pickup = toutes commandes assignées à ce livreur, pas encore en livraison ni livrées
+  if(_orderTab==='pickup')     return _orders.filter(function(o){return o.status!=='delivering'&&o.status!=='delivered';});
   if(_orderTab==='delivering') return _orders.filter(function(o){return o.status==='delivering';});
   if(_orderTab==='done')       return _orders.filter(function(o){return o.status==='delivered';});
   return [];
