@@ -319,7 +319,7 @@ svg{flex-shrink:0}
 .prod-price{font-size:.82rem;font-weight:800;color:var(--tx)}
 .prod-price .currency{font-size:.6rem;font-weight:500;color:var(--tx2);margin-left:1px}
 .add-btn{
-  width:30px;height:30px;border-radius:var(--r8);
+  width:26px;height:26px;border-radius:var(--r8);
   background:var(--tx);color:#fff;
   display:flex;align-items:center;justify-content:center;
   flex-shrink:0;transition:all .15s;
@@ -730,6 +730,43 @@ svg{flex-shrink:0}
   color:var(--tx2);font-size:.82rem;font-weight:600;
 }
 
+
+/* ═══ TRACKING OVERLAY ═══ */
+.track-overlay{position:fixed;inset:0;z-index:600;background:var(--bg);display:none;flex-direction:column;overflow-y:auto}
+.track-overlay.open{display:flex}
+.track-hdr{background:var(--dk);padding:14px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:1}
+.track-hdr-title{font-size:.92rem;font-weight:700;color:var(--dt);flex:1}
+.track-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:var(--dt);flex-shrink:0;cursor:pointer}
+.track-body{flex:1;padding:20px 18px;max-width:480px;margin:0 auto;width:100%}
+.track-order-box{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:16px}
+.track-order-num{font-size:1.3rem;font-weight:800;color:var(--tx);letter-spacing:2px}
+.track-order-sub{font-size:.72rem;color:var(--tx3);margin-top:3px}
+/* Status progress */
+.track-prog{display:flex;align-items:flex-start;margin:20px 0;padding:0 4px}
+.track-step{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1}
+.track-dot{width:34px;height:34px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg2);color:var(--tx3);transition:all .3s;flex-shrink:0}
+.track-dot.done{border-color:var(--am);background:var(--am);color:#fff}
+.track-dot.active{border-color:var(--am);color:var(--am);animation:tpulse 1.5s infinite}
+.track-dot svg{width:13px;height:13px}
+.track-lbl{font-size:.6rem;color:var(--tx3);text-align:center;font-weight:500;line-height:1.2}
+.track-lbl.done,.track-lbl.active{color:var(--am);font-weight:700}
+.track-seg{flex:1;height:2px;background:var(--border);margin-top:17px;margin-bottom:0;transition:all .3s;flex-shrink:0}
+.track-seg.done{background:var(--am)}
+@keyframes tpulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,11,.4)}50%{box-shadow:0 0 0 6px rgba(184,134,11,0)}}
+.track-info-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:12px}
+.track-info-row{display:flex;justify-content:space-between;font-size:.78rem;padding:3px 0;gap:8px}
+.track-info-row .lbl{color:var(--tx3)}
+.track-info-row .val{color:var(--tx);font-weight:600;text-align:right}
+.track-refresh-row{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--tx3);font-size:.72rem;margin:14px 0;cursor:pointer}
+.track-refresh-row svg{color:var(--tx3)}
+.track-not-found{text-align:center;padding:48px 20px;color:var(--tx3)}
+.track-not-found svg{margin:0 auto 16px;opacity:.3}
+/* ═══ PRINT ═══ */
+@media print{
+  body>*{display:none!important}
+  .rcp-print{display:block!important}
+}
+.rcp-print{display:none}
 /* ── TOAST ── */
 .toast{
   position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-8px);
@@ -1002,7 +1039,9 @@ svg{flex-shrink:0}
     <div class="cbox-num" id="confirm-num">VLZ-00000</div>
   </div>
   <div class="confirm-btns">
-    <a class="btn-wa-big" id="wa-confirm" href="#" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.26 4.8L2.05 22l5.43-1.43A9.8 9.8 0 0 0 12.04 21.8c5.46 0 9.9-4.45 9.9-9.9 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.27.86 5.82 2.41a8.22 8.22 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.4-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.32a8.16 8.16 0 0 1-1.26-4.36c0-4.54 3.7-8.24 8.25-8.24m-3.17 4.35c-.18 0-.47.07-.71.34-.25.27-.96.94-.96 2.29s.98 2.65 1.12 2.83c.13.18 1.91 3 4.68 4.08.65.28 1.16.45 1.56.58.65.2 1.25.17 1.72.1.53-.08 1.62-.66 1.85-1.3.23-.63.23-1.17.16-1.28-.06-.12-.25-.19-.53-.33-.28-.14-1.62-.8-1.88-.89-.25-.1-.44-.14-.62.14-.19.28-.72.89-.88 1.08-.16.19-.33.21-.61.07-.28-.14-1.18-.43-2.24-1.38a8.43 8.43 0 0 1-1.56-1.93c-.16-.28-.02-.43.12-.57.13-.13.28-.33.42-.5.14-.16.19-.28.28-.47.1-.18.05-.35-.02-.49-.07-.13-.62-1.5-.86-2.05-.22-.53-.45-.45-.62-.46-.16 0-.34-.01-.53-.01"/></svg> Confirmer via WhatsApp</a>
+    <a class="btn-wa-big" id="wa-confirm" href="#" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.26 4.8L2.05 22l5.43-1.43A9.8 9.8 0 0 0 12.04 21.8c5.46 0 9.9-4.45 9.9-9.9 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.27.86 5.82 2.41a8.22 8.22 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.4-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.32a8.16 8.16 0 0 1-1.26-4.36c0-4.54 3.7-8.24 8.25-8.24m-3.17 4.35c-.18 0-.47.07-.71.34-.25.27-.96.94-.96 2.29s.98 2.65 1.12 2.83c.13.18 1.91 3 4.68 4.08.65.28 1.16.45 1.56.58.65.2 1.25.17 1.72.1.53-.08 1.62-.66 1.85-1.3.23-.63.23-1.17.16-1.28-.06-.12-.25-.19-.53-.33-.28-.14-1.62-.8-1.88-.89-.25-.1-.44-.14-.62.14-.19.28-.72.89-.88 1.08-.16.19-.33.21-.61.07-.28-.14-1.18-.43-2.24-1.38a8.43 8.43 0 0 1-1.56-1.93c-.16-.28-.02-.43.12-.57.13-.13.28-.33.42-.5.14-.16.19-.28.28-.47.1-.18.05-.35-.02-.49-.07-.13-.62-1.5-.86-2.05-.22-.53-.45-.45-.62-.46-.16 0-.34-.01-.53-.01"/></svg> Confirmer via WhatsApp</a>
+    <button class="btn-back" style="background:rgba(184,134,11,.07);border-color:rgba(184,134,11,.25);color:var(--am);font-weight:700" onclick="openTrackFromConfirm()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Suivre ma commande</button>
+    <button class="btn-back" onclick="printReceipt()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimer le reçu</button>
     <button class="btn-back" onclick="hideConfirm()">← Continuer les achats</button>
   </div>
 </div>
@@ -1649,6 +1688,7 @@ function submitOrder(){
     +'💰 *TOTAL: '+fmt(total)+' F CFA*'
     +payLine
     +(g('co-nt')?'\n📝 Note: '+g('co-nt'):'')
+    +'\n\n🔍 Suivi: https://ngams237.github.io/mako-city_suivis_ok/FOOD_LOUNGE.html#track='+num
   );
   var wa=document.getElementById('wa-confirm');if(wa)wa.href='https://wa.me/'+WA+'?text='+waMsg;
   /* Digital receipt */
@@ -1694,6 +1734,92 @@ function scrollToMenu(){document.getElementById('menu-anchor').scrollIntoView({b
 function goView(v){document.querySelectorAll('.bnav-item').forEach(function(e){e.classList.remove('active');});var el=document.getElementById('bn-'+v);if(el)el.classList.add('active');}
 function goLounge(){document.getElementById('lounge-section').scrollIntoView({behavior:'smooth'});}
 
+
+/* ══════════════════════════════════
+   TRACKING CLIENT
+══════════════════════════════════ */
+var _trackNum=null;
+var TRACK_STATUSES=[
+  {id:'pending',    lbl:'En attente',     ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'},
+  {id:'preparing',  lbl:'Préparation',    ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6h2.8a1 1 0 0 1 1 1.1l-.5 4.3A2 2 0 0 1 17.3 20h-.6a2 2 0 0 1-2-1.6l-.5-4.3a1 1 0 0 1 1-1.1H17"/></svg>'},
+  {id:'ready',      lbl:'Prête',          ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'},
+  {id:'delivering', lbl:'En livraison',   ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>'},
+  {id:'delivered',  lbl:'Livrée',         ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'}
+];
+function openTrack(num){
+  _trackNum=num||null;
+  document.getElementById('trackOverlay').classList.add('open');
+  if(_trackNum)loadTrackOrder(_trackNum);
+}
+function openTrackFromConfirm(){
+  var num=document.getElementById('confirm-num').textContent;
+  hideConfirm();
+  openTrack(num);
+}
+function closeTrack(){document.getElementById('trackOverlay').classList.remove('open');}
+function loadTrackOrder(num){
+  var body=document.getElementById('trackBody');
+  body.innerHTML='<div style="text-align:center;padding:32px;color:var(--tx3)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg><p style="margin-top:10px;font-size:.8rem">Chargement…</p></div>';
+  sbFetch('veraluz_food_orders?order_number=eq.'+encodeURIComponent(num)+'&select=order_number,customer_name,status,payment_status,delivery_type,delivery_zone,address,created_at,total,payment_method')
+    .then(function(data){
+      if(!data||!data.length){renderTrackNotFound(num);return;}
+      renderTrackOrder(data[0]);
+    }).catch(function(){
+      /* Try localStorage */
+      var local=_orders.find(function(o){return o.order_number===num;});
+      if(local)renderTrackOrder(local);
+      else renderTrackNotFound(num);
+    });
+}
+function renderTrackOrder(o){
+  var body=document.getElementById('trackBody');
+  var sidx=TRACK_STATUSES.findIndex(function(s){return s.id===o.status;});
+  if(sidx<0)sidx=0;
+  var now=new Date();
+  var created=o.created_at?new Date(o.created_at):now;
+  var mins=Math.floor((now-created)/60000);
+  var timeStr=mins<60?mins+' min':Math.floor(mins/60)+'h'+('0'+mins%60).slice(-2);
+  /* Progress bar */
+  var progHtml='<div class="track-prog">';
+  TRACK_STATUSES.forEach(function(s,i){
+    var cls=i<sidx?'done':i===sidx?'active':'';
+    progHtml+='<div class="track-step"><div class="track-dot '+cls+'">'+s.ico+'</div><div class="track-lbl '+cls+'">'+s.lbl+'</div></div>';
+    if(i<TRACK_STATUSES.length-1)progHtml+='<div class="track-seg '+(i<sidx?'done':'')+'"></div>';
+  });
+  progHtml+='</div>';
+  /* Pay status chip */
+  var pmap={pending:'⏳ Paiement en attente',paid:'✓ Payé',pay_on_delivery:'🚚 Paiement livraison',failed:'✗ Échec paiement',refunded:'↩ Remboursé'};
+  var pChip=pmap[o.payment_status||'pending']||'';
+  /* Info card */
+  var infoHtml='<div class="track-info-card">';
+  infoHtml+='<div class="track-info-row"><span class="lbl">Client</span><span class="val">'+(o.customer_name||'—')+'</span></div>';
+  infoHtml+='<div class="track-info-row"><span class="lbl">Mode</span><span class="val">'+(SVC_LBLS[o.delivery_type]||o.delivery_type||'—')+'</span></div>';
+  if(o.delivery_zone)infoHtml+='<div class="track-info-row"><span class="lbl">Zone</span><span class="val">'+o.delivery_zone+'</span></div>';
+  if(o.address)infoHtml+='<div class="track-info-row"><span class="lbl">Adresse</span><span class="val" style="max-width:160px;overflow:hidden;text-overflow:ellipsis">'+o.address+'</span></div>';
+  infoHtml+='<div class="track-info-row"><span class="lbl">Total</span><span class="val">'+(o.total?fmt(o.total)+' F':'—')+'</span></div>';
+  if(pChip)infoHtml+='<div class="track-info-row"><span class="lbl">Paiement</span><span class="val">'+pChip+'</span></div>';
+  infoHtml+='<div class="track-info-row"><span class="lbl">Il y a</span><span class="val">'+timeStr+'</span></div>';
+  infoHtml+='</div>';
+  body.innerHTML='<div class="track-order-box"><div class="track-order-num">'+o.order_number+'</div><div class="track-order-sub">'+TRACK_STATUSES[sidx].lbl+(o.delivery_type==='delivery'?' · Livraison en cours':o.delivery_type==='room'?' · Service en chambre':' · Sur place')+'</div></div>'
+    +progHtml
+    +infoHtml
+    +'<div class="track-refresh-row" id="trackRefBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Actualiser</div>';
+  var rbtn=document.getElementById('trackRefBtn');if(rbtn){rbtn.dataset.num=o.order_number;rbtn.onclick=function(){loadTrackOrder(this.dataset.num);};}
+}
+function renderTrackNotFound(num){
+  document.getElementById('trackBody').innerHTML='<div class="track-not-found"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Commande <strong>'+num+'</strong> introuvable.<br><small>Vérifiez le numéro et réessayez.</small></p></div>';
+}
+/* ═══ PRINT RECEIPT ═══ */
+function printReceipt(){
+  var rcp=document.getElementById('confirm-receipt');
+  if(!rcp||!rcp.innerHTML)return toast('Aucun reçu disponible');
+  var w=window.open('','_blank','width=360,height=600');
+  w.document.write('<html><head><title>Reçu Veraluz</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:13px;max-width:320px;margin:0 auto}.rcp-wrap{border:1px solid #ddd;border-radius:8px;padding:16px}.rcp-top{text-align:center;border-bottom:1px dashed #ddd;padding-bottom:10px}.rcp-logo{font-weight:800;font-size:14px;color:#b8860b;letter-spacing:1px}.rcp-sub{color:#999;font-size:11px;margin-top:3px}.rcp-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#555}.rcp-tot{font-weight:800;font-size:14px;padding-top:8px;border-top:1px dashed #ddd;margin-top:5px;display:flex;justify-content:space-between}.rcp-pay{color:#999;font-size:11px;padding-top:4px}.pay-status-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:8px}.ps-pending{background:#fef3c7;color:#d97706}.ps-paid{background:#dcfce7;color:#16a34a}.ps-delivery{background:#ede9fe;color:#7c3aed}@media print{button{display:none}}</style></head><body>');
+  w.document.write(rcp.innerHTML);
+  w.document.write('<br><button onclick="window.print()" style="width:100%;padding:10px;background:#b8860b;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px">🖨️ Imprimer</button></body></html>');
+  w.document.close();
+}
+
 /* ── Core integration ── */
 window.addEventListener('message',function(ev){
   if(!ev.data)return;
@@ -1704,6 +1830,14 @@ window.addEventListener('message',function(ev){
 
 /* ── Init ── */
 (function(){
+  /* Check for tracking hash */
+  (function(){
+    var h=window.location.hash;
+    if(h&&h.indexOf('#track=')===0){
+      var num=decodeURIComponent(h.slice(7));
+      if(num)setTimeout(function(){openTrack(num);},500);
+    }
+  })();
   loadCart();
   try{var inf=JSON.parse(localStorage.getItem('vz_hotel_info')||'{}');if(inf.whatsapp)applyWA(inf.whatsapp);}catch(e){}
   try{var o=localStorage.getItem('vlz_food_orders');if(o)_orders=JSON.parse(o);}catch(e){}
@@ -1712,5 +1846,17 @@ window.addEventListener('message',function(ev){
   loadMenu();
 })();
 </script>
+<!-- TRACKING OVERLAY -->
+<div class="track-overlay" id="trackOverlay">
+  <div class="track-hdr">
+    <div class="track-close" onclick="closeTrack()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+    <div class="track-hdr-title">Suivi de commande</div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="track-body" id="trackBody">
+    <div class="track-not-found"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Entrez votre numéro de commande</p></div>
+  </div>
+</div>
+
 </body>
 </html>
