@@ -1639,4 +1639,13 @@ window.addEventListener('message', function(ev) {
 <script>
 // Horloge en temps réel dans le panneau pointage
 setInterval(function(){
-  var el = docum
+  var el = document.getElementById('att-clock');
+  if(el){
+    var now = new Date();
+    el.textContent = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+},1000);
+</script>
+
+</body>
+</html>
