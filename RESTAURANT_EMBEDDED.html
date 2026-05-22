@@ -1063,17 +1063,18 @@ function goTab(t){
 var ROOM_CHARGES=[],ACTIVE_HOTEL_GUESTS=[];
 /* Load all */
 function loadAll(){
+  var _safe=function(p){return p.catch(function(){return[];});};
   Promise.all([
-    GET('/rest/v1/veraluz_restaurant_tables?select=*&order=name'),
-    GET('/rest/v1/veraluz_restaurant_products?select=*&order=category,name'),
-    GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60'),
-    GET('/rest/v1/veraluz_restaurant_stock?select=*&order=name'),
-    GET('/rest/v1/veraluz_restaurant_suppliers?select=*&order=name'),
-    GET('/rest/v1/veraluz_restaurant_reservations?select=*&order=date.asc'),
-    GET('/rest/v1/veraluz_reservations?select=id,unit_id,client_name,check_in,check_out,status&status=eq.checkedin'),
-    GET('/rest/v1/veraluz_room_charges?select=*&settled=eq.false&order=created_at.desc'),
-    GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50'),
-    GET('/rest/v1/veraluz_food_promotions?select=*&order=created_at.desc'),
+    _safe(GET('/rest/v1/veraluz_restaurant_tables?select=*&order=name')),
+    _safe(GET('/rest/v1/veraluz_restaurant_products?select=*&order=category,name')),
+    _safe(GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60')),
+    _safe(GET('/rest/v1/veraluz_restaurant_stock?select=*&order=name')),
+    _safe(GET('/rest/v1/veraluz_restaurant_suppliers?select=*&order=name')),
+    _safe(GET('/rest/v1/veraluz_restaurant_reservations?select=*&order=date.asc')),
+    _safe(GET('/rest/v1/veraluz_reservations?select=id,unit_id,client_name,check_in,check_out,status&status=eq.checkedin')),
+    _safe(GET('/rest/v1/veraluz_room_charges?select=*&settled=eq.false&order=created_at.desc')),
+    _safe(GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50')),
+    _safe(GET('/rest/v1/veraluz_food_promotions?select=*&order=created_at.desc')),
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
     RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];APP_PROMOS=r[9]||[];
@@ -1425,9 +1426,10 @@ function loadFoodOrders(){
 
 /* Main KDS entry point */
 function loadKDS(){
+  var _sf=function(p){return p.catch(function(){return[];});};
   Promise.all([
-    GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60'),
-    GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50')
+    _sf(GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60')),
+    _sf(GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50'))
   ]).then(function(r){
     ORDERS=r[0]||[];FOOD_ORDERS=r[1]||[];
     renderKDS();updateBdg();
