@@ -530,7 +530,20 @@ function loadModuleFrame(mod) {
       document.getElementById('mod-error').classList.add('show');
     };
     loadTimer = setTimeout(onReady, 8000);
-    iframe.src = mod.file + "?v=" + Date.now();
+    /* Bypass GitHub Pages CDN cache — fetch with cache:'no-store' forces
+       Fastly to pass through to origin, returning the latest committed file */
+    fetch(mod.file + '?nc=' + Date.now(), {cache: 'no-store'})
+      .then(function(r){ return r.text(); })
+      .then(function(html){
+        var base = window.location.origin + window.location.pathname.replace(/[^\/]*$/, '');
+        if(html.indexOf('<base ') === -1){
+          html = html.replace('<head>', '<head>\n  <base href="' + base + '">');
+        }
+        iframe.srcdoc = html;
+      })
+      .catch(function(){
+        iframe.src = mod.file + '?v=' + Date.now();
+      });
   }, 80);
 }
 
