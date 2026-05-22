@@ -229,7 +229,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 .sobdg.annule{background:rgba(244,63,94,.2);color:var(--danger);}
 
 /* ── Admin ── */
-.atabs{display:flex;gap:4px;padding:7px 9px;background:var(--bg2);border-bottom:1px solid var(--border);}
+.atabs{display:flex;gap:4px;padding:7px 9px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;}
 .atab{padding:6px 11px;border-radius:7px;border:none;background:var(--bg3);
   color:var(--text3);cursor:pointer;font-size:11px;font-weight:600;}
 .atab.on{background:var(--bg4);color:var(--accent);}
@@ -457,7 +457,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
         <div class="kds-grid" id="kds-grid">
           <div class="kds-empty">
             <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3v7"/></svg>
-            <p>Aucune commande en cuisine</p>
+            <p id="kds-empty-msg">Chargement des commandes...</p>
             <small>Les commandes apparaissent automatiquement</small>
           </div>
         </div>
@@ -1081,6 +1081,7 @@ function loadAll(){
     buildSecFilt();renderTables();buildMenu();updateBdg();
     loadMvts();loadSOs();
     if(curTab==='resa')renderResa();
+    if(curTab==='kds')renderKDS();
     startGlobalPoll();
   }).catch(function(e){toast('Erreur chargement: '+e,'er');});
 }
@@ -1524,7 +1525,7 @@ function renderKDS(){
     wrap.innerHTML='<div class="kds-empty">'
       +'<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3v7"/></svg>'
       +'<p>Aucune commande'+(vis.length<all.length?' dans ce filtre':'')+'</p>'
-      +'<small>Les commandes apparaissent automatiquement</small></div>';
+      +'<small>Vérifiez les filtres ou rafraîchissez (&#8635;)</small></div>';
     return;
   }
   wrap.innerHTML=vis.map(kdsCard).join('');
