@@ -392,8 +392,472 @@ var _orders=[], _orderTab='pickup', _online=true, _curId=null, _interval=null;
 var _pointages=[], _pinBuffer='';
 
 /* ══════════════════════════════════════════
-   UTILS
+   STATUSES
 ══════════════════════════════════════════ */
 var STATUSES=[
-  {id:'pending',    lbl:'En attente',     cls:'s-pending',    ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'},
-  {id:'preparing',  lbl:'En pr
+  {id:'pending',    lbl:'En attente',    cls:'s-pending',   ico:'⏳'},
+  {id:'preparing',  lbl:'En préparation',cls:'s-preparing', ico:'🍳'},
+  {id:'ready',      lbl:'Prêt à partir', cls:'s-ready',     ico:'✅'},
+  {id:'delivering', lbl:'En livraison',  cls:'s-delivering',ico:'🛵'},
+  {id:'delivered',  lbl:'Livré',         cls:'s-delivered',  ico:'🏁'}
+];
+var STEPS=[
+  {id:'pending',   lbl:'Reçue'},
+  {id:'preparing', lbl:'Prép.'},
+  {id:'ready',     lbl:'Prêt'},
+  {id:'delivering',lbl:'Route'},
+  {id:'delivered', lbl:'Livré'}
+];
+function stepIdx(sid){return STEPS.findIndex(function(s){return s.id===sid;});}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+var _toastTimer=null;
+function toast(msg,type){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast '+(type||'');
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(function(){t.classList.remove('show');},2800);
+}
+
+/* ══════════════════════════════════════════
+   PIN — LOAD LIVREURS
+══════════════════════════════════════════ */
+function loadLivreurs(){
+  var sel=document.getElementById('pin-livreur-sel');
+  var lbl=document.getElementById('pin-loading');
+  lbl.textContent='Chargement…';
+  sbFetch('veraluz_rh_employes?equipe=eq.livreur&actif=eq.true&order=nom.asc')
+    .then(function(rows){
+      LIVREURS=rows;
+      sel.innerHTML='<option value="">— Sélectionnez —</option>';
+      rows.forEach(function(lv){
+        var o=document.createElement('option');
+        o.value=lv.id;
+        o.textContent=lv.prenom+' '+lv.nom;
+        sel.appendChild(o);
+      });
+      lbl.textContent='';
+    })
+    .catch(function(){lbl.textContent='Erreur réseau';});
+}
+
+function buildPinPad(){
+  var pad=document.getElementById('pin-pad');
+  var keys=['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  pad.innerHTML='';
+  keys.forEach(function(k){
+    var btn=document.createElement('button');
+    btn.className='pin-key'+(k==='⌫'?' del':'');
+    btn.textContent=k;
+    if(k===''){btn.disabled=true;btn.style.opacity='0';return;}
+    btn.onclick=function(){onPinKey(k);};
+    pad.appendChild(btn);
+  });
+}
+
+function renderPinDots(){
+  for(var i=0;i<4;i++){
+    var d=document.getElementById('pd'+i);
+    if(d) d.className='pin-dot'+(i<_pinBuffer.length?' filled':'');
+  }
+}
+
+function onPinKey(k){
+  var err=document.getElementById('pin-err');
+  err.textContent='';
+  if(k==='⌫'){_pinBuffer=_pinBuffer.slice(0,-1);}
+  else if(_pinBuffer.length<4){_pinBuffer+=k;}
+  renderPinDots();
+  if(_pinBuffer.length===4) validatePin();
+}
+
+function validatePin(){
+  var sel=document.getElementById('pin-livreur-sel');
+  var err=document.getElementById('pin-err');
+  var lid=sel.value;
+  if(!lid){err.textContent='Sélectionnez votre nom d\'abord.';_pinBuffer='';renderPinDots();return;}
+  var lv=LIVREURS.find(function(l){return String(l.id)===String(lid);});
+  if(!lv){err.textContent='Livreur introuvable.';_pinBuffer='';renderPinDots();return;}
+  if(String(_pinBuffer)===String(lv.pin_code)){
+    LIVREUR_ACTIF=lv;
+    document.getElementById('pin-screen').classList.add('hidden');
+    document.getElementById('main-app').style.display='';
+    initApp();
+  } else {
+    err.textContent='Code PIN incorrect. Réessayez.';
+    _pinBuffer='';
+    renderPinDots();
+  }
+}
+
+/* ══════════════════════════════════════════
+   APP INIT
+══════════════════════════════════════════ */
+function initApp(){
+  document.getElementById('tbName').textContent=LIVREUR_ACTIF.prenom+' '+LIVREUR_ACTIF.nom;
+  document.getElementById('tbDate').textContent='Veraluz · Livreur';
+  startClock();
+  loadOrders();
+  loadPointageToday();
+  _interval=setInterval(function(){loadOrders();loadPointageToday();},45000);
+}
+
+/* ══════════════════════════════════════════
+   TABS
+══════════════════════════════════════════ */
+function switchMainTab(t){
+  ['livraisons','pointage','profil'].forEach(function(p){
+    document.getElementById('mtab-'+p).classList.toggle('active',p===t);
+    document.getElementById('pane-'+p).classList.toggle('active',p===t);
+    document.getElementById('bnav-'+p).classList.toggle('active',p===t);
+  });
+  if(t==='profil') renderProfil();
+}
+
+function switchOrderTab(t,btn){
+  _orderTab=t;
+  document.querySelectorAll('.order-tab').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderOrders();
+}
+
+function toggleOnline(){
+  _online=!_online;
+  var btn=document.getElementById('onlineBtn');
+  btn.textContent=_online?'En ligne':'Hors ligne';
+  btn.classList.toggle('off',!_online);
+  toast(_online?'Vous êtes en ligne':'Vous êtes hors ligne',_online?'ok':'err');
+}
+
+/* ══════════════════════════════════════════
+   ORDERS
+══════════════════════════════════════════ */
+function loadOrders(){
+  var today=new Date().toISOString().slice(0,10);
+  sbFetch('veraluz_food_orders?delivery_type=eq.delivery&created_at=gte.'+today+'T00:00:00&order=created_at.desc')
+    .then(function(rows){
+      _orders=rows;
+      renderOrders();
+      updateStats();
+    })
+    .catch(function(){toast('Erreur chargement commandes','err');});
+}
+
+function filteredOrders(){
+  if(_orderTab==='pickup')     return _orders.filter(function(o){return o.status==='ready';});
+  if(_orderTab==='delivering') return _orders.filter(function(o){return o.status==='delivering';});
+  if(_orderTab==='done')       return _orders.filter(function(o){return o.status==='delivered';});
+  return [];
+}
+
+function updateStats(){
+  document.getElementById('sTotal').textContent=_orders.length;
+  document.getElementById('sActive').textContent=_orders.filter(function(o){return o.status==='delivering';}).length;
+  document.getElementById('sDone').textContent=_orders.filter(function(o){return o.status==='delivered';}).length;
+}
+
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtXAF(n){return new Intl.NumberFormat('fr-FR').format(Number(n)||0)+' XAF';}
+
+function renderOrders(){
+  var list=document.getElementById('order-list');
+  var orders=filteredOrders();
+  if(!orders.length){
+    var msgs={pickup:'Aucune commande prête à récupérer.',delivering:'Aucune livraison en cours.',done:'Aucune livraison terminée aujourd\'hui.'};
+    list.innerHTML='<div class="empty"><p>'+(msgs[_orderTab]||'Aucune commande.')+'</p></div>';
+    return;
+  }
+  list.innerHTML=orders.map(buildOrderCard).join('');
+}
+
+function buildOrderCard(o){
+  var si=stepIdx(o.status);
+  var st=STATUSES.find(function(s){return s.id===o.status;})||STATUSES[0];
+  // Step bar
+  var stepsHtml=STEPS.map(function(s,i){
+    var done=i<si,cur=i===si;
+    var dc=done?'done':(cur?'cur':'');
+    return (i>0?'<div class="sp-seg '+(done?'done':'')+'"></div>':'')+
+      '<div class="sp-step"><div class="sp-dot '+dc+'">'+(done?'✓':(cur?'●':''))+'</div>'+
+      '<div class="sp-lbl '+dc+'">'+s.lbl+'</div></div>';
+  }).join('');
+  // Items
+  var items=[];
+  try{items=Array.isArray(o.items)?o.items:(o.items?JSON.parse(o.items):[]);}catch(e){}
+  var itemsHtml=items.map(function(it){
+    return '<div class="oc-item"><span>'+escH(it.name||it.nom||'')+(it.qty?' ×'+it.qty:'')+'</span><span>'+(it.price?fmtXAF(it.price):'')+'</span></div>';
+  }).join('');
+  var tm=o.created_at?new Date(o.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
+  var gpsHtml=o.delivery_lat&&o.delivery_lng?
+    '<a class="act-btn act-blue" href="https://maps.google.com/?q='+o.delivery_lat+','+o.delivery_lng+'" target="_blank">📍 GPS</a>':'';
+  var phoneHtml=o.customer_phone?
+    '<a class="act-btn" href="tel:'+o.customer_phone+'">📞 Appeler</a>':'';
+  var actionHtml='';
+  if(o.status==='ready'){
+    actionHtml='<button class="act-btn act-primary" onclick="openStatusMod(\''+o.id+'\')">🛵 Prendre en charge</button>';
+  } else if(o.status==='delivering'){
+    actionHtml='<button class="act-btn act-green" onclick="openPhotoMod(\''+o.id+'\')">✅ Confirmer livraison</button>';
+  }
+  // Photo proof for delivered orders
+  var photoProofHtml='';
+  if(o.status==='delivered'&&o.delivery_photo_b64){
+    photoProofHtml='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
+      +'<div style="font-size:.68rem;font-weight:700;color:var(--green);margin-bottom:6px">📸 Preuve de livraison</div>'
+      +'<img src="'+o.delivery_photo_b64+'" alt="Preuve" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" onclick="openFullPhoto(this.src)" /></div>';
+  }
+  var ini=((o.customer_name||'?')[0]).toUpperCase();
+  return '<div class="order-card">'
+    +'<div class="sp-bar">'+stepsHtml+'</div>'
+    +'<div class="oc-head"><span class="oc-num">#'+escH(String(o.order_ref||o.id||'').slice(-6).toUpperCase())+'</span><span class="oc-status '+st.cls+'">'+st.ico+' '+st.lbl+'</span></div>'
+    +'<div class="oc-body">'
+    +'<div class="oc-client"><div class="oc-av">'+ini+'</div><div><div class="oc-cn">'+escH(o.customer_name||'Client')+'</div>'+(o.customer_phone?'<div class="oc-cp">'+escH(o.customer_phone)+'</div>':'')+'</div></div>'
+    +(o.delivery_address?'<div class="oc-addr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><div class="oc-addr-t">'+escH(o.delivery_address)+(o.delivery_zone?'<div class="oc-addr-z">Zone: '+escH(o.delivery_zone)+'</div>':'')+'</div></div>':'')
+    +(itemsHtml?'<div class="oc-items">'+itemsHtml+'<div class="oc-total"><span>Total</span><span>'+fmtXAF(o.total_amount||0)+'</span></div></div>':'')
+    +(tm?'<div class="oc-time">🕐 '+tm+'</div>':'')
+    +'<div class="oc-actions">'+gpsHtml+phoneHtml+actionHtml+'</div>'
+    +photoProofHtml
+    +'</div></div>';
+}
+
+function openFullPhoto(src){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px';
+  ov.onclick=function(){document.body.removeChild(ov);};
+  var img=document.createElement('img');
+  img.src=src;
+  img.style.cssText='max-width:100%;max-height:100%;border-radius:8px;object-fit:contain';
+  ov.appendChild(img);
+  document.body.appendChild(ov);
+}
+
+/* ══════════════════════════════════════════
+   STATUS MODAL
+══════════════════════════════════════════ */
+function openStatusMod(oid){
+  _curId=oid;
+  var o=_orders.find(function(x){return x.id===oid;});
+  if(!o) return;
+  var si=stepIdx(o.status);
+  var list=document.getElementById('spickList');
+  list.innerHTML=STATUSES.map(function(s,i){
+    var past=i<si,cur=i===si;
+    return '<button class="spick-btn'+(cur?' cur':'')+(past?' past':'')+'" onclick="pickStatus(\''+s.id+'\')">'+s.ico+' <span>'+s.lbl+'</span></button>';
+  }).join('');
+  document.getElementById('mOv').classList.add('open');
+  document.getElementById('statusMod').classList.add('open');
+}
+
+function closeMod(){
+  document.getElementById('mOv').classList.remove('open');
+  document.getElementById('statusMod').classList.remove('open');
+  document.getElementById('photoOv').classList.remove('open');
+  document.getElementById('photoMod').classList.remove('open');
+}
+
+function pickStatus(sid){
+  if(!_curId) return;
+  sbPatch('veraluz_food_orders',_curId,{status:sid})
+    .then(function(){
+      var o=_orders.find(function(x){return x.id===_curId;});
+      if(o) o.status=sid;
+      closeMod();
+      renderOrders();
+      updateStats();
+      toast('Statut mis à jour','ok');
+    })
+    .catch(function(){toast('Erreur mise à jour','err');});
+}
+
+/* ══════════════════════════════════════════
+   PHOTO PROOF MODAL
+══════════════════════════════════════════ */
+var _photob64=null;
+
+function openPhotoMod(oid){
+  _curId=oid;
+  _photob64=null;
+  document.getElementById('photoPreview').classList.remove('show');
+  document.getElementById('photoPreview').src='';
+  document.getElementById('photoStatusLbl').classList.remove('show');
+  document.getElementById('photoZone').classList.remove('has-photo');
+  document.getElementById('photoInput').value='';
+  document.getElementById('photoOv').classList.add('open');
+  document.getElementById('photoMod').classList.add('open');
+}
+
+function cancelPhoto(){closeMod();}
+
+function onPhotoSelected(input){
+  if(!input.files||!input.files[0]) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img2=new Image();
+    img2.onload=function(){
+      var canvas=document.createElement('canvas');
+      var maxW=800,maxH=800,w=img2.width,h=img2.height;
+      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+      if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img2,0,0,w,h);
+      _photob64=canvas.toDataURL('image/jpeg',0.72);
+      var prev=document.getElementById('photoPreview');
+      prev.src=_photob64;
+      prev.classList.add('show');
+      document.getElementById('photoStatusLbl').classList.add('show');
+      document.getElementById('photoZone').classList.add('has-photo');
+    };
+    img2.src=e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function confirmDeliveryWithPhoto(){
+  if(!_curId) return;
+  var data={status:'delivered'};
+  if(_photob64) data.delivery_photo_b64=_photob64;
+  sbPatch('veraluz_food_orders',_curId,data)
+    .then(function(){
+      var o=_orders.find(function(x){return x.id===_curId;});
+      if(o){o.status='delivered';if(_photob64)o.delivery_photo_b64=_photob64;}
+      closeMod();renderOrders();updateStats();
+      toast('Livraison confirmée ✓','ok');
+    })
+    .catch(function(){toast('Erreur confirmation','err');});
+}
+
+function confirmDeliveryNoPhoto(){
+  if(!_curId) return;
+  sbPatch('veraluz_food_orders',_curId,{status:'delivered'})
+    .then(function(){
+      var o=_orders.find(function(x){return x.id===_curId;});
+      if(o) o.status='delivered';
+      closeMod();renderOrders();updateStats();
+      toast('Livraison confirmée','ok');
+    })
+    .catch(function(){toast('Erreur confirmation','err');});
+}
+
+/* ══════════════════════════════════════════
+   POINTAGE
+══════════════════════════════════════════ */
+var _clockInterval=null;
+function startClock(){
+  function tick(){
+    var now=new Date();
+    document.getElementById('punch-clock').textContent=now.toLocaleTimeString('fr-FR');
+    document.getElementById('punch-date-lbl').textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  }
+  tick();
+  _clockInterval=setInterval(tick,1000);
+}
+
+function doPunch(type){
+  if(!LIVREUR_ACTIF) return;
+  var payload={employe_id:LIVREUR_ACTIF.id,type:type,timestamp_pt:new Date().toISOString()};
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(
+      function(pos){payload.lat=pos.coords.latitude;payload.lng=pos.coords.longitude;savePunch(payload);},
+      function(){savePunch(payload);},{timeout:5000}
+    );
+  } else {savePunch(payload);}
+}
+
+function savePunch(payload){
+  sbPost('veraluz_pointages',payload)
+    .then(function(){
+      toast(payload.type==='arrivee'?'Arrivée enregistrée ✓':'Départ enregistré ✓','ok');
+      loadPointageToday();
+    })
+    .catch(function(){toast('Erreur pointage','err');});
+}
+
+function loadPointageToday(){
+  if(!LIVREUR_ACTIF) return;
+  var today=new Date().toISOString().slice(0,10);
+  sbFetch('veraluz_pointages?employe_id=eq.'+LIVREUR_ACTIF.id+'&timestamp_pt=gte.'+today+'T00:00:00&order=timestamp_pt.asc')
+    .then(function(rows){_pointages=rows;renderPointageToday();})
+    .catch(function(){});
+}
+
+function renderPointageToday(){
+  var rows=_pointages;
+  var lastType=rows.length?rows[rows.length-1].type:null;
+  var isIn=lastType==='arrivee';
+  document.getElementById('btn-arrive').disabled=isIn;
+  document.getElementById('btn-depart').disabled=!isIn;
+  var sl=document.getElementById('punch-status-lbl');
+  sl.textContent=isIn?'En service':'Hors service';
+  sl.className='punch-status '+(isIn?'in':'out');
+  var totalMs=0,arriveeTs=null;
+  rows.forEach(function(r){
+    if(r.type==='arrivee'){arriveeTs=new Date(r.timestamp_pt);}
+    else if(r.type==='depart'&&arriveeTs){totalMs+=new Date(r.timestamp_pt)-arriveeTs;arriveeTs=null;}
+  });
+  if(arriveeTs&&isIn) totalMs+=Date.now()-arriveeTs;
+  var totalMin=Math.floor(totalMs/60000),hrs=Math.floor(totalMin/60),mins=totalMin%60;
+  var sumEl=document.getElementById('punch-summary');
+  if(rows.length>0){sumEl.style.display='';document.getElementById('punch-hrs').textContent=hrs+'h '+mins+'min';}
+  else{sumEl.style.display='none';}
+  var hist=document.getElementById('punch-hist-list');
+  if(!rows.length){hist.innerHTML='<div class="empty"><p>Aucun pointage aujourd\'hui.</p></div>';return;}
+  hist.innerHTML=rows.map(function(r){
+    var isA=r.type==='arrivee';
+    var ts=new Date(r.timestamp_pt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    return '<div class="punch-entry">'
+      +'<div class="punch-entry-ico '+(isA?'in':'out')+'">'+(isA?'✅':'🚪')+'</div>'
+      +'<div class="punch-entry-body"><div class="punch-entry-type">'+(isA?'Arrivée':'Départ')+'</div>'
+      +'<div class="punch-entry-time">'+ts+'</div></div></div>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════════
+   PROFIL
+══════════════════════════════════════════ */
+function renderProfil(){
+  if(!LIVREUR_ACTIF) return;
+  var lv=LIVREUR_ACTIF;
+  var ini=((lv.prenom||'')[0]+(lv.nom||'')[0]).toUpperCase();
+  document.getElementById('profil-body').innerHTML=
+    '<div class="profil-hero"><div class="profil-avatar">'+ini+'</div>'
+    +'<div><div class="profil-name">'+escH(lv.prenom+' '+lv.nom)+'</div>'
+    +'<div class="profil-team">🛵 Livreur</div>'
+    +(lv.vehicule?'<div class="profil-sub">'+escH(lv.vehicule)+'</div>':'')
+    +'</div></div>'
+    +'<div class="profil-card">'
+    +(lv.phone?'<div class="profil-row"><span class="profil-row-l">Téléphone</span><span class="profil-row-v">'+escH(lv.phone)+'</span></div>':'')
+    +(lv.email?'<div class="profil-row"><span class="profil-row-l">Email</span><span class="profil-row-v">'+escH(lv.email)+'</span></div>':'')
+    +(lv.date_embauche?'<div class="profil-row"><span class="profil-row-l">Depuis</span><span class="profil-row-v">'+new Date(lv.date_embauche).toLocaleDateString('fr-FR')+'</span></div>':'')
+    +(lv.poste?'<div class="profil-row"><span class="profil-row-l">Poste</span><span class="profil-row-v">'+escH(lv.poste)+'</span></div>':'')
+    +'</div>'
+    +'<button class="logout-btn" onclick="logout()">🚪 Se déconnecter</button>';
+}
+
+/* ══════════════════════════════════════════
+   LOGOUT
+══════════════════════════════════════════ */
+function logout(){
+  LIVREUR_ACTIF=null;_orders=[];_pointages=[];_pinBuffer='';_curId=null;
+  if(_interval){clearInterval(_interval);_interval=null;}
+  if(_clockInterval){clearInterval(_clockInterval);_clockInterval=null;}
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('pin-screen').classList.remove('hidden');
+  document.getElementById('pin-err').textContent='';
+  renderPinDots();
+  switchMainTab('livraisons');
+}
+
+/* ══════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',function(){
+  buildPinPad();
+  loadLivreurs();
+  renderPinDots();
+});
+</script>
+</body>
+</html>
