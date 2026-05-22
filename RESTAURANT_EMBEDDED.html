@@ -1510,15 +1510,15 @@ function kdsCard(o){
         :'<button class="btn bp bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-s="remis" onclick="kdsUpd(this.dataset.id,this.dataset.s)">&#8599; Remis</button>';
   }else{
     if(o._kst==='new')
-      acts='<button class="btn bw bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-st="preparing" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)"">&#9654; D&#233;marrer</button>';
+      acts='<button class="btn bw bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-st="preparing" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#9654; D&#233;marrer</button>';
     else if(o._kst==='prep')
-      acts='<button class="btn bp bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-st="ready" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)"">&#10003; Pr&#234;te</button>';
+      acts='<button class="btn bp bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-st="ready" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Pr&#234;te</button>';
     else if(o._kst==='ready'){
-      acts='<button class="btn bp bs" style="flex:2;font-size:11px" data-id="'+o._id+'" data-st="delivering" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)"">&#8599; Remis livreur</button>';
+      acts='<button class="btn bp bs" style="flex:2;font-size:11px" data-id="'+o._id+'" data-st="delivering" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#8599; Remis livreur</button>';
       if(o._src==='livraison')
         acts+='<button class="btn bg bs" style="flex:1;font-size:10px" data-id="'+o._id+'" onclick="kdsAssignLivreur(this.dataset.id)">&#128100; Livreur</button>';
     }else if(o._kst==='handed')
-      acts='<button class="btn bg bs" style="flex:1;font-size:10px;color:var(--text3)" data-id="'+o._id+'" data-st="delivered" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)"">&#10003; Confirm&#233;e</button>';
+      acts='<button class="btn bg bs" style="flex:1;font-size:10px;color:var(--text3)" data-id="'+o._id+'" data-st="delivered" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Confirm&#233;e</button>';
   }
   return '<div class="kc2">'
     +'<div class="kc2-stripe '+sCls+'"></div>'
