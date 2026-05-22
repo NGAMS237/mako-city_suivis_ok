@@ -1614,6 +1614,11 @@ function kdsCard(o){
     }else if(o._kst==='handed')
       acts='<button class="btn bg bs" style="flex:1;font-size:10px;color:var(--text3)" data-id="'+o._id+'" data-st="delivered" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Confirm&#233;e</button>';
   }
+  // Bouton reçu imprimable dès que prêt
+  var receiptBtn='';
+  if(o._kst==='ready'||o._kst==='handed'||o._kst==='done'){
+    receiptBtn='<button class="btn bw bs" style="width:100%;font-size:11px;margin-top:6px;gap:5px" data-id="'+o._id+'" data-tbl="'+o._table+'" onclick="printKdsReceipt(this.dataset.id,this.dataset.tbl)">&#128203; Imprimer le re&#231;u</button>';
+  }
   return '<div class="kc2">'
     +'<div class="kc2-stripe '+sCls+'"></div>'
     +'<div class="kc2-top">'
@@ -1627,7 +1632,150 @@ function kdsCard(o){
     +'<div class="kc2-prog">'+progBar+'</div>'
     +'<div class="kc2-prog-lbl">'+( STEP_LBL[si]||'')+'</div>'
     +'<div class="kc2-acts">'+acts+'</div>'
+    +receiptBtn
     +'</div>';
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   REÇU IMPRIMABLE — Cuisine / KDS
+   Déclenché quand commande = ready / handed / done
+   Accessible aussi depuis l'onglet Ventes
+══════════════════════════════════════════════════════════ */
+function printKdsReceipt(oid,tbl){
+  // Récupérer la commande complète depuis Supabase
+  var table=tbl==='food'?'veraluz_food_orders':'veraluz_restaurant_orders';
+  GET('/rest/v1/'+table+'?id=eq.'+oid+'&select=*')
+    .then(function(rows){
+      if(!rows||!rows.length){toast('Commande introuvable','err');return;}
+      openReceiptWindow(rows[0],tbl);
+    }).catch(function(){
+      // Fallback: chercher dans les données en mémoire
+      var o=(tbl==='food'?FOOD_ORDERS:ORDERS).find(function(x){return String(x.id)===String(oid);});
+      if(o)openReceiptWindow(o,tbl);
+      else toast('Impossible de charger le reçu','err');
+    });
+}
+
+function openReceiptWindow(o,tbl){
+  var now=new Date();
+  var dateStr=now.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  var timeStr=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var orderNum=o.order_number||o.id||'—';
+  var clientName=o.customer_name||o.client_name||'Client sur place';
+  var clientPhone=o.customer_phone||o.client_phone||'';
+  var mode=(function(){
+    var m={delivery:'Livraison',room:'Room Service',lounge:'Lounge',pickup:'À emporter',place:'Sur Place'};
+    return m[o.delivery_type]||m[o.type]||'Sur Place';
+  })();
+  var zone=o.delivery_zone||'';
+  var address=o.address||'';
+  var payMethod=o.payment_method||'cash';
+  var payStatus=o.payment_status||'pay_on_delivery';
+  var payLabels={cash:'Espèces',mobile_money:'Mobile Money',card:'Carte',cinetpay:'CinetPay',pay_on_delivery:'À la livraison'};
+  var payStatusLabels={paid:'✓ PAYÉ','pay_on_delivery':'À payer','pending':'En attente','failed':'Échec'};
+  var notes=o.notes||'';
+  var assignedTo=o.assigned_to||'';
+
+  // Items
+  var items=[];
+  try{
+    var raw=o.items_json||o.items||'[]';
+    items=typeof raw==='string'?JSON.parse(raw):raw;
+  }catch(e){}
+  var subtotal=o.subtotal||0;
+  var deliveryFee=o.delivery_fee||0;
+  var total=o.total||(subtotal+deliveryFee);
+
+  var itemsHtml=items.map(function(it){
+    var qty=it.qty||it.quantity||1;
+    var name=it.name||it.product_name||'Article';
+    var price=it.price||it.unit_price||0;
+    var lineTotal=qty*(price||0);
+    return '<tr>'
+      +'<td style="padding:4px 0;font-size:12px">'+escHtml(name)+'</td>'
+      +'<td style="text-align:center;padding:4px 6px;font-size:12px;color:#666">'+qty+'</td>'
+      +(price?'<td style="text-align:right;padding:4px 0;font-size:12px">'+fmtF(price)+'</td>':'<td></td>')
+      +(price?'<td style="text-align:right;padding:4px 0;font-size:12px;font-weight:600">'+fmtF(lineTotal)+'</td>':'<td></td>')
+      +'</tr>';
+  }).join('');
+  if(!itemsHtml)itemsHtml='<tr><td colspan="4" style="color:#999;font-style:italic;padding:6px 0">Détails non disponibles</td></tr>';
+
+  function fmtF(n){return Number(n).toLocaleString('fr-FR')+' F';}
+  function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  var html='<!DOCTYPE html><html lang="fr"><head>'
+    +'<meta charset="UTF-8">'
+    +'<title>Reçu '+escHtml(orderNum)+' — Veraluz Food</title>'
+    +'<style>'
+    +'*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{font-family:system-ui,Arial,sans-serif;background:#f5f5f5;padding:20px}'
+    +'.receipt{max-width:320px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.15)}'
+    +'.rcp-header{background:#1a1a0f;color:#f0c040;text-align:center;padding:18px 16px}'
+    +'.rcp-logo{font-size:16px;font-weight:900;letter-spacing:2px}'
+    +'.rcp-sub{font-size:10px;opacity:.7;margin-top:3px;letter-spacing:1px}'
+    +'.rcp-body{padding:16px}'
+    +'.rcp-num{text-align:center;font-size:22px;font-weight:900;letter-spacing:3px;color:#1a1a0f;margin:10px 0 4px}'
+    +'.rcp-date{text-align:center;font-size:10px;color:#999;margin-bottom:14px}'
+    +'.divider{border:none;border-top:1px dashed #ddd;margin:12px 0}'
+    +'.row{display:flex;justify-content:space-between;font-size:11px;color:#555;padding:2px 0}'
+    +'.row strong{color:#1a1a0f}'
+    +'table{width:100%;border-collapse:collapse;margin:8px 0}'
+    +'th{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#999;padding:4px 0;border-bottom:1px solid #eee}'
+    +'th:nth-child(2),th:nth-child(3),th:nth-child(4){text-align:right}'
+    +'.total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;color:#555}'
+    +'.grand-total{display:flex;justify-content:space-between;padding:10px 0 6px;font-size:15px;font-weight:900;color:#1a1a0f;border-top:2px solid #1a1a0f;margin-top:4px}'
+    +'.pay-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;margin-top:8px}'
+    +'.pay-paid{background:#d1fae5;color:#065f46}'
+    +'.pay-pending{background:#fef3c7;color:#92400e}'
+    +'.rcp-footer{background:#f9f9f9;border-top:1px solid #eee;text-align:center;padding:12px;font-size:10px;color:#aaa}'
+    +'.rcp-footer strong{display:block;color:#666;margin-bottom:3px}'
+    +'@media print{body{background:none;padding:0}.receipt{box-shadow:none}}'
+    +'</style></head><body>'
+    +'<div class="receipt">'
+    +'<div class="rcp-header">'
+      +'<div class="rcp-logo">VERALUZ</div>'
+      +'<div class="rcp-sub">Food &amp; Lounge · Kribi, Cameroun</div>'
+    +'</div>'
+    +'<div class="rcp-body">'
+      +'<div class="rcp-num">'+escHtml(String(orderNum))+'</div>'
+      +'<div class="rcp-date">'+dateStr+' à '+timeStr+'</div>'
+      +'<hr class="divider">'
+      +'<div class="row"><span>Client</span><strong>'+escHtml(clientName)+'</strong></div>'
+      +(clientPhone?'<div class="row"><span>Téléphone</span><strong>'+escHtml(clientPhone)+'</strong></div>':'')
+      +'<div class="row"><span>Mode</span><strong>'+escHtml(mode)+'</strong></div>'
+      +(zone?'<div class="row"><span>Zone</span><strong>'+escHtml(zone)+'</strong></div>':'')
+      +(address?'<div class="row"><span>Adresse</span><strong style="max-width:160px;overflow:hidden;text-overflow:ellipsis">'+escHtml(address)+'</strong></div>':'')
+      +(assignedTo?'<div class="row"><span>Livreur</span><strong>'+escHtml(assignedTo)+'</strong></div>':'')
+      +'<hr class="divider">'
+      +'<table><thead><tr>'
+        +'<th style="text-align:left">Article</th><th>Qté</th><th style="text-align:right">P.U.</th><th style="text-align:right">Total</th>'
+      +'</tr></thead><tbody>'+itemsHtml+'</tbody></table>'
+      +'<hr class="divider">'
+      +(subtotal&&deliveryFee?'<div class="total-row"><span>Sous-total</span><span>'+fmtF(subtotal)+'</span></div>':'')
+      +(deliveryFee?'<div class="total-row"><span>Frais livraison</span><span>'+fmtF(deliveryFee)+'</span></div>':'')
+      +'<div class="grand-total"><span>TOTAL</span><span>'+fmtF(total)+'</span></div>'
+      +'<div style="text-align:center;margin-top:8px">'
+        +'<span class="pay-badge '+(payStatus==='paid'?'pay-paid':'pay-pending')+'">'
+          +(payStatusLabels[payStatus]||payStatus)+' · '+(payLabels[payMethod]||payMethod)
+        +'</span>'
+      +'</div>'
+      +(notes?'<hr class="divider"><div style="font-size:11px;color:#666;background:#fffbeb;border:1px solid #fef3c7;border-radius:4px;padding:8px;margin-top:8px">📝 '+escHtml(notes)+'</div>':'')
+    +'</div>'
+    +'<div class="rcp-footer">'
+      +'<strong>Merci de votre visite !</strong>'
+      +'Résidence Veraluz · Vue sur la mer · Kribi<br>'
+      +'Conserver ce reçu comme preuve d'achat'
+    +'</div>'
+    +'</div>'
+    +'<div style="text-align:center;margin-top:12px">'
+      +'<button onclick="window.print()" style="background:#1a1a0f;color:#f0c040;border:none;padding:10px 28px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">🖨️ Imprimer</button>'
+    +'</div>'
+    +'</body></html>';
+
+  var w=window.open('','_blank','width=380,height=680,scrollbars=yes');
+  if(w){w.document.write(html);w.document.close();}
+  else toast('Autorisez les pop-ups pour imprimer le reçu','err');
 }
 
 /* Update restaurant order status */
