@@ -119,7 +119,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 .cacts{display:flex;gap:5px;}
 
 /* ── KDS EXTENDED — Centre Opérationnel Cuisine ── */
-.kds-pane-wrap{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.kds-pane-wrap{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
 .kds-hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 10px;flex-shrink:0}
 .kds-hdr-top{display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap}
 .kds-hdr-title{font-size:12px;font-weight:700;color:var(--text);flex:1;min-width:120px}
@@ -235,6 +235,36 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 .atab.on{background:var(--bg4);color:var(--accent);}
 .apane{display:none;overflow-y:auto;}
 .apane.on{display:block;}
+/* App Manager */
+.app-sec{margin-bottom:18px}
+.app-sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.app-sec-ttl{font-size:13px;font-weight:700;color:var(--text);flex:1}
+.promo-card{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
+.promo-card.inactive{opacity:.5}
+.promo-emoji{font-size:22px;flex-shrink:0;line-height:1.2}
+.promo-info{flex:1;min-width:0}
+.promo-ttl{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+.promo-body{font-size:11px;color:var(--text2);white-space:pre-wrap}
+.promo-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:4px;text-transform:uppercase}
+.pb-promo{background:#f97316;color:#fff}.pb-comm{background:#3b82f6;color:#fff}.pb-banner{background:#8b5cf6;color:#fff}
+.promo-acts{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.app-dispo-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.app-dispo-item:last-child{border-bottom:none}
+.app-dispo-name{flex:1;font-size:12px;color:var(--text)}
+.app-dispo-cat{font-size:10px;color:var(--text3)}
+.vlz-toggle{position:relative;display:inline-block;width:34px;height:19px;flex-shrink:0}
+.vlz-toggle input{opacity:0;width:0;height:0;position:absolute}
+.vlz-slider{position:absolute;cursor:pointer;inset:0;background:var(--bord2);border-radius:10px;transition:.2s}
+.vlz-slider:before{content:'';position:absolute;width:15px;height:15px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s}
+.vlz-toggle input:checked+.vlz-slider{background:var(--ok)}
+.vlz-toggle input:checked+.vlz-slider:before{transform:translateX(15px)}
+.app-cfg-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.app-cfg-row:last-child{border-bottom:none}
+.app-cfg-lbl{flex:1;font-size:12px;color:var(--text)}
+.app-cfg-sub{font-size:10px;color:var(--text3)}
+.app-subsec-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.app-stab{padding:5px 10px;border-radius:6px;border:1px solid var(--bord2);background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer}
+.app-stab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .atbar{display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);}
 .atbar h3{font-size:13px;font-weight:700;flex:1;}
 .arow{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);}
@@ -384,7 +414,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
   </div>
 
   <!-- KDS — Centre Opérationnel Cuisine -->
-  <div class="pane" id="pane-kds">
+  <div class="pane-flex" id="pane-kds" style="flex-direction:column;">
     <div class="kds-pane-wrap">
       <!-- Header -->
       <div class="kds-hdr">
@@ -505,6 +535,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
       <button class="atab" onclick="goAdm('mnu',this)">&#127869;&#65039; Menu</button>
       <button class="atab" onclick="goAdm('cat',this)">&#127991;&#65039; Cat&#233;g.</button>
       <button class="atab" onclick="goAdm('sup',this)">&#128666; Fourn.</button>
+      <button class="atab" onclick="goAdm('app',this)">&#128241; App</button>
     </div>
     <div style="flex:1;position:relative;">
       <div class="apane on" id="ap-tbl" style="position:absolute;inset:0;">
@@ -522,6 +553,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);
       <div class="apane" id="ap-sup" style="position:absolute;inset:0;">
         <div class="atbar"><h3>Fournisseurs</h3><button class="btn bp bs" onclick="openSupMd(null)">+ Ajouter</button></div>
         <div id="adm-sup"></div>
+      </div>
+      <!-- App Manager pane -->
+      <div class="apane" id="ap-app" style="position:absolute;inset:0;padding:10px;">
+        <div class="atbar" style="padding:0 0 10px;"><h3>&#128241; App Manager</h3></div>
+        <div class="app-subsec-tabs" style="margin-bottom:12px;">
+          <button class="app-stab on" id="apstab-promos" onclick="goAppSub('promos',this)">&#127881; Promos &amp; Comm</button>
+          <button class="app-stab" id="apstab-dispo" onclick="goAppSub('dispo',this)">&#9989; Dispo Menu</button>
+          <button class="app-stab" id="apstab-cfg" onclick="goAppSub('cfg',this)">&#9881;&#65039; Param&#232;tres</button>
+        </div>
+        <div id="ap-app-body"></div>
       </div>
     </div>
   </div>
@@ -827,6 +868,7 @@ var curStk='inv',curAdm='tbl',curTix='all',curVnt='today';
 var cartTbl=null,cartType='table',cartRoom='';
 var payMeth='cash',payOid=null;
 var _tt=null;
+var APP_PROMOS=[], _appSub='promos';
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return Number(n||0).toLocaleString('fr-FR')+' FCFA';}
@@ -988,17 +1030,17 @@ var _globalInterval=null;
 function startGlobalPoll(){
   if(_globalInterval)return;
   _globalInterval=setInterval(function(){
-    Promise.all([
-      GET('/rest/v1/veraluz_restaurant_orders?select=id,status&order=created_at.desc&limit=60'),
-      GET('/rest/v1/veraluz_food_orders?select=id,status&order=created_at.desc&limit=50')
-    ]).then(function(r){
+    var kdsOn=curTab==='kds';
+    var q1=kdsOn
+      ?'/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60'
+      :'/rest/v1/veraluz_restaurant_orders?select=id,status&order=created_at.desc&limit=60';
+    var q2=kdsOn
+      ?'/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50'
+      :'/rest/v1/veraluz_food_orders?select=id,status&order=created_at.desc&limit=50';
+    Promise.all([GET(q1),GET(q2)]).then(function(r){
       ORDERS=r[0]||ORDERS;FOOD_ORDERS=r[1]||FOOD_ORDERS;
       updateBdg();
-      /* Si l'onglet KDS est visible, re-render aussi */
-      if(document.querySelector('.pane[data-p="kds"]')&&
-         document.querySelector('.pane[data-p="kds"]').style.display!=='none'){
-        renderKDS();
-      }
+      if(kdsOn)renderKDS();
     }).catch(function(){});
   },60000);
 }
@@ -1031,9 +1073,10 @@ function loadAll(){
     GET('/rest/v1/veraluz_reservations?select=id,unit_id,client_name,check_in,check_out,status&status=eq.checkedin'),
     GET('/rest/v1/veraluz_room_charges?select=*&settled=eq.false&order=created_at.desc'),
     GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50'),
+    GET('/rest/v1/veraluz_food_promotions?select=*&order=created_at.desc'),
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
-    RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];
+    RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];APP_PROMOS=r[9]||[];
     buildSecFilt();renderTables();buildMenu();updateBdg();
     loadMvts();loadSOs();
     if(curTab==='resa')renderResa();
@@ -2200,13 +2243,14 @@ function goAdm(t,btn){
   curAdm=t;
   document.querySelectorAll('.atab').forEach(function(b){b.classList.remove('on');});
   if(btn)btn.classList.add('on');
-  else{var i=['tbl','mnu','cat','sup'].indexOf(t);var bs=document.querySelectorAll('.atab');if(bs[i])bs[i].classList.add('on');}
+  else{var i=['tbl','mnu','cat','sup','app'].indexOf(t);var bs=document.querySelectorAll('.atab');if(bs[i])bs[i].classList.add('on');}
   document.querySelectorAll('.apane').forEach(function(p){p.classList.remove('on');});
   document.getElementById('ap-'+t).classList.add('on');
   if(t==='tbl')renderAdmTbl();
   if(t==='mnu')renderAdmMnu();
   if(t==='cat')renderAdmCat();
   if(t==='sup')renderAdmSup();
+  if(t==='app')renderAdmApp();
 }
 /* Tables CRUD */
 function openTblMd(id){
@@ -2825,6 +2869,182 @@ function confirmRoomCharge(){
   }).catch(function(e){toast('Erreur: '+e,'er');});
 }
 
+
+/* =======================================================================
+   APP MANAGER JS
+   ======================================================================= */
+function goAppSub(sub,btn){
+  _appSub=sub;
+  document.querySelectorAll('.app-stab').forEach(function(b){b.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  else{var el=document.getElementById('apstab-'+sub);if(el)el.classList.add('on');}
+  renderAdmApp();
+}
+
+function renderAdmApp(){
+  var el=document.getElementById('ap-app-body');if(!el)return;
+  document.querySelectorAll('.app-stab').forEach(function(b){b.classList.remove('on');});
+  var cur=document.getElementById('apstab-'+_appSub);if(cur)cur.classList.add('on');
+  if(_appSub==='promos')el.innerHTML=renderAppPromos();
+  else if(_appSub==='dispo')el.innerHTML=renderAppDispo();
+  else el.innerHTML=renderAppCfg();
+}
+
+/* Promos & Communications */
+function renderAppPromos(){
+  var html='<div class="app-sec"><div class="app-sec-hdr"><span class="app-sec-ttl">&#127881; Promos &amp; Communications</span>'
+    +'<button class="btn bp bs" onclick="openPromoMd(null)">+ Nouveau</button></div>';
+  if(!APP_PROMOS.length){
+    html+='<p style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">'
+      +'Aucune promo en cours.<br><small>Cliquez + Nouveau pour en créer une.</small></p>';
+  }else{
+    APP_PROMOS.forEach(function(p){
+      var typLbl={promo:'Promo',comm:'Comm',banner:'Bandeau'}[p.type]||p.type;
+      var typCls={promo:'pb-promo',comm:'pb-comm',banner:'pb-banner'}[p.type]||'pb-promo';
+      html+='<div class="promo-card'+(p.active?'':' inactive')+'">'
+        +'<div class="promo-emoji">'+(p.emoji||'\u{1F381}')+'</div>'
+        +'<div class="promo-info">'
+        +'<div class="promo-ttl">'+esc(p.title)
+        +'<span class="promo-badge '+typCls+'">'+esc(typLbl)+'</span>'
+        +(p.active?'<span class="promo-badge" style="background:var(--ok);color:#fff">On</span>'
+                  :'<span class="promo-badge" style="background:var(--bord2);color:var(--text3)">Off</span>')
+        +'</div>'
+        +'<div class="promo-body">'+esc(p.body)+'</div>'
+        +(p.start_date||p.end_date?'<div style="font-size:10px;color:var(--text3);margin-top:3px">'
+          +(p.start_date?'Du '+p.start_date:'')+(p.end_date?' au '+p.end_date:'')+'</div>':'')
+        +'</div>'
+        +'<div class="promo-acts">'
+        +'<button class="btn bg bs" style="font-size:11px;padding:3px 7px" data-id="'+p.id
+        +'" onclick="openPromoMd(this.dataset.id)">&#9999;&#65039;</button>'
+        +'<button class="btn '+(p.active?'bg':'bp')+' bs" style="font-size:11px;padding:3px 7px"'
+        +' data-id="'+p.id+'" data-act="'+(p.active?'0':'1')
+        +'" onclick="togglePromo(this.dataset.id,this.dataset.act===\'1\')">'
+        +(p.active?'&#9208;':'&#9654;')+'</button>'
+        +'</div></div>';
+    });
+  }
+  return html+'</div>';
+}
+
+function togglePromo(id,activate){
+  PATCH('veraluz_food_promotions',id,{active:activate}).then(function(){
+    var p=APP_PROMOS.find(function(x){return x.id===id;});if(p)p.active=activate;
+    renderAdmApp();toast(activate?'Activée':'Désactivée','ok');
+  }).catch(function(){toast('Erreur','er');});
+}
+function delPromo(id){
+  if(!confirm('Supprimer ?'))return;
+  DEL('veraluz_food_promotions',id).then(function(){
+    APP_PROMOS=APP_PROMOS.filter(function(x){return x.id!==id;});
+    closeMd('md-promo');renderAdmApp();toast('Supprimé','ok');
+  }).catch(function(){toast('Erreur','er');});
+}
+var _promoEditId=null;
+function openPromoMd(id){
+  _promoEditId=id||null;
+  var p=id?APP_PROMOS.find(function(x){return x.id===id;}):null;
+  document.getElementById('promo-id').value=id||'';
+  document.getElementById('promo-type').value=p?p.type:'promo';
+  document.getElementById('promo-emoji').value=p&&p.emoji?p.emoji:'\u{1F381}';
+  document.getElementById('promo-title').value=p?p.title:'';
+  document.getElementById('promo-body').value=p?p.body:'';
+  document.getElementById('promo-start').value=p&&p.start_date?p.start_date:'';
+  document.getElementById('promo-end').value=p&&p.end_date?p.end_date:'';
+  document.getElementById('promo-active').checked=p?p.active:true;
+  document.getElementById('promo-del-btn').style.display=p?'':'none';
+  document.getElementById('promo-md-title').textContent=p?'Modifier':'Nouvelle promo / comm';
+  openMd('md-promo');
+}
+function savePromo(){
+  var id=document.getElementById('promo-id').value;
+  var d={
+    type:document.getElementById('promo-type').value,
+    emoji:document.getElementById('promo-emoji').value.trim()||'\u{1F381}',
+    title:document.getElementById('promo-title').value.trim(),
+    body:document.getElementById('promo-body').value.trim(),
+    start_date:document.getElementById('promo-start').value||null,
+    end_date:document.getElementById('promo-end').value||null,
+    active:document.getElementById('promo-active').checked
+  };
+  if(!d.title){toast('Titre requis','er');return;}
+  if(id){
+    PATCH('veraluz_food_promotions',id,d).then(function(){
+      var p=APP_PROMOS.find(function(x){return x.id===id;});if(p)Object.assign(p,d);
+      closeMd('md-promo');renderAdmApp();toast('Mis à jour','ok');
+    }).catch(function(){toast('Erreur','er');});
+  }else{
+    d.id=gid();
+    POST('veraluz_food_promotions',d).then(function(r){
+      APP_PROMOS.unshift(r[0]||d);
+      closeMd('md-promo');renderAdmApp();toast('Créé','ok');
+    }).catch(function(){toast('Erreur','er');});
+  }
+}
+
+/* Disponibilite Menu */
+function renderAppDispo(){
+  var catNames={entrees:'Entrées',plats:'Plats',grillades:'Grillades',poissons:'Poissons',
+    desserts:'Desserts',cocktails:'Cocktails',bieres:'Bières',softs:'Softs',vins:'Vins',snacks:'Snacks'};
+  var byCat={};
+  PRODS.forEach(function(p){var cat=p.category||'autres';if(!byCat[cat])byCat[cat]=[];byCat[cat].push(p);});
+  var html='<div class="app-sec"><div class="app-sec-hdr"><span class="app-sec-ttl">&#9989; Disponibilité sur l\'App</span>'
+    +'<small style="font-size:10px;color:var(--text3)">Désactiver masque l\'article sur l\'app mobile</small></div>';
+  var cats=Object.keys(byCat).sort();
+  if(!cats.length)html+='<p style="text-align:center;color:var(--text3);font-size:12px;padding:20px">Aucun produit</p>';
+  cats.forEach(function(cat){
+    html+='<div style="margin-bottom:14px">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:4px">'
+      +esc(catNames[cat]||cat)+'</div>';
+    byCat[cat].forEach(function(p){
+      var vis=p.app_visible!==false;
+      html+='<div class="app-dispo-item">'
+        +'<div class="app-dispo-name">'+esc(p.name||'—')
+        +'<div class="app-dispo-cat">'+fmt(p.price||0)+' FCFA</div></div>'
+        +'<label class="vlz-toggle"><input type="checkbox"'+(vis?' checked':'')
+        +' data-id="'+p.id+'" onchange="toggleProdAppVis(this.dataset.id,this.checked)">'
+        +'<span class="vlz-slider"></span></label></div>';
+    });
+    html+='</div>';
+  });
+  return html+'</div>';
+}
+function toggleProdAppVis(id,visible){
+  PATCH('veraluz_restaurant_products',id,{app_visible:visible}).then(function(){
+    var p=PRODS.find(function(x){return x.id===id;});if(p)p.app_visible=visible;
+    toast((visible?'Visible':'Masqué')+' sur l\'app','ok');
+  }).catch(function(){toast('Erreur','er');});
+}
+
+/* Parametres App */
+var _appCfgCache={delivery_enabled:'true',lounge_enabled:'true',room_enabled:'true',min_order:'0',delivery_fee_default:'500'};
+(function(){try{var s=localStorage.getItem('vlz_app_cfg');if(s)_appCfgCache=JSON.parse(s);}catch(e){}})();
+
+function renderAppCfg(){
+  var cfg=_appCfgCache;
+  return '<div class="app-sec"><div class="app-sec-hdr"><span class="app-sec-ttl">&#9881;&#65039; Paramètres</span>'
+    +'<button class="btn bp bs" onclick="saveAppCfg()">&#128190; Sauvegarder</button></div>'
+    +'<div class="app-cfg-row"><div class="app-cfg-lbl">&#128666; Livraison<div class="app-cfg-sub">Activer/désactiver commandes livraison</div></div>'
+    +'<label class="vlz-toggle"><input type="checkbox" id="cfg-delivery"'+(cfg.delivery_enabled!=='false'?' checked':'')+'><span class="vlz-slider"></span></label></div>'
+    +'<div class="app-cfg-row"><div class="app-cfg-lbl">&#128715; Lounge<div class="app-cfg-sub">Commandes depuis les tablettes lounge</div></div>'
+    +'<label class="vlz-toggle"><input type="checkbox" id="cfg-lounge"'+(cfg.lounge_enabled!=='false'?' checked':'')+'><span class="vlz-slider"></span></label></div>'
+    +'<div class="app-cfg-row"><div class="app-cfg-lbl">&#127968; Room Service App<div class="app-cfg-sub">Commandes app depuis les chambres</div></div>'
+    +'<label class="vlz-toggle"><input type="checkbox" id="cfg-room"'+(cfg.room_enabled!=='false'?' checked':'')+'><span class="vlz-slider"></span></label></div>'
+    +'<div class="app-cfg-row"><div class="app-cfg-lbl">Commande minimum (FCFA)<div class="app-cfg-sub">Montant min pour les livraisons</div></div>'
+    +'<input class="inp" id="cfg-minorder" type="number" value="'+(cfg.min_order||'0')+'" style="width:90px;text-align:right"></div>'
+    +'<div class="app-cfg-row"><div class="app-cfg-lbl">Frais livraison par défaut (FCFA)<div class="app-cfg-sub">Appliqué si zone non configurée</div></div>'
+    +'<input class="inp" id="cfg-delfee" type="number" value="'+(cfg.delivery_fee_default||'500')+'" style="width:90px;text-align:right"></div>'
+    +'</div>';
+}
+function saveAppCfg(){
+  _appCfgCache.delivery_enabled=document.getElementById('cfg-delivery').checked?'true':'false';
+  _appCfgCache.lounge_enabled=document.getElementById('cfg-lounge').checked?'true':'false';
+  _appCfgCache.room_enabled=document.getElementById('cfg-room').checked?'true':'false';
+  _appCfgCache.min_order=document.getElementById('cfg-minorder').value||'0';
+  _appCfgCache.delivery_fee_default=document.getElementById('cfg-delfee').value||'500';
+  try{localStorage.setItem('vlz_app_cfg',JSON.stringify(_appCfgCache));}catch(e){}
+  toast('Paramètres sauvegardés','ok');
+}
+
 </script>
 
 <!-- Receipt Verification Modal -->
@@ -2861,5 +3081,37 @@ function confirmRoomCharge(){
   </div>
 </div>
 
+
+<!-- Promo/Comm Modal -->
+<div class="ov" id="md-promo">
+  <div class="md">
+    <div class="mdh"><span id="promo-md-title">Nouvelle promo</span><button class="mdc" onclick="closeMd('md-promo')">&#10005;</button></div>
+    <div class="mdb" style="display:flex;flex-direction:column;gap:10px;">
+      <input type="hidden" id="promo-id">
+      <div style="display:flex;gap:8px;">
+        <select id="promo-type" class="inp" style="flex:2">
+          <option value="promo">&#127881; Promotion</option>
+          <option value="comm">&#128172; Communication</option>
+          <option value="banner">&#127988; Bandeau</option>
+        </select>
+        <input id="promo-emoji" class="inp" placeholder="&#127881;" style="flex:1;font-size:18px;text-align:center" maxlength="4">
+      </div>
+      <input id="promo-title" class="inp" placeholder="Titre (ex: -20% ce weekend !)">
+      <textarea id="promo-body" class="inp" rows="3" placeholder="Message / description (optionnel)"></textarea>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1"><label class="fl">Début</label><input id="promo-start" class="inp" type="date" style="width:100%"></div>
+        <div style="flex:1"><label class="fl">Fin</label><input id="promo-end" class="inp" type="date" style="width:100%"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="promo-active" checked> Activer immédiatement
+      </label>
+    </div>
+    <div class="mdf" style="display:flex;gap:8px;">
+      <button class="btn bd bs" id="promo-del-btn" style="display:none" onclick="delPromo(document.getElementById('promo-id').value)">&#128465;</button>
+      <button class="btn bg" onclick="closeMd('md-promo')" style="flex:1">Annuler</button>
+      <button class="btn bp" onclick="savePromo()" style="flex:2">&#128190; Sauvegarder</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
