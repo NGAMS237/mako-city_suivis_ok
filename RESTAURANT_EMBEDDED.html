@@ -983,6 +983,26 @@ function renderDash(){
   el.innerHTML=html;
 }
 
+/* ── Poll global badge (60s) — actif sur tous les onglets ── */
+var _globalInterval=null;
+function startGlobalPoll(){
+  if(_globalInterval)return;
+  _globalInterval=setInterval(function(){
+    Promise.all([
+      GET('/rest/v1/veraluz_restaurant_orders?select=id,status&order=created_at.desc&limit=60'),
+      GET('/rest/v1/veraluz_food_orders?select=id,status&order=created_at.desc&limit=50')
+    ]).then(function(r){
+      ORDERS=r[0]||ORDERS;FOOD_ORDERS=r[1]||FOOD_ORDERS;
+      updateBdg();
+      /* Si l'onglet KDS est visible, re-render aussi */
+      if(document.querySelector('.pane[data-p="kds"]')&&
+         document.querySelector('.pane[data-p="kds"]').style.display!=='none'){
+        renderKDS();
+      }
+    }).catch(function(){});
+  },60000);
+}
+
 function goTab(t){
   curTab=t;
   document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
@@ -1010,12 +1030,14 @@ function loadAll(){
     GET('/rest/v1/veraluz_restaurant_reservations?select=*&order=date.asc'),
     GET('/rest/v1/veraluz_reservations?select=id,unit_id,client_name,check_in,check_out,status&status=eq.checkedin'),
     GET('/rest/v1/veraluz_room_charges?select=*&settled=eq.false&order=created_at.desc'),
+    GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50'),
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
-    RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];
+    RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];
     buildSecFilt();renderTables();buildMenu();updateBdg();
     loadMvts();loadSOs();
     if(curTab==='resa')renderResa();
+    startGlobalPoll();
   }).catch(function(e){toast('Erreur chargement: '+e,'er');});
 }
 function loadMvts(){GET('/rest/v1/veraluz_restaurant_stock_movements?select=*&order=created_at.desc&limit=100').then(function(r){MVTS=r||[];}).catch(function(){});}
@@ -1419,7 +1441,8 @@ function buildKdsUnified(){
       zone:o.delivery_zone||'',
       items:items,note:o.notes||'',
       created_at:o.created_at,
-      payStatus:o.payment_status||null
+      payStatus:o.payment_status||null,
+      assigned:o.assigned_to||''
     });
   });
   /* Sort oldest first (most urgent) */
@@ -1496,6 +1519,7 @@ function kdsCard(o){
   var infoHtml='';
   if(o.info)infoHtml+='<div class="kc2-info">'+esc(o.info)+'</div>';
   if(o.phone)infoHtml+='<div class="kc2-info"><strong>&#128222;</strong> '+esc(o.phone)+'</div>';
+  if(o.assigned)infoHtml+='<div class="kc2-info" style="color:#a78bfa"><strong>&#128100;</strong> '+esc(o.assigned)+'</div>';
   if(o.zone)infoHtml+='<div class="kc2-info"><strong>&#128506;</strong> Zone: '+esc(o.zone)+'</div>';
   /* Action buttons */
   var acts='';
@@ -1558,7 +1582,12 @@ function kdsFoodUpd(oid,st){
 /* Assign deliverer (placeholder — extendable) */
 function kdsAssignLivreur(oid){
   var o=FOOD_ORDERS.find(function(x){return x.id===oid;});
-  toast('&#128100; Assigner livreur — commande '+(o?o.order_number||oid:oid),'ok');
+  var nom=prompt('Nom du livreur assigné :',(o&&o.assigned_to)||'');
+  if(nom===null)return;
+  nom=nom.trim();
+  PATCH('veraluz_food_orders',oid,{assigned_to:nom||null})
+    .then(function(){if(o)o.assigned_to=nom;renderKDS();toast('Livreur: '+(nom||'retiré'),'ok');})
+    .catch(function(){toast('Erreur assignation','er');});
 }
 
 /* Stock deduction on delivery */
@@ -1578,6 +1607,23 @@ function syncStockFromFood(order){
 }
 
 /* Auto-refresh polling */
+/* ── Écoute postMessage de FOOD_LOUNGE (notification immédiate) ── */
+window.addEventListener('message',function(ev){
+  try{
+    var d=ev.data;
+    if(!d||!d.veraluzEvent||d.source!=='food-lounge'||d.type!=='new_food_order')return;
+    var order=d.data;if(!order)return;
+    /* Ajouter à FOOD_ORDERS si pas déjà présent */
+    var exists=FOOD_ORDERS.some(function(o){return o.order_number===order.order_number;});
+    if(!exists){
+      FOOD_ORDERS.unshift(order);
+      renderKDS();updateBdg();
+      kdsBeep();
+      toast('🍽 Nouvelle commande '+order.order_type+' — '+(order.customer_name||order.order_number),'ok');
+    }
+  }catch(e){}
+});
+
 function startKdsPoll(){
   stopKdsPoll();
   _kdsInterval=setInterval(function(){
