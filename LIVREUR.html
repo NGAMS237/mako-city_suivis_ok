@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0f0f0d">
+<title>Veraluz — Dashboard Livreur</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --dk:#0f0f0d;--gold:#c9a84c;--dt:#f5f5f0;--dt2:#a0a09a;
+  --bg:#f8f8f6;--bg2:#fff;--bg3:#f0ede8;--bg4:#e8e5df;
+  --tx:#1a1a18;--tx2:#555;--tx3:#999;
+  --border:#e4e2dc;--border2:#d4d2cc;
+  --green:#16a34a;--amber:#f59e0b;--red:#dc2626;--blue:#3b82f6;
+  --r8:8px;--r12:12px;--r16:16px;--r50:50px;
+  --sh:0 2px 12px rgba(0,0,0,.07);--sh-lg:0 8px 32px rgba(0,0,0,.12);
+}
+html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);overflow-x:hidden}
+body{max-width:480px;margin:0 auto;min-height:100vh}
+button{font-family:'Inter',sans-serif;cursor:pointer;border:none;outline:none;background:none}
+svg{flex-shrink:0} a{text-decoration:none;color:inherit}
+
+.top-bar{position:sticky;top:0;z-index:100;background:var(--dk);border-bottom:1px solid rgba(255,255,255,.07);height:56px;padding:0 16px;display:flex;align-items:center;justify-content:space-between}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-badge{width:34px;height:34px;border-radius:10px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;color:var(--gold)}
+.tb-badge svg{width:16px;height:16px}
+.tb-title{font-size:.88rem;font-weight:700;color:var(--dt)}
+.tb-sub{font-size:.65rem;color:var(--dt2);margin-top:1px}
+.online-btn{display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:var(--r50);background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.25);font-size:.67rem;font-weight:700;color:#4ade80;cursor:pointer;transition:all .2s}
+.online-btn::before{content:'';width:6px;height:6px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 2px rgba(74,222,128,.25)}
+.online-btn.off{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:#f87171}
+.online-btn.off::before{background:#f87171;box-shadow:0 0 0 2px rgba(248,113,113,.25)}
+
+.stats-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.stat-box{background:var(--bg2);padding:12px 14px;text-align:center}
+.stat-n{font-size:1.4rem;font-weight:800;color:var(--tx);line-height:1}
+.stat-l{font-size:.62rem;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--tx3);margin-top:3px}
+
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:56px;z-index:90}
+.tab{flex:1;padding:12px 8px;text-align:center;font-size:.72rem;font-weight:700;color:var(--tx3);border-bottom:2px solid transparent;cursor:pointer;transition:all .15s}
+.tab.active{color:var(--tx);border-bottom-color:var(--tx)}
+
+.content{padding:14px 12px 100px}
+.refresh-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-bottom:12px;padding:11px;border-radius:var(--r12);background:var(--bg2);border:1px solid var(--border);font-size:.79rem;font-weight:600;color:var(--tx2);cursor:pointer}
+.refresh-btn svg{width:15px;height:15px;color:var(--tx3)}
+.spinning{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.order-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);margin-bottom:12px;overflow:hidden;box-shadow:var(--sh)}
+.sp-bar{display:flex;align-items:center;gap:0;padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.sp-bar::-webkit-scrollbar{display:none}
+.sp-step{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;min-width:44px}
+.sp-dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;color:var(--tx3)}
+.sp-dot svg{width:10px;height:10px}
+.sp-dot.done{background:var(--green);border-color:var(--green);color:#fff}
+.sp-dot.cur{background:var(--gold);border-color:var(--gold);color:var(--dk);box-shadow:0 0 0 3px rgba(201,168,76,.2)}
+.sp-lbl{font-size:.55rem;font-weight:600;color:var(--tx3);text-align:center;white-space:nowrap}
+.sp-lbl.done{color:var(--green)}
+.sp-lbl.cur{color:var(--tx);font-weight:700}
+.sp-seg{flex:1;height:2px;background:var(--border);border-radius:1px;min-width:10px}
+.sp-seg.done{background:var(--green)}
+
+.oc-head{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.oc-num{font-size:.7rem;font-weight:800;letter-spacing:1.5px;color:var(--tx3)}
+.oc-status{padding:4px 10px;border-radius:var(--r50);font-size:.64rem;font-weight:700}
+.s-pending{background:rgba(245,158,11,.1);color:#b45309}
+.s-preparing{background:rgba(59,130,246,.1);color:#1d4ed8}
+.s-ready{background:rgba(168,85,247,.1);color:#7c3aed}
+.s-delivering{background:rgba(249,115,22,.1);color:#c2410c}
+.s-delivered{background:rgba(22,163,74,.1);color:#15803d}
+
+.oc-body{padding:12px 14px}
+.oc-client{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.oc-av{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--tx2);flex-shrink:0}
+.oc-cn{font-size:.82rem;font-weight:700;color:var(--tx)}
+.oc-cp{font-size:.7rem;color:var(--tx2);margin-top:1px}
+.oc-addr{display:flex;align-items:flex-start;gap:8px;background:var(--bg3);border-radius:var(--r8);padding:9px 11px;margin-bottom:10px}
+.oc-addr svg{width:13px;height:13px;color:var(--tx3);flex-shrink:0;margin-top:1px}
+.oc-addr-t{font-size:.73rem;color:var(--tx2);line-height:1.5}
+.oc-addr-z{font-size:.66rem;font-weight:600;color:var(--tx);margin-top:2px}
+.oc-items{margin-bottom:10px}
+.oc-item{display:flex;justify-content:space-between;font-size:.73rem;color:var(--tx2);padding:2px 0}
+.oc-total{display:flex;justify-content:space-between;font-size:.8rem;font-weight:800;color:var(--tx);border-top:1px solid var(--border);padding-top:7px;margin-top:4px}
+.oc-time{display:flex;align-items:center;gap:5px;font-size:.66rem;color:var(--tx3);margin-bottom:10px}
+.oc-time svg{width:11px;height:11px}
+.oc-actions{display:flex;gap:6px;flex-wrap:wrap}
+.act-btn{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:4px;padding:9px 8px;border-radius:var(--r12);font-size:.7rem;font-weight:700;border:1.5px solid var(--border);background:var(--bg3);color:var(--tx2);cursor:pointer;transition:all .15s;white-space:nowrap;text-align:center}
+.act-btn svg{width:13px;height:13px}
+.act-btn:active{opacity:.8;transform:scale(.97)}
+.act-primary{background:var(--tx);color:#fff;border-color:var(--tx)}
+.act-green{background:rgba(22,163,74,.08);color:var(--green);border-color:rgba(22,163,74,.3)}
+.act-blue{background:rgba(59,130,246,.08);color:var(--blue);border-color:rgba(59,130,246,.3)}
+
+.empty{padding:48px 20px;text-align:center;color:var(--tx3)}
+.empty svg{width:44px;height:44px;margin:0 auto 12px;opacity:.2}
+.empty h3{font-size:.92rem;font-weight:700;color:var(--tx2);margin-bottom:5px}
+.empty p{font-size:.76rem;line-height:1.6}
+
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:90;background:rgba(255,255,255,.97);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0;cursor:pointer;color:var(--tx3);font-size:.6rem;font-weight:600}
+.bnav-item svg{width:20px;height:20px}
+.bnav-item.active{color:var(--tx)}
+
+.toast{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--tx);color:#fff;padding:9px 17px;border-radius:var(--r50);font-size:.77rem;font-weight:600;z-index:999;transition:transform .28s;white-space:nowrap;box-shadow:var(--sh-lg)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--green)}
+.toast.err{background:var(--red)}
+
+.modal-ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(2px)}
+.modal-ov.open{opacity:1;pointer-events:all}
+.modal{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(106%);width:100%;max-width:480px;z-index:201;background:var(--bg2);border-radius:22px 22px 0 0;border-top:1px solid var(--border);box-shadow:var(--sh-lg);transition:transform .32s cubic-bezier(.32,0,.2,1);max-height:70vh;overflow-y:auto;padding-bottom:24px}
+.modal.open{transform:translateX(-50%) translateY(0)}
+.modal-handle{width:36px;height:3px;background:var(--border2);border-radius:2px;margin:10px auto 14px}
+.modal-title{font-size:.98rem;font-weight:700;color:var(--tx);padding:0 18px;margin-bottom:12px}
+.spick-list{display:flex;flex-direction:column;gap:7px;padding:0 14px}
+.spick-btn{padding:12px 15px;border-radius:var(--r12);background:var(--bg3);border:1.5px solid var(--border);display:flex;align-items:center;gap:10px;font-size:.81rem;font-weight:600;color:var(--tx);cursor:pointer;transition:all .15s}
+.spick-btn svg{width:18px;height:18px;flex-shrink:0}
+.spick-btn:active{transform:scale(.98)}
+.spick-btn.cur{border-color:var(--tx);background:var(--bg)}
+.spick-btn.past{opacity:.38;pointer-events:none}
+</style>
+</head>
+<body>
+
+<header class="top-bar">
+  <div class="tb-left">
+    <div class="tb-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>
+    </div>
+    <div>
+      <div class="tb-title">Dashboard Livreur</div>
+      <div class="tb-sub" id="tbDate">Veraluz Food &amp; Lounge</div>
+    </div>
+  </div>
+  <button class="online-btn" id="onlineBtn" onclick="toggleOnline()">En ligne</button>
+</header>
+
+<div class="stats-strip">
+  <div class="stat-box"><div class="stat-n" id="sTotal">0</div><div class="stat-l">Aujourd'hui</div></div>
+  <div class="stat-box"><div class="stat-n" id="sActive">0</div><div class="stat-l">En cours</div></div>
+  <div class="stat-box"><div class="stat-n" id="sDone">0</div><div class="stat-l">Livrées</div></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab-active" onclick="switchTab('active')">En cours</div>
+  <div class="tab" id="tab-pending" onclick="switchTab('pending')">En attente</div>
+  <div class="tab" id="tab-done" onclick="switchTab('done')">Livrées</div>
+</div>
+
+<div class="content" id="mainContent"></div>
+
+<nav class="bottom-nav">
+  <div class="bnav-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>
+    <span>Livraisons</span>
+  </div>
+  <div class="bnav-item" onclick="loadOrders()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+    <span>Actualiser</span>
+  </div>
+  <div class="bnav-item" onclick="toggleOnline()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.97a16 16 0 0 0 6.06 6.06l1.82-1.82a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.04z"/></svg>
+    <span>Statut</span>
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-ov" id="mOv" onclick="closeMod()"></div>
+<div class="modal" id="statusMod">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Mettre à jour le statut</div>
+  <div class="spick-list" id="spickList"></div>
+</div>
+
+<script>
+var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+
+var STATUSES=[
+  {id:'pending',    lbl:'En attente',     cls:'s-pending',
+   ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'},
+  {id:'preparing',  lbl:'En préparation', cls:'s-preparing',
+   ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6h3.8a1 1 0 0 1 1 1.1l-.5 5.3A2 2 0 0 1 18.3 22h-.6a2 2 0 0 1-2-1.6l-.5-5.3a1 1 0 0 1 1-1.1H19"/></svg>'},
+  {id:'ready',      lbl:'Prête',          cls:'s-ready',
+   ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'},
+  {id:'delivering', lbl:'En livraison',   cls:'s-delivering',
+   ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>'},
+  {id:'delivered',  lbl:'Livrée',         cls:'s-delivered',
+   ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'}
+];
+
+var _orders=[],_tab='active',_online=true,_curId=null,_interval=null;
+
+function fmt(n){return n?Number(n).toLocaleString('fr-FR')+' FCFA':'—';}
+function ago(iso){if(!iso)return '—';var d=Math.floor((Date.now()-new Date(iso))/1000);if(d<60)return d+'s';if(d<3600)return Math.floor(d/60)+' min';return Math.floor(d/3600)+'h'+Math.floor((d%3600)/60)+'min';}
+function stObj(id){return STATUSES.find(function(s){return s.id===id;})||STATUSES[0];}
+
+function sbFetch(p){return fetch(SB+'/rest/v1/'+p,{mode:'cors',credentials:'omit',headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json'}}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json();});}
+function sbPatch(table,id,data){return fetch(SB+'/rest/v1/'+table+'?id=eq.'+encodeURIComponent(id),{method:'PATCH',mode:'cors',credentials:'omit',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)}).then(function(r){if(!r.ok)throw new Error(r.status);});}
+
+function loadOrders(){
+  var rfsvg=document.querySelector('#rfBtn svg');
+  if(rfsvg)rfsvg.classList.add('spinning');
+  var today=new Date();today.setHours(0,0,0,0);
+  sbFetch('veraluz_food_orders?select=*&delivery_type=eq.delivery&created_at=gte.'+today.toISOString()+'&order=created_at.desc')
+    .then(function(d){_orders=d||[];finishLoad();})
+    .catch(function(){
+      try{var loc=JSON.parse(localStorage.getItem('vlz_food_orders')||'[]');_orders=loc.filter(function(o){return o.delivery_type==='delivery';});}catch(e){_orders=[];}
+      finishLoad();toast('Données locales','err');
+    });
+}
+function finishLoad(){
+  updateStats();render();
+  var rfsvg=document.querySelector('#rfBtn svg');
+  if(rfsvg)rfsvg.classList.remove('spinning');
+}
+function updateStats(){
+  var act=['preparing','ready','delivering'];
+  document.getElementById('sTotal').textContent=_orders.length;
+  document.getElementById('sActive').textContent=_orders.filter(function(o){return act.indexOf(o.status)>-1;}).length;
+  document.getElementById('sDone').textContent=_orders.filter(function(o){return o.status==='delivered';}).length;
+}
+function switchTab(t){
+  _tab=t;
+  ['active','pending','done'].forEach(function(x){document.getElementById('tab-'+x).classList.toggle('active',x===t);});
+  render();
+}
+function filtered(){
+  if(_tab==='active')return _orders.filter(function(o){return ['preparing','ready','delivering'].indexOf(o.status)>-1;});
+  if(_tab==='pending')return _orders.filter(function(o){return o.status==='pending';});
+  return _orders.filter(function(o){return o.status==='delivered';});
+}
+
+function render(){
+  var el=document.getElementById('mainContent'),list=filtered();
+  if(!list.length){
+    var lbl={active:'Aucune livraison en cours',pending:'Aucune commande en attente',done:'Aucune livraison terminée'};
+    el.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8.5 2 5.5 4.5 5 8H3l1 12h16l1-12h-2c-.5-3.5-3.5-6-7-6z"/><path d="M9 12h6"/></svg><h3>'+lbl[_tab]+'</h3><p>Actualisez pour voir les nouvelles commandes.</p></div>';
+    return;
+  }
+  el.innerHTML='<button class="refresh-btn" id="rfBtn" onclick="loadOrders()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>Actualiser (auto 30s)</button>'+list.map(cardHTML).join('');
+}
+
+function cardHTML(o){
+  var st=stObj(o.status),sidx=STATUSES.findIndex(function(s){return s.id===o.status;});
+  var items=[];try{items=typeof o.items==='string'?JSON.parse(o.items):o.items||[];}catch(e){}
+  var init=(o.customer_name||'?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
+  var hasGPS=o.delivery_lat&&o.delivery_lng;
+
+  var prog=STATUSES.map(function(s,i){
+    var dc=i<sidx?'done':i===sidx?'cur':'';
+    return '<div class="sp-step"><div class="sp-dot '+dc+'">'+s.ico+'</div><div class="sp-lbl '+dc+'">'+s.lbl.split(' ')[0]+'</div></div>'+(i<STATUSES.length-1?'<div class="sp-seg '+(i<sidx?'done':'')+'"></div>':'');
+  }).join('');
+
+  var itemsH=items.slice(0,3).map(function(x){return '<div class="oc-item"><span>'+(x.name||'')+(x.qty>1?' ×'+x.qty:'')+'</span><span>'+(x.price?(x.price*(x.qty||1)).toLocaleString('fr-FR')+' F':'')+'</span></div>';}).join('')+(items.length>3?'<div class="oc-item" style="color:var(--tx3)">+'+( items.length-3)+' autre(s)…</div>':'');
+
+  var addrH=o.address||hasGPS?'<div class="oc-addr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><div class="oc-addr-t">'+(o.address||'Position GPS')+(o.delivery_zone?'<div class="oc-addr-z">Zone : '+o.delivery_zone+'</div>':'')+'</div></div>':'';
+
+  var gpsA=hasGPS?'<a class="act-btn act-blue" href="https://maps.google.com/?q='+o.delivery_lat+','+o.delivery_lng+'" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>GPS</a>':'';
+  var callA=o.customer_phone?'<a class="act-btn act-green" href="tel:'+o.customer_phone+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.97a16 16 0 0 0 6.06 6.06l1.82-1.82a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.04z"/></svg>Appeler</a>':'';
+
+  return '<div class="order-card">'+
+    '<div class="sp-bar">'+prog+'</div>'+
+    '<div class="oc-head"><span class="oc-num">N° '+(o.order_number||o.id)+'</span><span class="oc-status '+st.cls+'">'+st.lbl+'</span></div>'+
+    '<div class="oc-body">'+
+    '<div class="oc-client"><div class="oc-av">'+init+'</div><div><div class="oc-cn">'+(o.customer_name||'Client')+'</div><div class="oc-cp">'+(o.customer_phone||'—')+'</div></div></div>'+
+    addrH+
+    '<div class="oc-items">'+itemsH+'<div class="oc-total"><span>Total</span><span>'+fmt(o.total)+'</span></div></div>'+
+    '<div class="oc-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Il y a '+ago(o.created_at)+'</div>'+
+    '<div class="oc-actions">'+callA+gpsA+
+    '<button class="act-btn act-primary" onclick="openMod(this)" data-id="'+o.id+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Statut</button>'+
+    '</div></div></div>';
+}
+
+function openMod(btn){
+  _curId=btn.dataset.id;
+  var o=_orders.find(function(x){return x.id==_curId;});
+  if(!o)return;
+  var cidx=STATUSES.findIndex(function(s){return s.id===o.status;});
+  var colors=['#b45309','#1d4ed8','#7c3aed','#c2410c','#15803d'];
+  var list=document.getElementById('spickList');list.innerHTML='';
+  STATUSES.forEach(function(s,i){
+    var b=document.createElement('button');
+    b.className='spick-btn'+(s.id===o.status?' cur':(i<cidx?' past':''));
+    b.dataset.sid=s.id;
+    b.onclick=function(){setStatus(this.dataset.sid);};
+    b.innerHTML='<span style="color:'+colors[i]+'">'+s.ico+'</span>'+s.lbl;
+    list.appendChild(b);
+  });
+  document.getElementById('mOv').classList.add('open');
+  document.getElementById('statusMod').classList.add('open');
+}
+function closeMod(){document.getElementById('mOv').classList.remove('open');document.getElementById('statusMod').classList.remove('open');}
+function setStatus(ns){
+  var o=_orders.find(function(x){return x.id==_curId;});
+  if(!o)return;
+  var old=o.status;o.status=ns;closeMod();updateStats();render();
+  sbPatch('veraluz_food_orders',_curId,{status:ns})
+    .then(function(){toast(stObj(ns).lbl,'ok');})
+    .catch(function(){o.status=old;updateStats();render();toast('Erreur','err');});
+}
+
+function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'')+' show';setTimeout(function(){t.classList.remove('show');},2400);}
+function toggleOnline(){
+  _online=!_online;
+  var b=document.getElementById('onlineBtn');
+  b.textContent=_online?'En ligne':'Hors ligne';
+  b.classList.toggle('off',!_online);
+  toast(_online?'Disponible pour livraisons':'Indisponible',_online?'ok':'err');
+  if(_online){_interval=setInterval(loadOrders,30000);}else{clearInterval(_interval);}
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  var d=new Date();
+  document.getElementById('tbDate').textContent=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  loadOrders();
+  _interval=setInterval(loadOrders,30000);
+});
+</script>
+</body>
+</html>
