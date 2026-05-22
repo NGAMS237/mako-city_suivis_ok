@@ -2058,4 +2058,62 @@ function initSignPad(){
     var src=e.touches?e.touches[0]:e;
     return {x:(src.clientX-r.left)*(canvas.width/r.width),y:(src.clientY-r.top)*(canvas.height/r.height)};
   }
-  canvas.addEven
+  canvas.addEventListener('mousedown',function(e){_drawing=true;var p=getPos(e);_signCtx.beginPath();_signCtx.moveTo(p.x,p.y);});
+  canvas.addEventListener('mousemove',function(e){if(!_drawing)return;var p=getPos(e);_signCtx.lineTo(p.x,p.y);_signCtx.stroke();});
+  canvas.addEventListener('mouseup',function(){_drawing=false;});
+  canvas.addEventListener('mouseleave',function(){_drawing=false;});
+  canvas.addEventListener('touchstart',function(e){e.preventDefault();_drawing=true;var p=getPos(e);_signCtx.beginPath();_signCtx.moveTo(p.x,p.y);},{passive:false});
+  canvas.addEventListener('touchmove',function(e){e.preventDefault();if(!_drawing)return;var p=getPos(e);_signCtx.lineTo(p.x,p.y);_signCtx.stroke();},{passive:false});
+  canvas.addEventListener('touchend',function(){_drawing=false;});
+}
+
+function confirmSign(){
+  if(!_signContractId)return;
+  var canvas=document.getElementById('sign-pad');
+  if(!canvas)return;
+  var signatureData=canvas.toDataURL('image/png',0.7);
+  sbPatch('veraluz_contracts',_signContractId,{
+    signed_at:new Date().toISOString(),
+    signature_data:signatureData
+  }).then(function(){
+    document.getElementById('md-sign-contract').classList.remove('on');
+    toast('Contrat sign\u00e9 \u2713','ok');
+    loadContracts();
+  }).catch(function(){toast('Erreur signature','err');});
+}
+
+/* ═══════════════ INIT ═══════════════ */
+document.addEventListener('DOMContentLoaded',function(){
+  loadAll();
+  setInterval(loadAll,60000);
+  setTimeout(initSignPad,500);
+});
+</script>
+
+<!-- Modal signature electronique -->
+<div class="ov" id="md-sign-contract">
+  <div class="md" style="max-width:540px;max-height:90vh;overflow-y:auto">
+    <div class="md-hdr">
+      <span class="md-ttl">&#9997;&#65039; Signature electronique</span>
+      <button class="md-cls" onclick="document.getElementById('md-sign-contract').classList.remove('on')">&#10005;</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="font-size:.78rem;font-weight:700;color:var(--tx2);margin-bottom:8px">Employ\u00e9(e) :</div>
+      <div id="sign-emp-name" style="font-size:.92rem;font-weight:800;color:var(--tx);margin-bottom:4px"></div>
+      <div id="sign-status" style="font-size:.7rem;color:var(--tx3);margin-bottom:14px"></div>
+      <div style="background:var(--bg3);border-radius:8px;padding:14px;margin-bottom:14px;max-height:200px;overflow-y:auto">
+        <pre id="sign-contract-body" style="font-size:.68rem;line-height:1.6;white-space:pre-wrap;color:var(--tx2);font-family:monospace"></pre>
+      </div>
+      <div style="font-size:.75rem;font-weight:700;color:var(--tx2);margin-bottom:8px">Signature :</div>
+      <canvas id="sign-pad" width="460" height="140" style="width:100%;border:2px dashed var(--border2);border-radius:8px;background:#f8f8f6;cursor:crosshair;touch-action:none"></canvas>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn bp" onclick="confirmSign()" style="flex:1">&#9989; Confirmer la signature</button>
+        <button class="btn bs" onclick="clearSignPad()">&#128465; Effacer</button>
+        <button class="btn bs" onclick="document.getElementById('md-sign-contract').classList.remove('on')">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
