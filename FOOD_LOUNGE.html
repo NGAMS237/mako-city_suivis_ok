@@ -36,6 +36,47 @@ img{display:block;object-fit:cover}
 a{text-decoration:none;color:inherit}
 svg{flex-shrink:0}
 
+
+/* ── PROMO BANNER ── */
+.promo-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(90deg,#1a160a 0%,#2a2010 50%,#1a160a 100%);
+  border-bottom:1px solid rgba(201,168,76,.18);
+  padding:0 14px;height:36px;overflow:hidden;
+  position:relative;
+}
+.promo-bar.hidden{display:none}
+.promo-scroll{
+  flex:1;overflow:hidden;position:relative;
+  display:flex;align-items:center;gap:16px;
+}
+.promo-inner{
+  display:flex;align-items:center;gap:8px;
+  animation:promoscroll 18s linear infinite;
+  white-space:nowrap;
+}
+@keyframes promoscroll{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(-50%)}
+}
+.promo-bar:hover .promo-inner{animation-play-state:paused}
+.promo-ico{
+  width:18px;height:18px;flex-shrink:0;color:var(--gold);
+}
+.promo-txt{
+  font-size:.68rem;font-weight:600;letter-spacing:.3px;color:var(--dt);
+}
+.promo-txt strong{color:var(--gold2);font-weight:700}
+.promo-sep{color:var(--dt3);opacity:.4;font-size:.6rem;margin:0 4px}
+.promo-close{
+  flex-shrink:0;width:22px;height:22px;border-radius:50%;
+  background:rgba(255,255,255,.06);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--dt3);margin-left:8px;transition:background .15s;
+}
+.promo-close:active{background:rgba(255,255,255,.15)}
+.promo-close svg{width:10px;height:10px}
+
 /* ══════════════════════════════════
    DARK ZONE (top bar + hero + strip + lounge)
 ══════════════════════════════════ */
@@ -51,7 +92,7 @@ svg{flex-shrink:0}
 }
 .tb-logo{display:flex;align-items:center;gap:9px}
 .tb-mark{
-  width:34px;height:34px;border-radius:10px;
+  width:32px;height:32px;border-radius:10px;
   border:1px solid rgba(201,168,76,.3);
   background:var(--gold3);
   display:flex;align-items:center;justify-content:center;
@@ -67,6 +108,8 @@ svg{flex-shrink:0}
   color:var(--dt2);transition:background .15s;
 }
 .dk-icon-btn:active{background:var(--dk4)}
+.tb-mark svg{width:16px;height:16px}
+.dk-icon-btn svg{width:16px;height:16px}
 .dk-wa{color:#4ade80;background:rgba(74,222,128,.07);border-color:rgba(74,222,128,.2)}
 .cart-badge{
   position:absolute;top:-5px;right:-5px;
@@ -139,7 +182,7 @@ svg{flex-shrink:0}
   color:var(--dt3);font-size:.67rem;font-weight:600;letter-spacing:.3px;
   transition:all .15s;
 }
-.ss-item svg{color:var(--dt3);transition:color .15s}
+.ss-item svg{color:var(--dt3);transition:color .15s;width:18px;height:18px}
 .ss-item.active{color:var(--gold);border-bottom-color:var(--gold)}
 .ss-item.active svg{color:var(--gold)}
 
@@ -321,7 +364,7 @@ svg{flex-shrink:0}
   font-size:.61rem;font-weight:600;letter-spacing:.2px;position:relative;
   transition:color .15s;
 }
-.bnav-item svg{transition:color .15s}
+.bnav-item svg{transition:color .15s;width:20px;height:20px}
 .bnav-item.active{color:var(--tx)}
 .bnav-item.active svg{color:var(--am)}
 .bnav-badge{
@@ -554,6 +597,37 @@ svg{flex-shrink:0}
   </div>
 </header>
 
+<!-- PROMO BANNER -->
+<div class="promo-bar" id="promoBar">
+  <div class="promo-scroll">
+    <div class="promo-inner" id="promoInner">
+      <!-- Les messages sont répétés 2× pour le scroll infini -->
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+      <span class="promo-txt"><strong>Livraison offerte</strong> pour votre 1ère commande</span>
+      <span class="promo-sep">✦</span>
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span class="promo-txt">Commandez avant <strong>22h</strong> — Livraison express 30 min</span>
+      <span class="promo-sep">✦</span>
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <span class="promo-txt">Room service disponible <strong>7j/7</strong> — 7h à minuit</span>
+      <span class="promo-sep">✦</span>
+      <!-- Répétition pour boucle continue -->
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+      <span class="promo-txt"><strong>Livraison offerte</strong> pour votre 1ère commande</span>
+      <span class="promo-sep">✦</span>
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span class="promo-txt">Commandez avant <strong>22h</strong> — Livraison express 30 min</span>
+      <span class="promo-sep">✦</span>
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <span class="promo-txt">Room service disponible <strong>7j/7</strong> — 7h à minuit</span>
+      <span class="promo-sep">✦</span>
+    </div>
+  </div>
+  <button class="promo-close" onclick="document.getElementById('promoBar').classList.add('hidden')" aria-label="Fermer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</div>
+
 <!-- HERO -->
 <section class="hero">
   <div class="hero-bg"></div>
@@ -682,7 +756,7 @@ svg{flex-shrink:0}
 
 <!-- CONFIRM SCREEN -->
 <div class="confirm-screen" id="confirmScreen">
-  <div class="confirm-ring"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>_BIG</div>
+  <div class="confirm-ring"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
   <h2>Commande confirmée</h2>
   <p>Votre commande a été reçue. Nous préparons votre repas avec soin.</p>
   <div class="confirm-box">
@@ -697,7 +771,7 @@ svg{flex-shrink:0}
 
 <!-- TOAST -->
 <div class="toast" id="toast">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>_SM
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
   <span class="toast-msg" id="toastMsg"></span>
 </div>
 
