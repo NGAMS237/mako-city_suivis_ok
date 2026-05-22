@@ -1658,14 +1658,27 @@ function submitOrder(){
     delivery_zone:_zone?_zone.name:(g('co-zone')?DELIVERY_ZONES.filter(function(z){return z.id===g('co-zone');})[0].name:null),
     notes:g('co-nt')||null,payment_method:_pay,payment_status:payStatus,
     items:JSON.stringify(_cart),subtotal:sub,delivery_fee:fee,total:sub+fee,
-    status:'pending',source:'food-lounge',created_at:new Date().toISOString()
+    status:'pending',source:'food-lounge'
   };
   _orders.unshift(order);
   try{localStorage.setItem('vlz_food_orders',JSON.stringify(_orders.slice(0,20)));
     localStorage.setItem('vlz_food_order',JSON.stringify(order));
     localStorage.setItem('vlz_food_updated',String(Date.now()));}catch(e){}
   try{if(window.parent&&window.parent!==window)window.parent.postMessage({veraluzEvent:true,source:'food-lounge',type:'new_food_order',data:order},'*');}catch(e){}
-  sbInsert('veraluz_food_orders',order).catch(function(){});
+  /* Insert Supabase avec feedback et retry */
+  function _doInsert(attempt){
+    sbInsert('veraluz_food_orders',order)
+      .then(function(rows){
+        if(rows&&rows[0]&&rows[0].id){
+          try{localStorage.setItem('vlz_food_sb_id_'+num,rows[0].id);}catch(e){}
+        }
+      })
+      .catch(function(err){
+        if(attempt<2){setTimeout(function(){_doInsert(attempt+1);},3000);}
+        else{toast('⚠ Commande non synchronisée — vérifiez votre connexion','err');}
+      });
+  }
+  _doInsert(0);
   /* WA message */
   var addrLine=order.delivery_lat
     ?('\n📍 GPS: https://maps.google.com/?q='+order.delivery_lat+','+order.delivery_lng)
