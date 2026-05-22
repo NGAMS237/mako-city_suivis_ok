@@ -159,8 +159,8 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
 </div>
 
 <div class="tabs">
-  <div class="tab active" id="tab-active" onclick="switchTab('active')">En cours</div>
-  <div class="tab" id="tab-pending" onclick="switchTab('pending')">En attente</div>
+  <div class="tab active" id="tab-pickup" onclick="switchTab('pickup')">En cours</div>
+  <div class="tab" id="tab-delivering" onclick="switchTab('delivering')">🔵 En livraison</div>
   <div class="tab" id="tab-done" onclick="switchTab('done')">Livrées</div>
 </div>
 
@@ -227,7 +227,7 @@ var STATUSES=[
    ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'}
 ];
 
-var _orders=[],_tab='active',_online=true,_curId=null,_interval=null;
+var _orders=[],_tab='pickup',_online=true,_curId=null,_interval=null;
 
 function fmt(n){return n?Number(n).toLocaleString('fr-FR')+' FCFA':'—';}
 function ago(iso){if(!iso)return '—';var d=Math.floor((Date.now()-new Date(iso))/1000);if(d<60)return d+'s';if(d<3600)return Math.floor(d/60)+' min';return Math.floor(d/3600)+'h'+Math.floor((d%3600)/60)+'min';}
@@ -253,26 +253,25 @@ function finishLoad(){
   if(rfsvg)rfsvg.classList.remove('spinning');
 }
 function updateStats(){
-  var act=['preparing','ready','delivering'];
   document.getElementById('sTotal').textContent=_orders.length;
-  document.getElementById('sActive').textContent=_orders.filter(function(o){return act.indexOf(o.status)>-1;}).length;
+  document.getElementById('sActive').textContent=_orders.filter(function(o){return o.status==='ready'||o.status==='delivering';}).length;
   document.getElementById('sDone').textContent=_orders.filter(function(o){return o.status==='delivered';}).length;
 }
 function switchTab(t){
   _tab=t;
-  ['active','pending','done'].forEach(function(x){document.getElementById('tab-'+x).classList.toggle('active',x===t);});
+  ['pickup','delivering','done'].forEach(function(x){document.getElementById('tab-'+x).classList.toggle('active',x===t);});
   render();
 }
 function filtered(){
-  if(_tab==='active')return _orders.filter(function(o){return ['preparing','ready','delivering'].indexOf(o.status)>-1;});
-  if(_tab==='pending')return _orders.filter(function(o){return o.status==='pending';});
+  if(_tab==='pickup')return _orders.filter(function(o){return o.status==='ready';});
+  if(_tab==='delivering')return _orders.filter(function(o){return o.status==='delivering';});
   return _orders.filter(function(o){return o.status==='delivered';});
 }
 
 function render(){
   var el=document.getElementById('mainContent'),list=filtered();
   if(!list.length){
-    var lbl={active:'Aucune livraison en cours',pending:'Aucune commande en attente',done:'Aucune livraison terminée'};
+    var lbl={pickup:'Aucune commande prête à récupérer',delivering:'Aucune livraison en cours',done:'Aucune livraison terminée'};
     el.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8.5 2 5.5 4.5 5 8H3l1 12h16l1-12h-2c-.5-3.5-3.5-6-7-6z"/><path d="M9 12h6"/></svg><h3>'+lbl[_tab]+'</h3><p>Actualisez pour voir les nouvelles commandes.</p></div>';
     return;
   }
