@@ -339,6 +339,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 #toast.ok{border-color:var(--accent);color:var(--accent);}
 #toast.er{border-color:var(--danger);color:var(--danger);}
+/* LIVREUR PICKER */
+.liv-card{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:12px;margin-bottom:7px;cursor:pointer;transition:border-color .15s;text-align:left;}
+.liv-card:active{opacity:.8;}.liv-card:hover{border-color:var(--acc1);}
+.liv-card.liv-cur{border-color:var(--acc1);background:rgba(34,211,165,.06);}
+.liv-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;}
+.liv-info{flex:1;min-width:0;}
+.liv-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.liv-role{font-size:11px;color:var(--text3);margin-top:1px;}
 </style>
 </head>
 <body>
@@ -571,6 +579,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 </div><!-- /app -->
 
 <div id="toast"></div>
+
+<!-- LIVREUR PICKER MODAL -->
+<div class="ov" id="md-livreur">
+  <div class="md" style="max-height:82vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <span style="font-size:15px;font-weight:800;">&#128667; Assigner un livreur</span>
+      <button class="mdc" onclick="closeMd('md-livreur')">&#10005;</button>
+    </div>
+    <div id="liv-order-ref" style="font-size:11px;color:var(--text3);margin-bottom:14px;"></div>
+    <div id="liv-list"></div>
+  </div>
+</div>
 
 <!-- ══ MODALS ══ -->
 <!-- Pick table -->
@@ -869,6 +889,7 @@ var cartTbl=null,cartType='table',cartRoom='';
 var payMeth='cash',payOid=null;
 var _tt=null;
 var APP_PROMOS=[], _appSub='promos';
+var LIVREURS=[], _assignOid=null;
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return Number(n||0).toLocaleString('fr-FR')+' FCFA';}
@@ -1075,9 +1096,11 @@ function loadAll(){
     _safe(GET('/rest/v1/veraluz_room_charges?select=*&settled=eq.false&order=created_at.desc')),
     _safe(GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50')),
     _safe(GET('/rest/v1/veraluz_food_promotions?select=*&order=created_at.desc')),
+    _safe(GET('/rest/v1/veraluz_rh_employes?equipe=eq.livreur&actif=eq.true&order=nom.asc')),
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
     RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];APP_PROMOS=r[9]||[];
+    LIVREURS=r[10]||[];
     buildSecFilt();renderTables();buildMenu();updateBdg();
     loadMvts();loadSOs();
     if(curTab==='resa')renderResa();
@@ -1584,9 +1607,10 @@ function kdsCard(o){
     else if(o._kst==='prep')
       acts='<button class="btn bp bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-st="ready" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Pr&#234;te</button>';
     else if(o._kst==='ready'){
+      var livLabel=o.assigned_to?'&#128667; '+esc(o.assigned_to):'&#128100; Livreur';
       acts='<button class="btn bp bs" style="flex:2;font-size:11px" data-id="'+o._id+'" data-st="delivering" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#8599; Remis livreur</button>';
       if(o._src==='livraison')
-        acts+='<button class="btn bg bs" style="flex:1;font-size:10px" data-id="'+o._id+'" onclick="kdsAssignLivreur(this.dataset.id)">&#128100; Livreur</button>';
+        acts+='<button class="btn '+(o.assigned_to?'bw':'bg')+' bs" style="flex:1;font-size:10px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-id="'+o._id+'" onclick="kdsAssignLivreur(this.dataset.id)">'+livLabel+'</button>';
     }else if(o._kst==='handed')
       acts='<button class="btn bg bs" style="flex:1;font-size:10px;color:var(--text3)" data-id="'+o._id+'" data-st="delivered" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Confirm&#233;e</button>';
   }
@@ -1625,14 +1649,51 @@ function kdsFoodUpd(oid,st){
   }).catch(function(){toast('Erreur mise &#224; jour','er');});
 }
 
-/* Assign deliverer (placeholder — extendable) */
+/* Assign deliverer — modal avec cartes livreurs */
 function kdsAssignLivreur(oid){
+  _assignOid=oid;
   var o=FOOD_ORDERS.find(function(x){return x.id===oid;});
-  var nom=prompt('Nom du livreur assigné :',(o&&o.assigned_to)||'');
-  if(nom===null)return;
-  nom=nom.trim();
-  PATCH('veraluz_food_orders',oid,{assigned_to:nom||null})
-    .then(function(){if(o)o.assigned_to=nom;renderKDS();toast('Livreur: '+(nom||'retiré'),'ok');})
+  var cur=o&&o.livreur_id;
+  var el=document.getElementById('liv-list');
+  if(!el)return;
+  if(!LIVREURS.length){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);">Aucun livreur actif trouvé.<br><small>Ajoutez des livreurs dans le module RH (équipe Livreurs).</small></div>';
+  }else{
+    el.innerHTML=LIVREURS.map(function(l){
+      var initials=((l.prenom||'').charAt(0)+(l.nom||'').charAt(0)).toUpperCase();
+      var isCur=cur===l.id;
+      var colors=['#22d3a5','#818cf8','#f59e0b','#f43f5e','#10b981','#3b82f6'];
+      var hsh=0;for(var i=0;i<(l.nom||'').length;i++){hsh=(hsh*31+l.nom.charCodeAt(i))%colors.length;}
+      var col=colors[Math.abs(hsh)%colors.length];
+      return '<button class="liv-card'+(isCur?' liv-cur':'')+'" data-lid="'+esc(l.id)+'" data-lnom="'+esc(l.prenom+' '+l.nom)+'" onclick="pickLivreur(this)">'
+        +'<div class="liv-av" style="background:'+col+'">'+initials+'</div>'
+        +'<div class="liv-info"><div class="liv-name">'+esc(l.prenom+' '+l.nom)+'</div>'
+        +'<div class="liv-role">'+esc(l.poste||'Livreur')+(l.vehicule?' · '+esc(l.vehicule):'')+'</div></div>'
+        +(isCur?'<span style="color:var(--acc1);font-size:16px;">&#10003;</span>':'')
+        +'</button>';
+    }).join('')
+    +'<button class="liv-card" style="border-style:dashed;color:var(--text3);" onclick="pickLivreur(null)">'
+    +'<div class="liv-av" style="background:var(--bg4);color:var(--text3);">&#10005;</div>'
+    +'<div class="liv-info"><div class="liv-name">Retirer l\'assignation</div></div>'
+    +'</button>';
+  }
+  /* Header avec infos commande */
+  var hdr=document.getElementById('liv-order-ref');
+  if(hdr&&o)hdr.textContent='Commande '+(o.order_number||o.id.slice(0,8).toUpperCase());
+  openMd('md-livreur');
+}
+function pickLivreur(btn){
+  var oid=_assignOid;
+  var o=FOOD_ORDERS.find(function(x){return x.id===oid;});
+  var lid=btn?btn.dataset.lid:null;
+  var lnom=btn?btn.dataset.lnom:null;
+  closeMd('md-livreur');
+  PATCH('veraluz_food_orders',oid,{assigned_to:lnom||null,livreur_id:lid||null})
+    .then(function(){
+      if(o){o.assigned_to=lnom;o.livreur_id=lid;}
+      renderKDS();
+      toast(lnom?'&#128667; '+lnom+' assign&#233;':'Livreur retiré','ok');
+    })
     .catch(function(){toast('Erreur assignation','er');});
 }
 
@@ -3053,68 +3114,4 @@ function saveAppCfg(){
 <!-- Receipt Verification Modal -->
 <div class="ov" id="md-recv">
   <div class="md" style="max-width:520px;">
-    <div class="mdh"><span class="mdt">&#9745; Vérification de réception</span><button class="mdc" onclick="closeMd('md-recv')">&#10005;</button></div>
-    <div class="mdb" id="rcv-body" style="max-height:60vh;overflow-y:auto;"></div>
-    <div style="display:flex;gap:10px;padding:10px 16px;background:var(--bg2);border-top:1px solid var(--brd);font-size:13px;">
-      <span>Commandé: <b id="rcv-tot-ordered">0</b></span>
-      <span style="margin-left:auto;">Reçu: <b id="rcv-tot-received" style="color:var(--accent);">0</b></span>
-    </div>
-    <div class="mdf">
-      <button class="btn bg" onclick="closeMd('md-recv')" style="flex:1">Annuler</button>
-      <button class="btn bp" onclick="saveReceipt()" style="flex:2">&#128190; Confirmer réception</button>
-    </div>
-  </div>
-</div>
-
-<!-- Room Charge Guest Selector Modal -->
-<div class="ov" id="md-room-charge">
-  <div class="md" style="max-width:400px;">
-    <div class="mdh"><span class="mdt">&#127974; Facturer à la chambre</span><button class="mdc" onclick="closeMd('md-room-charge')">&#10005;</button></div>
-    <div class="mdb">
-      <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Sélectionnez le client hôtel :</div>
-      <div id="room-charge-guests"></div>
-      <div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:8px;">
-        <div style="font-size:13px;font-weight:700;text-align:center;">Total: <span id="rc-total">0 FCFA</span></div>
-      </div>
-    </div>
-    <div class="mdf">
-      <button class="btn bg" onclick="closeMd('md-room-charge')" style="flex:1">Annuler</button>
-      <button class="btn bp" onclick="confirmRoomCharge()" style="flex:2" id="rc-confirm-btn">Facturer</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- Promo/Comm Modal -->
-<div class="ov" id="md-promo">
-  <div class="md">
-    <div class="mdh"><span id="promo-md-title">Nouvelle promo</span><button class="mdc" onclick="closeMd('md-promo')">&#10005;</button></div>
-    <div class="mdb" style="display:flex;flex-direction:column;gap:10px;">
-      <input type="hidden" id="promo-id">
-      <div style="display:flex;gap:8px;">
-        <select id="promo-type" class="inp" style="flex:2">
-          <option value="promo">&#127881; Promotion</option>
-          <option value="comm">&#128172; Communication</option>
-          <option value="banner">&#127988; Bandeau</option>
-        </select>
-        <input id="promo-emoji" class="inp" placeholder="&#127881;" style="flex:1;font-size:18px;text-align:center" maxlength="4">
-      </div>
-      <input id="promo-title" class="inp" placeholder="Titre (ex: -20% ce weekend !)">
-      <textarea id="promo-body" class="inp" rows="3" placeholder="Message / description (optionnel)"></textarea>
-      <div style="display:flex;gap:8px;">
-        <div style="flex:1"><label class="fl">Début</label><input id="promo-start" class="inp" type="date" style="width:100%"></div>
-        <div style="flex:1"><label class="fl">Fin</label><input id="promo-end" class="inp" type="date" style="width:100%"></div>
-      </div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer">
-        <input type="checkbox" id="promo-active" checked> Activer immédiatement
-      </label>
-    </div>
-    <div class="mdf" style="display:flex;gap:8px;">
-      <button class="btn bd bs" id="promo-del-btn" style="display:none" onclick="delPromo(document.getElementById('promo-id').value)">&#128465;</button>
-      <button class="btn bg" onclick="closeMd('md-promo')" style="flex:1">Annuler</button>
-      <button class="btn bp" onclick="savePromo()" style="flex:2">&#128190; Sauvegarder</button>
-    </div>
-  </div>
-</div>
-</body>
-</html>
+    <div class=
