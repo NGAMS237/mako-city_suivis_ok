@@ -928,9 +928,18 @@ var SVC_LBLS  = {delivery:'Livraison', room:'Room service', lounge:'Lounge', pic
 
 /* Category labels (match restaurant module IDs) */
 var CAT_NAMES = {
-  all:'Tout', entrees:'Entrées', plats:'Plats', grillades:'Grillades',
-  poissons:'Poissons', desserts:'Desserts', cocktails:'Cocktails',
-  bieres:'Bières', softs:'Softs', vins:'Vins', snacks:'Snacks'
+  all:'Tout',
+  entree:'Entrées', entrees:'Entrées',
+  plat:'Plats', plats:'Plats',
+  grillade:'Grillades', grillades:'Grillades',
+  poisson:'Poissons', poissons:'Poissons',
+  dessert:'Desserts', desserts:'Desserts',
+  cocktail:'Cocktails', cocktails:'Cocktails',
+  biere:'Bières', bieres:'Bières',
+  boisson:'Boissons', soft:'Softs', softs:'Softs',
+  eau:'Eau & Jus',
+  vin:'Vins', vins:'Vins',
+  snack:'Snacks', snacks:'Snacks'
 };
 
 /* Default images per category (Unsplash) */
@@ -950,9 +959,17 @@ var CAT_IMGS = {
 
 /* Category accent colors */
 var CAT_COLORS = {
-  entrees:'#84cc16',grillades:'#f97316',poissons:'#0ea5e9',
-  desserts:'#ec4899',cocktails:'#a855f7',bieres:'#f59e0b',
-  softs:'#06b6d4',vins:'#8b5cf6',snacks:'#ef4444',plats:'#10b981',
+  entree:'#84cc16',entrees:'#84cc16',
+  plat:'#10b981',plats:'#10b981',
+  grillade:'#f97316',grillades:'#f97316',
+  poisson:'#0ea5e9',poissons:'#0ea5e9',
+  dessert:'#ec4899',desserts:'#ec4899',
+  cocktail:'#a855f7',cocktails:'#a855f7',
+  biere:'#f59e0b',bieres:'#f59e0b',
+  boisson:'#06b6d4',soft:'#06b6d4',softs:'#06b6d4',
+  eau:'#38bdf8',
+  vin:'#8b5cf6',vins:'#8b5cf6',
+  snack:'#ef4444',snacks:'#ef4444',
   default:'#c9a84c'
 };
 
@@ -981,9 +998,14 @@ var DEL_ICONS = {
 };
 
 /* ── Supabase ── */
+var _FALLBACK = [{"id": "p19", "name": "33 Export", "category": "bieres", "price": 1000, "available": true, "station": "bar"}, {"id": "p18", "name": "Castel Beer", "category": "bieres", "price": 1000, "available": true, "station": "bar"}, {"id": "p13", "name": "Eau minérale 50cl", "category": "bieres", "price": 500, "available": true, "station": "bar"}, {"id": "p20", "name": "Grande Guinness", "category": "bieres", "price": 2000, "available": true, "station": "bar"}, {"id": "p16", "name": "Coca Cola", "category": "boisson", "price": 1000, "available": true, "station": "bar"}, {"id": "p23", "name": "Mojito", "category": "cocktail", "price": 4000, "available": true, "station": "bar"}, {"id": "p22", "name": "Punch maison", "category": "cocktail", "price": 3500, "available": true, "station": "bar"}, {"id": "p21", "name": "Cocktail Kribi", "category": "cocktails", "price": 4500, "available": true, "station": "bar"}, {"id": "p15", "name": "Jus de fruits naturel", "category": "cocktails", "price": 1500, "available": true, "station": "bar"}, {"id": "p11", "name": "Ananas frais", "category": "dessert", "price": 1500, "available": true, "station": "cuisine"}, {"id": "p12", "name": "Pastèque", "category": "dessert", "price": 1000, "available": true, "station": "cuisine"}, {"id": "p14", "name": "Eau minérale 1.5L", "category": "eau", "price": 1000, "available": true, "station": "bar"}, {"id": "p03", "name": "Crevettes grillées", "category": "entree", "price": 5500, "available": true, "station": "cuisine"}, {"id": "p01", "name": "Salade Kribi", "category": "entree", "price": 2500, "available": true, "station": "cuisine"}, {"id": "p07", "name": "Eru au water fufu", "category": "plat", "price": 5500, "available": true, "station": "cuisine"}, {"id": "p08", "name": "Homard grillé", "category": "plat", "price": 15000, "available": true, "station": "cuisine"}, {"id": "p06", "name": "Ndolé complet", "category": "plat", "price": 6000, "available": true, "station": "cuisine"}, {"id": "p10", "name": "Plantain braisé", "category": "plat", "price": 2000, "available": true, "station": "cuisine"}, {"id": "p05", "name": "Poisson braisé", "category": "plat", "price": 7500, "available": true, "station": "cuisine"}, {"id": "p09", "name": "Riz blanc + sauce", "category": "plat", "price": 3000, "available": true, "station": "cuisine"}, {"id": "p04", "name": "Poulet DG", "category": "plats", "price": 5000, "available": true, "station": "cuisine"}, {"id": "p02", "name": "Soupe de poisson", "category": "plats", "price": 3000, "available": true, "station": "cuisine"}, {"id": "p17", "name": "Cappuccino", "category": "softs", "price": 800, "available": true, "station": "bar"}, {"id": "p24", "name": "Vin rouge (verre)", "category": "vins", "price": 3000, "available": true, "station": "bar"}];
+
 function sbFetch(path){
   return fetch(SB+'/rest/v1/'+path,{
-    headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json'}
+    method:'GET',
+    mode:'cors',
+    credentials:'omit',
+    headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json','Cache-Control':'no-cache'}
   }).then(function(r){
     if(!r.ok) throw new Error('HTTP '+r.status);
     return r.json();
@@ -1012,9 +1034,15 @@ function loadMenu(){
       renderProds();
     })
     .catch(function(err){
-      console.warn('Menu load failed:',err);
-      _loadErr=true;
-      showMenuError();
+      console.warn('Menu load failed, using fallback:',err);
+      /* Fallback: use hardcoded products so app is always functional */
+      _prods = _FALLBACK.filter(function(p){ return p.available !== false; });
+      buildCats();
+      renderCats();
+      renderProds();
+      /* Small offline badge */
+      var hdr=document.getElementById('prod-count');
+      if(hdr) hdr.title='Données hors ligne';
     });
 }
 
