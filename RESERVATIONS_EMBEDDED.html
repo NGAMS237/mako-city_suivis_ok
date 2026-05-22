@@ -424,9 +424,9 @@ var ELEGANT_NAMES = {
   loft:'Loft Horizon', penthouse:'Suite Panorama'
 };
 var AM_LABELS = {
-  wifi:'Wi-Fi', clim:'Climatisation', tv:'TV', mer:'Vue mer',
-  cuisine:'Cuisine', terrasse:'Terrasse', jacuzzi:'Jacuzzi',
-  parking:'Parking', piscine:'Piscine', breakfast:'Petit-déj.'
+  wifi:'Wi-Fi', clim:'Climatisation', tv:'TV écran plat', mer:'Vue mer',
+  cuisine:'Cuisine équipée', terrasse:'Terrasse privée', jacuzzi:'Jacuzzi',
+  parking:'Parking', piscine:'Piscine', breakfast:'Petit-déjeuner'
 };
 var UNIT_DATA = {
   std:      {name:'Chambre Azur',    beds:'1 lit double',    capacity:2, sqm:28,  price:35000,  amenities:['clim','wifi','tv','mer','terrasse']},
@@ -434,7 +434,7 @@ var UNIT_DATA = {
   studio:   {name:'Studio Horizon',  beds:'1 lit + canapé',  capacity:3, sqm:38,  price:45000,  amenities:['clim','wifi','tv','cuisine','terrasse']},
   apt:      {name:'Ocean Family',    beds:'2 chambres',      capacity:5, sqm:65,  price:75000,  amenities:['clim','wifi','tv','cuisine','mer','terrasse','parking']},
   suite:    {name:'Veraluz Royale',  beds:'1 lit king size', capacity:2, sqm:55,  price:120000, amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast']},
-  villa:    {name:'Villa Riviera',   beds:'3 chambres',      capacity:6, sqm:120, price:200000, amenities:['clim','wifi','tv','cuisine','mer','terrasse','piscine','parking']},
+  villa:    {name:'Villa Riviera',   beds:'3 chambres',      capacity:6, sqm:120, price:200000, amenities:['clim','wifi','tv','cuisine','mer','terrasse','piscine','parking','breakfast']},
   loft:     {name:'Loft Horizon',    beds:'Mezzanine king',  capacity:2, sqm:50,  price:80000,  amenities:['clim','wifi','tv','cuisine','mer']},
   penthouse:{name:'Suite Panorama',  beds:'King + salon',    capacity:2, sqm:80,  price:150000, amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast']}
 };
@@ -1307,10 +1307,10 @@ function buildStep2(){
   return '<div class="form-section"><p class="section-title">Étape 2 — Choisir le logement ('+n+' nuit'+(n>1?'s':'')+')</p>'+
     avail.map(function(r){
       var total=r.price*n;
-      return '<div class="room-option'+((_nf.unit_id===r.id)?' selected':'')+'" onclick="nfSelectRoom(\''+r.id+'\','+r.price+',\''+esc(r.name||'')+'\')">'
+      return '<div class="room-option'+((_nf.unit_id===r.id)?' selected':'')+'" onclick="nfSelectRoom(\''+r.id+'\','+r.price+',\''+esc(elegantName(r)||r.name||'')+'\')">'
         +'<span class="room-option-price">'+fmtMoney(total)+'</span>'
-        +'<div class="room-option-name">'+esc(r.name||'Chambre')+'</div>'
-        +'<div class="room-option-meta">'+(r.type||'')+(r.capacity?' · '+r.capacity+' pers.':'')+'</div>'
+        +'<div class="room-option-name">'+esc(elegantName(r)||r.name||'Chambre')+'</div>'
+        +'<div class="room-option-meta">'+((UNIT_DATA[r.type]||{}).beds||r.type||'')+(r.capacity?' · '+r.capacity+' pers.':'')+'</div>'
         +'</div>';
     }).join('')+'</div>'+
     '<div class="form-nav"><button class="btn-secondary" onclick="_nf.step=1;renderNewForm()">← Retour</button>'+
