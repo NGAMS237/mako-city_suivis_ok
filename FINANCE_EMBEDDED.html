@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Finance — Veraluz</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0d0d1a;--bg2:#12121f;--bg3:#1a1a2e;--bg4:#22223a;
+  --accent:#22d3a5;--acc2:#818cf8;--warn:#f59e0b;--danger:#f43f5e;--ok:#10b981;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --border:rgba(255,255,255,.08);--bord2:rgba(255,255,255,.14);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+/* TABS */
+#tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none;}
+#tabs::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0;padding:10px 14px;font-size:11px;font-weight:600;color:var(--text3);border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);}
+/* CONTENT AREA */
+#content{flex:1;position:relative;overflow:hidden;}
+.pane{position:absolute;inset:0;display:none;overflow-y:auto;overflow-x:hidden;padding:12px;}
+.pane.on{display:block;}
+/* CARDS */
+.card{background:var(--bg3);border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid var(--border);}
+.card-row{display:flex;gap:8px;margin-bottom:10px;}
+.kpi{flex:1;background:var(--bg3);border-radius:12px;padding:12px;text-align:center;border:1px solid var(--border);}
+.kpi-v{font-size:17px;font-weight:800;color:var(--accent);line-height:1.2;}
+.kpi-l{font-size:10px;color:var(--text3);margin-top:3px;}
+.kpi.danger .kpi-v{color:var(--danger);}
+.kpi.warn .kpi-v{color:var(--warn);}
+/* ENTRIES */
+.entry{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.entry:last-child{border-bottom:none;}
+.entry-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.entry-ico.rev{background:rgba(16,185,129,.15);}
+.entry-ico.exp{background:rgba(244,63,94,.15);}
+.entry-ico.cai{background:rgba(34,211,165,.12);}
+.entry-body{flex:1;min-width:0;}
+.entry-title{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.entry-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.entry-amt{font-size:14px;font-weight:700;flex-shrink:0;}
+.amt-pos{color:var(--ok);}
+.amt-neg{color:var(--danger);}
+/* FILTERS */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.fchip{padding:5px 12px;border-radius:99px;font-size:11px;font-weight:600;background:var(--bg4);color:var(--text3);border:1px solid var(--border);cursor:pointer;}
+.fchip.on{background:var(--accent);color:#000;border-color:var(--accent);}
+/* SEARCH */
+.search{width:100%;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;margin-bottom:10px;}
+.search:focus{outline:none;border-color:var(--accent);}
+/* BUTTONS */
+.btn{padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-sec{background:var(--bg4);color:var(--text);}
+.btn-danger{background:rgba(244,63,94,.15);color:var(--danger);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.btn-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+/* SECTION HEADER */
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.sec-title{font-size:14px;font-weight:700;}
+/* BAR */
+.bar-wrap{background:var(--border);border-radius:99px;height:6px;overflow:hidden;margin:4px 0;}
+.bar-fill{height:6px;border-radius:99px;transition:width .4s;}
+/* TABLE */
+.tbl{width:100%;font-size:12px;border-collapse:collapse;margin-top:8px;}
+.tbl th{background:var(--bg4);padding:8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);}
+.tbl td{padding:8px;border-bottom:1px solid var(--border);color:var(--text);}
+.tbl tr:last-child td{border-bottom:none;}
+/* BADGE */
+.bdg{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;}
+.bdg.ok{background:rgba(16,185,129,.15);color:var(--ok);}
+.bdg.warn{background:rgba(245,158,11,.15);color:var(--warn);}
+.bdg.danger{background:rgba(244,63,94,.15);color:var(--danger);}
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;z-index:100;}
+.ov.on{display:flex;}
+.md{background:var(--bg3);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:20px;}
+@media(min-width:540px){.ov{align-items:center;}.md{border-radius:18px;margin:16px;}}
+.mdhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.mdhdr h3{font-size:15px;font-weight:700;}
+.mdc{background:var(--bg4);border:none;color:var(--text2);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px;}
+.fi{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;margin-bottom:8px;}
+.fi:focus{outline:none;border-color:var(--accent);}
+.fg{display:flex;gap:8px;}
+.fl{font-size:11px;color:var(--text3);margin-bottom:3px;display:block;}
+/* CASHFLOW CHART */
+.cf-chart{display:flex;align-items:flex-end;gap:4px;height:80px;margin:12px 0;}
+.cf-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.cf-rev{background:var(--ok);border-radius:3px 3px 0 0;min-height:4px;}
+.cf-exp{background:var(--danger);border-radius:3px 3px 0 0;min-height:4px;}
+.cf-lbl{font-size:9px;color:var(--text3);}
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--text3);}
+.empty-ico{font-size:36px;margin-bottom:8px;}
+/* TOAST */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg4);color:var(--text);padding:10px 20px;border-radius:12px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap;}
+#toast.on{opacity:1;}
+/* RAPPORTS */
+.rpt-bloc{background:var(--bg3);border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid var(--border);}
+.rpt-title{font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text2);}
+/* JOURNAL */
+.jentry{padding:10px 0;border-bottom:1px solid var(--border);display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;}
+.jentry:last-child{border-bottom:none;}
+.jdate{font-size:10px;color:var(--text3);writing-mode:horizontal-tb;}
+/* Print */
+@media print{#tabs,#toast,.btn-row,.btn-primary,.btn-sec,.btn-danger{display:none!important;}.pane.on{position:static!important;overflow:visible!important;}}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- TABS -->
+  <div id="tabs">
+    <button class="tab on" data-p="dash" onclick="goTab('dash')">&#128200; Tableau de bord</button>
+    <button class="tab" data-p="rev" onclick="goTab('rev')">&#128176; Revenus</button>
+    <button class="tab" data-p="dep" onclick="goTab('dep')">&#128184; D&#233;penses</button>
+    <button class="tab" data-p="caisse" onclick="goTab('caisse')">&#127981; Caisse</button>
+    <button class="tab" data-p="journal" onclick="goTab('journal')">&#128218; Journal</button>
+    <button class="tab" data-p="rapproch" onclick="goTab('rapproch')">&#128260; Rapprochements</button>
+    <button class="tab" data-p="rapports" onclick="goTab('rapports')">&#128202; Rapports</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div class="pane on" id="pane-dash">
+      <div class="sec-hdr">
+        <span class="sec-title">&#128200; Vue d&#39;ensemble</span>
+        <span id="dash-date" style="font-size:11px;color:var(--text3);"></span>
+        <button onclick="loadAll()" style="margin-left:8px;background:var(--acc1);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">&#8635; Actualiser</button>
+      </div>
+      <!-- KPIs -->
+      <div class="card-row">
+        <div class="kpi">
+          <div class="kpi-v" id="kpi-rev">—</div>
+          <div class="kpi-l">&#128176; Revenus mois</div>
+        </div>
+        <div class="kpi danger">
+          <div class="kpi-v" id="kpi-dep">—</div>
+          <div class="kpi-l">&#128184; D&#233;penses mois</div>
+        </div>
+      </div>
+      <div class="card-row">
+        <div class="kpi">
+          <div class="kpi-v" id="kpi-net">—</div>
+          <div class="kpi-l">&#9889; R&#233;sultat net</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-v" id="kpi-caisse">—</div>
+          <div class="kpi-l">&#127981; Solde caisse</div>
+        </div>
+      </div>
+      <!-- Cashflow chart -->
+      <div class="card">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text2);">&#128202; Cashflow — 6 derniers mois</div>
+        <div class="cf-chart" id="cf-chart"></div>
+        <div style="display:flex;gap:14px;font-size:10px;color:var(--text3);">
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:var(--ok);border-radius:2px;display:inline-block;"></span>Revenus</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:var(--danger);border-radius:2px;display:inline-block;"></span>D&#233;penses</span>
+        </div>
+      </div>
+      <!-- Breakdown dépenses par catégorie -->
+      <div class="card">
+        <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--text2);">&#127783; D&#233;penses par cat&#233;gorie</div>
+        <div id="dep-breakdown"></div>
+      </div>
+      <!-- Dernières activités -->
+      <div class="card">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text2);">&#9201; Derniers mouvements</div>
+        <div id="recent-list"></div>
+      </div>
+    </div>
+
+    <!-- ═══ REVENUS ═══ -->
+    <div class="pane" id="pane-rev">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openRevMd()">&#43; Revenu manuel</button>
+        <button class="btn btn-sec btn-sm" onclick="exportCSV('rev')">&#128229; CSV</button>
+      </div>
+      <input class="search" id="rev-search" placeholder="&#128269; Rechercher..." oninput="filterRev()">
+      <div class="filters" id="rev-filters">
+        <button class="fchip on" onclick="setRevFilter('all',this)">Tous</button>
+        <button class="fchip" onclick="setRevFilter('reservation',this)">&#128716; R&#233;servations</button>
+        <button class="fchip" onclick="setRevFilter('restaurant',this)">&#127869; Restaurant</button>
+        <button class="fchip" onclick="setRevFilter('manuel',this)">&#9998; Manuel</button>
+      </div>
+      <div id="rev-list"></div>
+    </div>
+
+    <!-- ═══ DÉPENSES ═══ -->
+    <div class="pane" id="pane-dep">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openDepMd()">&#43; D&#233;pense</button>
+        <button class="btn btn-sec btn-sm" onclick="exportCSV('dep')">&#128229; CSV</button>
+      </div>
+      <input class="search" id="dep-search" placeholder="&#128269; Rechercher..." oninput="filterDep()">
+      <div class="filters" id="dep-filters">
+        <button class="fchip on" onclick="setDepFilter('all',this)">Toutes</button>
+        <button class="fchip" onclick="setDepFilter('alimentation',this)">&#127823; Alimentation</button>
+        <button class="fchip" onclick="setDepFilter('entretien',this)">&#128295; Entretien</button>
+        <button class="fchip" onclick="setDepFilter('salaires',this)">&#128104;&#8205;&#128188; Salaires</button>
+        <button class="fchip" onclick="setDepFilter('energie',this)">&#9889; &#201;nergie</button>
+        <button class="fchip" onclick="setDepFilter('autre',this)">&#9734; Autre</button>
+      </div>
+      <div id="dep-list"></div>
+    </div>
+
+    <!-- ═══ CAISSE ═══ -->
+    <div class="pane" id="pane-caisse">
+      <div class="card-row">
+        <div class="kpi">
+          <div class="kpi-v" id="caisse-solde">—</div>
+          <div class="kpi-l">&#127981; Solde actuel</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-v" id="caisse-today-in" style="color:var(--ok)">—</div>
+          <div class="kpi-l">&#8593; Entr&#233;es jour</div>
+        </div>
+        <div class="kpi danger">
+          <div class="kpi-v" id="caisse-today-out">—</div>
+          <div class="kpi-l">&#8595; Sorties jour</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openCaisseMd('entree')">&#43; Entr&#233;e</button>
+        <button class="btn btn-danger" onclick="openCaisseMd('sortie')">&#8722; Sortie</button>
+        <button class="btn btn-sec btn-sm" onclick="openCaisseMd('ajustement')">&#177; Ajustement</button>
+        <button class="btn btn-sec btn-sm" onclick="exportCSV('caisse')">&#128229; CSV</button>
+      </div>
+      <div class="card">
+        <div class="sec-hdr"><span class="sec-title">Mouvements du jour</span></div>
+        <div id="caisse-list"></div>
+      </div>
+    </div>
+
+    <!-- ═══ JOURNAL ═══ -->
+    <div class="pane" id="pane-journal">
+      <div class="btn-row">
+        <button class="btn btn-sec btn-sm" onclick="setJPeriod('day',this)">Jour</button>
+        <button class="btn btn-primary btn-sm" onclick="setJPeriod('month',this)">Mois</button>
+        <button class="btn btn-sec btn-sm" onclick="setJPeriod('all',this)">Tout</button>
+        <button class="btn btn-sec btn-sm" onclick="exportCSV('journal')">&#128229; CSV</button>
+      </div>
+      <input class="search" id="jnl-search" placeholder="&#128269; Rechercher journal..." oninput="filterJournal()">
+      <div id="journal-list"></div>
+    </div>
+
+    <!-- ═══ RAPPROCHEMENTS ═══ -->
+    <div class="pane" id="pane-rapproch">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openRapprochMd()">&#43; Nouveau rapprochement</button>
+      </div>
+      <div id="rapproch-list"></div>
+    </div>
+
+    <!-- ═══ RAPPORTS ═══ -->
+    <div class="pane" id="pane-rapports">
+      <!-- Sélecteur période -->
+      <div class="card" style="margin-bottom:10px;">
+        <div class="fg" style="align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="flex:1;">
+            <label class="fl">P&#233;riode</label>
+            <div style="display:flex;gap:6px;">
+              <input class="fi" type="date" id="rpt-from" style="margin:0;flex:1;">
+              <input class="fi" type="date" id="rpt-to" style="margin:0;flex:1;">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="genReport()">&#128202; G&#233;n&#233;rer</button>
+        </div>
+      </div>
+      <!-- Export buttons -->
+      <div class="btn-row">
+        <button class="btn btn-sec" onclick="exportCSV('all')">&#128229; Export CSV complet</button>
+        <button class="btn btn-sec" onclick="printReport()">&#128424; Imprimer PDF</button>
+      </div>
+      <!-- Report content -->
+      <div id="rpt-content">
+        <div class="empty"><div class="empty-ico">&#128202;</div>S&#233;lectionnez une p&#233;riode et cliquez G&#233;n&#233;rer</div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Revenu manuel -->
+<div class="ov" id="md-rev">
+  <div class="md">
+    <div class="mdhdr"><h3>&#128176; Revenu manuel</h3><button class="mdc" onclick="closeMd('md-rev')">&#10005;</button></div>
+    <label class="fl">Date</label><input class="fi" type="date" id="rev-date">
+    <label class="fl">Source</label>
+    <select class="fi" id="rev-source">
+      <option value="manuel">Manuel</option>
+      <option value="reservation">R&#233;servation</option>
+      <option value="restaurant">Restaurant</option>
+      <option value="autre">Autre</option>
+    </select>
+    <label class="fl">Description</label><input class="fi" id="rev-desc" placeholder="Ex: Paiement ch. 205...">
+    <label class="fl">Montant (FCFA)</label><input class="fi" type="number" id="rev-amount" placeholder="0">
+    <label class="fl">Mode de paiement</label>
+    <select class="fi" id="rev-method">
+      <option value="cash">Esp&#232;ces</option>
+      <option value="momo">Mobile Money</option>
+      <option value="virement">Virement</option>
+      <option value="carte">Carte</option>
+    </select>
+    <label class="fl">Notes</label><textarea class="fi" id="rev-notes" rows="2" placeholder="Notes..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-sec" style="flex:1" onclick="closeMd('md-rev')">Annuler</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveRev()">&#128190; Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Dépense -->
+<div class="ov" id="md-dep">
+  <div class="md">
+    <div class="mdhdr"><h3>&#128184; Nouvelle d&#233;pense</h3><button class="mdc" onclick="closeMd('md-dep')">&#10005;</button></div>
+    <label class="fl">Date</label><input class="fi" type="date" id="dep-date">
+    <label class="fl">Cat&#233;gorie</label>
+    <select class="fi" id="dep-cat">
+      <option value="alimentation">&#127823; Alimentation / Provisions</option>
+      <option value="entretien">&#128295; Entretien / R&#233;parations</option>
+      <option value="salaires">&#128104;&#8205;&#128188; Salaires / RH</option>
+      <option value="energie">&#9889; &#201;nergie / Utilities</option>
+      <option value="marketing">&#128226; Marketing</option>
+      <option value="fournitures">&#128203; Fournitures</option>
+      <option value="transport">&#128665; Transport</option>
+      <option value="autre">&#9734; Autre</option>
+    </select>
+    <label class="fl">Description</label><input class="fi" id="dep-desc" placeholder="Ex: Achat l&#233;gumes march&#233;...">
+    <label class="fl">Montant (FCFA)</label><input class="fi" type="number" id="dep-amount" placeholder="0">
+    <label class="fl">Pay&#233; par</label><input class="fi" id="dep-paid" placeholder="Nom du responsable">
+    <label class="fl">Mode de paiement</label>
+    <select class="fi" id="dep-method">
+      <option value="cash">Esp&#232;ces</option>
+      <option value="momo">Mobile Money</option>
+      <option value="virement">Virement</option>
+      <option value="carte">Carte</option>
+    </select>
+    <label class="fl">Notes</label><textarea class="fi" id="dep-notes" rows="2" placeholder="Notes..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-sec" style="flex:1" onclick="closeMd('md-dep')">Annuler</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveDep()">&#128190; Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Caisse -->
+<div class="ov" id="md-caisse">
+  <div class="md">
+    <div class="mdhdr"><h3 id="caissemd-title">Mouvement de caisse</h3><button class="mdc" onclick="closeMd('md-caisse')">&#10005;</button></div>
+    <label class="fl">Libell&#233;</label><input class="fi" id="cai-libelle" placeholder="Description du mouvement">
+    <label class="fl">Montant (FCFA)</label><input class="fi" type="number" id="cai-montant" placeholder="0">
+    <label class="fl">Source</label>
+    <select class="fi" id="cai-source">
+      <option value="manuel">Manuel</option>
+      <option value="reservation">R&#233;servation</option>
+      <option value="restaurant">Restaurant</option>
+    </select>
+    <label class="fl">Notes</label><textarea class="fi" id="cai-notes" rows="2" placeholder="Notes..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-sec" style="flex:1" onclick="closeMd('md-caisse')">Annuler</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveCaisse()">&#128190; Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rapprochement -->
+<div class="ov" id="md-rapproch">
+  <div class="md">
+    <div class="mdhdr"><h3>&#128260; Rapprochement bancaire</h3><button class="mdc" onclick="closeMd('md-rapproch')">&#10005;</button></div>
+    <label class="fl">Date</label><input class="fi" type="date" id="rp-date">
+    <label class="fl">Banque</label><input class="fi" id="rp-banque" placeholder="Ex: BGFI Kribi" value="BGFI Kribi">
+    <label class="fl">Solde bancaire (FCFA)</label><input class="fi" type="number" id="rp-banque-sol" placeholder="0">
+    <label class="fl">Solde comptable (FCFA)</label><input class="fi" type="number" id="rp-compta-sol" placeholder="0">
+    <label class="fl">Notes</label><textarea class="fi" id="rp-notes" rows="2" placeholder="Notes, &#233;carts constat&#233;s..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-sec" style="flex:1" onclick="closeMd('md-rapproch')">Annuler</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveRapproch()">&#128190; Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+var SB='https://dfdmasejsoibxrvubegu.supabase.co';
+var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+function H(x){return Object.assign({apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},x||{});}
+function GET(p){return fetch(SB+p,{headers:H({Accept:'application/json'})}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
+function POST(t,d){return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:H({Prefer:'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
+function PATCH(t,id,d){return fetch(SB+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:H({Prefer:'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
+function DEL(t,id){return fetch(SB+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:H()}).then(function(r){if(!r.ok)throw r.status;});}
+
+/* Helpers */
+function gid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c=='x'?r:(r&0x3|0x8)).toString(16);});}
+function fmt(n){return Number(n||0).toLocaleString('fr-FR')+' FCFA';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fdate(d){if(!d)return'';var dt=new Date(d);return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'2-digit'});}
+function fdt(iso){if(!iso)return'';var d=new Date(iso);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+var _tt=null;
+function toast(msg,t){var el=document.getElementById('toast');el.textContent=msg;el.className='on '+(t||'');if(_tt)clearTimeout(_tt);_tt=setTimeout(function(){el.className='';},3000);}
+function openMd(id){document.getElementById(id).classList.add('on');}
+function closeMd(id){document.getElementById(id).classList.remove('on');}
+
+/* State */
+var EXPENSES=[],PAYMENTS=[],REST_ORDERS=[],CAISSE=[],RAPPROCHEMENTS=[],SUPPLIER_ORDERS=[];
+var revFilter='all',depFilter='all',jPeriod='month';
+var curTab='dash';
+
+/* ═══════════════════════════════════
+   NAV
+═══════════════════════════════════ */
+function goTab(t){
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+  var btn=document.querySelector('[data-p="'+t+'"]');if(btn)btn.classList.add('on');
+  document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('on');});
+  var pane=document.getElementById('pane-'+t);if(pane)pane.classList.add('on');
+  if(t==='dash')renderDash();
+  if(t==='rev')renderRev();
+  if(t==='dep')renderDep();
+  if(t==='caisse')renderCaisse();
+  if(t==='journal')renderJournal();
+  if(t==='rapproch')renderRapprochements();
+  if(t==='rapports'){initRptDates();}
+}
+
+/* ═══════════════════════════════════
+   LOAD
+═══════════════════════════════════ */
+function loadAll(){
+  var today=new Date().toISOString().slice(0,10);
+  var monthStart=new Date(new Date().getFullYear(),new Date().getMonth(),1).toISOString().slice(0,10);
+  document.getElementById('dash-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  Promise.all([
+    GET('/rest/v1/veraluz_expenses?select=*&order=date.desc&limit=200'),
+    GET('/rest/v1/veraluz_payments?select=*&order=created_at.desc&limit=200'),
+    GET('/rest/v1/veraluz_restaurant_orders?select=*&status=eq.paye&order=created_at.desc&limit=200'),
+    GET('/rest/v1/veraluz_caisse?select=*&order=created_at.desc&limit=200'),
+    GET('/rest/v1/veraluz_rapprochements?select=*&order=date.desc&limit=50'),
+    GET('/rest/v1/veraluz_restaurant_supplier_orders?select=*&status=in.(envoye,recu)&order=created_at.desc&limit=200'),
+  ]).then(function(r){
+    EXPENSES=r[0]||[];PAYMENTS=r[1]||[];REST_ORDERS=r[2]||[];CAISSE=r[3]||[];RAPPROCHEMENTS=r[4]||[];SUPPLIER_ORDERS=r[5]||[];
+    renderDash();renderRev();renderDep();renderCaisse();renderJournal();renderRapprochements();
+  }).catch(function(e){toast('Erreur chargement: '+e,'err');});
+}
+
+/* ═══════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════ */
+function getMonthRev(){
+  var m=new Date().toISOString().slice(0,7);
+  var fromPay=PAYMENTS.filter(function(p){return p.status==='validated'&&(p.created_at||'').slice(0,7)===m;}).reduce(function(s,p){return s+(p.amount||0);},0);
+  var fromRest=REST_ORDERS.filter(function(o){return(o.paid_at||o.created_at||'').slice(0,7)===m;}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
+  var fromCai=CAISSE.filter(function(c){return c.type==='entree'&&(c.created_at||'').slice(0,7)===m;}).reduce(function(s,c){return s+(c.montant||0);},0);
+  return fromPay+fromRest+fromCai;
+}
+function getMonthDep(){
+  var m=new Date().toISOString().slice(0,7);
+  var fromExp=EXPENSES.filter(function(e){return(e.date||'').slice(0,7)===m;}).reduce(function(s,e){return s+(e.amount||0);},0);
+  /* Bons de commande fournisseurs restaurant reçus = sorties réelles */
+  var fromSO=SUPPLIER_ORDERS.filter(function(o){return o.status==='recu'&&(o.received_at||o.created_at||'').slice(0,7)===m;}).reduce(function(s,o){return s+(o.total_amount||0);},0);
+  return fromExp+fromSO;
+}
+function getCaisseSolde(){
+  if(!CAISSE.length)return 0;
+  var last=CAISSE[0];return last.solde_apres||0;
+}
+function renderDash(){
+  var rev=getMonthRev(),dep=getMonthDep(),net=rev-dep,cai=getCaisseSolde();
+  document.getElementById('kpi-rev').textContent=fmt(rev);
+  document.getElementById('kpi-dep').textContent=fmt(dep);
+  var netEl=document.getElementById('kpi-net');
+  netEl.textContent=fmt(net);netEl.style.color=net>=0?'var(--ok)':'var(--danger)';
+  document.getElementById('kpi-caisse').textContent=fmt(cai);
+  renderCashflowChart();
+  renderDepBreakdown();
+  renderRecent();
+}
+function renderCashflowChart(){
+  var el=document.getElementById('cf-chart');
+  var months=[];
+  for(var i=5;i>=0;i--){
+    var d=new Date();d.setMonth(d.getMonth()-i);
+    months.push(d.toISOString().slice(0,7));
+  }
+  var maxVal=1;
+  var data=months.map(function(m){
+    var rev=PAYMENTS.filter(function(p){return p.status==='validated'&&(p.created_at||'').slice(0,7)===m;}).reduce(function(s,p){return s+(p.amount||0);},0)
+      +REST_ORDERS.filter(function(o){return(o.paid_at||o.created_at||'').slice(0,7)===m;}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0)
+      +CAISSE.filter(function(c){return c.type==='entree'&&(c.created_at||'').slice(0,7)===m;}).reduce(function(s,c){return s+(c.montant||0);},0);
+    var dep=EXPENSES.filter(function(e){return(e.date||'').slice(0,7)===m;}).reduce(function(s,e){return s+(e.amount||0);},0)
+      +SUPPLIER_ORDERS.filter(function(o){return o.status==='recu'&&(o.received_at||o.created_at||'').slice(0,7)===m;}).reduce(function(s,o){return s+(o.total_amount||0);},0);
+    if(rev>maxVal)maxVal=rev;if(dep>maxVal)maxVal=dep;
+    var lbl=new Date(m+'-01').toLocaleDateString('fr-FR',{month:'short'});
+    return{m:m,rev:rev,dep:dep,lbl:lbl};
+  });
+  el.innerHTML=data.map(function(d){
+    var rh=Math.round((d.rev/maxVal)*70);var dh=Math.round((d.dep/maxVal)*70);
+    return '<div class="cf-bar">'
+      +'<div class="cf-rev" style="height:'+rh+'px;width:100%;"></div>'
+      +'<div class="cf-exp" style="height:'+dh+'px;width:100%;margin-top:2px;"></div>'
+      +'<div class="cf-lbl">'+d.lbl+'</div>'
+      +'</div>';
+  }).join('');
+}
+function renderDepBreakdown(){
+  var el=document.getElementById('dep-breakdown');
+  var cats={};var total=0;
+  allDepenses().forEach(function(e){cats[e.category]=(cats[e.category]||0)+(e.amount||0);total+=(e.amount||0);});
+  if(!total){el.innerHTML='<div style="color:var(--text3);font-size:12px;">Aucune d&#233;pense enregistr&#233;e</div>';return;}
+  var catIco={alimentation:'&#127823;',entretien:'&#128295;',salaires:'&#128104;&#8205;&#128188;',energie:'&#9889;',marketing:'&#128226;',fournitures:'&#128203;',transport:'&#128665;',autre:'&#9734;'};
+  var sorted=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];});
+  el.innerHTML=sorted.map(function(c){
+    var pct=Math.round((cats[c]/total)*100);
+    return '<div style="margin-bottom:8px;">'
+      +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">'
+      +'<span>'+(catIco[c]||'&#9734;')+' '+esc(c)+'</span>'
+      +'<span style="font-weight:700;">'+fmt(cats[c])+' ('+pct+'%)</span></div>'
+      +'<div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%;background:var(--danger);"></div></div>'
+      +'</div>';
+  }).join('');
+}
+function renderRecent(){
+  var el=document.getElementById('recent-list');
+  var all=buildJournal().slice(0,8);
+  if(!all.length){el.innerHTML='<div class="empty" style="padding:16px;"><div class="empty-ico">&#128203;</div>Aucun mouvement</div>';return;}
+  el.innerHTML=all.map(function(j){
+    var isPos=j.type==='revenu'||j.type==='caisse_in';
+    return '<div class="entry">'
+      +'<div class="entry-ico '+(isPos?'rev':'exp')+'">'+(isPos?'&#128176;':'&#128184;')+'</div>'
+      +'<div class="entry-body">'
+      +'<div class="entry-title">'+esc(j.desc)+'</div>'
+      +'<div class="entry-sub">'+fdt(j.date)+' &middot; '+esc(j.src)+'</div>'
+      +'</div>'
+      +'<div class="entry-amt '+(isPos?'amt-pos':'amt-neg')+'">'+(isPos?'+':'-')+fmt(j.amount)+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+/* ═══════════════════════════════════
+   REVENUS
+═══════════════════════════════════ */
+function allRevenus(){
+  var res=[];
+  PAYMENTS.filter(function(p){return p.status==='validated';}).forEach(function(p){
+    res.push({id:p.id,date:p.created_at,desc:'R&#233;servation #'+(p.reservation_id||'').slice(-6),amount:p.amount,method:p.method,src:'reservation'});
+  });
+  REST_ORDERS.forEach(function(o){
+    res.push({id:o.id,date:o.paid_at||o.created_at,desc:'Vente restaurant #'+(o.id||'').slice(-6),amount:o.total||o.total_amount||0,method:o.payment_method||'cash',src:'restaurant'});
+  });
+  CAISSE.filter(function(c){return c.type==='entree';}).forEach(function(c){
+    res.push({id:c.id,date:c.created_at,desc:c.libelle||'Entr&#233;e de caisse',amount:c.montant,method:'cash',src:c.source||'manuel'});
+  });
+  return res.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+}
+function setRevFilter(f,btn){
+  revFilter=f;
+  document.querySelectorAll('#rev-filters .fchip').forEach(function(b){b.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  renderRev();
+}
+function filterRev(){renderRev();}
+function renderRev(){
+  var el=document.getElementById('rev-list');
+  var q=(document.getElementById('rev-search').value||'').toLowerCase();
+  var list=allRevenus().filter(function(r){
+    if(revFilter!=='all'&&r.src!==revFilter)return false;
+    if(q&&!r.desc.toLowerCase().includes(q)&&!(r.src||'').includes(q))return false;
+    return true;
+  });
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128176;</div>Aucun revenu trouv&#233;</div>';return;}
+  var total=list.reduce(function(s,r){return s+(r.amount||0);},0);
+  var methIco={cash:'&#128181;',momo:'&#128242;',virement:'&#128717;',carte:'&#128179;'};
+  var srcBadge={reservation:'&#128716; R&#233;sa',restaurant:'&#127869; Resto',manuel:'&#9998; Manuel',autre:'&#9734; Autre'};
+  el.innerHTML='<div style="text-align:right;font-size:13px;font-weight:700;color:var(--ok);padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:8px;">Total: '+fmt(total)+'</div>'
+    +list.map(function(r){
+      return '<div class="entry">'
+        +'<div class="entry-ico rev">&#128176;</div>'
+        +'<div class="entry-body">'
+        +'<div class="entry-title">'+r.desc+'</div>'
+        +'<div class="entry-sub">'+fdt(r.date)+' &middot; '+(methIco[r.method]||'&#128717;')+' '+(r.method||'?')+' &middot; <span style="color:var(--acc2);">'+(srcBadge[r.src]||r.src)+'</span></div>'
+        +'</div>'
+        +'<div class="entry-amt amt-pos">+'+fmt(r.amount)+'</div>'
+        +'</div>';
+    }).join('');
+}
+function openRevMd(){
+  document.getElementById('rev-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('rev-amount').value='';
+  document.getElementById('rev-desc').value='';
+  document.getElementById('rev-notes').value='';
+  openMd('md-rev');
+}
+function saveRev(){
+  var amt=parseInt(document.getElementById('rev-amount').value)||0;
+  if(!amt){toast('Montant requis','err');return;}
+  var libelle=document.getElementById('rev-desc').value.trim()||'Revenu manuel';
+  var sol=getCaisseSolde();
+  var meth=document.getElementById('rev-method').value;
+  /* Enregistrer dans caisse si paiement espèces */
+  var caiData={id:gid(),date:document.getElementById('rev-date').value,type:'entree',
+    montant:amt,solde_avant:sol,solde_apres:sol+amt,libelle:libelle,
+    source:document.getElementById('rev-source').value};
+  POST('veraluz_caisse',caiData).then(function(r){
+    CAISSE.unshift(r[0]||caiData);
+    closeMd('md-rev');renderDash();renderRev();renderCaisse();renderJournal();
+    toast('Revenu enregistr&#233; &#9989;','ok');
+  }).catch(function(e){toast('Erreur: '+e,'err');});
+}
+
+/* ═══════════════════════════════════
+   DÉPENSES
+═══════════════════════════════════ */
+function setDepFilter(f,btn){
+  depFilter=f;
+  document.querySelectorAll('#dep-filters .fchip').forEach(function(b){b.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  renderDep();
+}
+function filterDep(){renderDep();}
+function allDepenses(){
+  var res=[];
+  EXPENSES.forEach(function(e){
+    res.push({id:e.id,date:e.date+'T12:00:00Z',desc:e.description||e.category,amount:e.amount,
+      category:e.category,method:e.payment_method,src:'manuel'});
+  });
+  SUPPLIER_ORDERS.filter(function(o){return o.status==='recu';}).forEach(function(o){
+    res.push({id:o.id,date:o.received_at||o.created_at,
+      desc:'Achat fournisseur: '+(o.supplier_name||'Fournisseur'),
+      amount:o.total_amount||0,category:'fournitures',method:'fournisseur',src:'restaurant'});
+  });
+  return res.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+}
+function renderDep(){
+  var el=document.getElementById('dep-list');
+  var q=(document.getElementById('dep-search').value||'').toLowerCase();
+  var catIco={alimentation:'&#127823;',entretien:'&#128295;',salaires:'&#128104;&#8205;&#128188;',energie:'&#9889;',marketing:'&#128226;',fournitures:'&#128203;',transport:'&#128665;',autre:'&#9734;'};
+  var srcBadge={manuel:'',restaurant:'&#127869; ',reservation:'&#128716; '};
+  var list=allDepenses().filter(function(e){
+    if(depFilter!=='all'&&e.category!==depFilter)return false;
+    if(q&&!(e.desc||'').toLowerCase().includes(q)&&!(e.category||'').includes(q))return false;
+    return true;
+  });
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128184;</div>Aucune d&#233;pense trouv&#233;e</div>';return;}
+  var total=list.reduce(function(s,e){return s+(e.amount||0);},0);
+  el.innerHTML='<div style="text-align:right;font-size:13px;font-weight:700;color:var(--danger);padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:8px;">Total: '+fmt(total)+'</div>'
+    +list.map(function(e){
+      return '<div class="entry">'
+        +'<div class="entry-ico exp">'+(catIco[e.category]||'&#128184;')+'</div>'
+        +'<div class="entry-body">'
+        +'<div class="entry-title">'+(srcBadge[e.src]||'')+esc(e.desc||e.category)+'</div>'
+        +'<div class="entry-sub">'+fdate(e.date.slice(0,10))+' &middot; '+esc(e.category)+(e.method&&e.method!=='fournisseur'?' &middot; '+esc(e.method):'')+'</div>'
+        +'</div>'
+        +'<div class="entry-amt amt-neg">-'+fmt(e.amount)+'</div>'
+        +'</div>';
+    }).join('');
+}
+function openDepMd(){
+  document.getElementById('dep-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('dep-amount').value='';
+  document.getElementById('dep-desc').value='';
+  document.getElementById('dep-paid').value='';
+  document.getElementById('dep-notes').value='';
+  openMd('md-dep');
+}
+function saveDep(){
+  var amt=parseInt(document.getElementById('dep-amount').value)||0;
+  if(!amt){toast('Montant requis','err');return;}
+  var data={id:gid(),date:document.getElementById('dep-date').value,
+    category:document.getElementById('dep-cat').value,
+    description:document.getElementById('dep-desc').value.trim(),
+    amount:amt,paid_by:document.getElementById('dep-paid').value.trim()||null,
+    payment_method:document.getElementById('dep-method').value,
+    notes:document.getElementById('dep-notes').value.trim()||null};
+  POST('veraluz_expenses',data).then(function(r){
+    EXPENSES.unshift(r[0]||data);
+    /* Si espèces: mouvement caisse sortie */
+    if(data.payment_method==='cash'){
+      var sol=getCaisseSolde();
+      var cai={id:gid(),date:data.date,type:'sortie',montant:amt,solde_avant:sol,solde_apres:Math.max(0,sol-amt),libelle:data.description||data.category,source:'manuel'};
+      POST('veraluz_caisse',cai).then(function(rc){CAISSE.unshift(rc[0]||cai);renderCaisse();}).catch(function(){});
+    }
+    closeMd('md-dep');renderDash();renderDep();renderJournal();
+    toast('D&#233;pense enregistr&#233;e &#9989;','ok');
+  }).catch(function(e){toast('Erreur: '+e,'err');});
+}
+
+/* ═══════════════════════════════════
+   CAISSE
+═══════════════════════════════════ */
+var caisseType='entree';
+function openCaisseMd(type){
+  caisseType=type;
+  var titles={entree:'&#43; Entr&#233;e de caisse',sortie:'&#8722; Sortie de caisse',ajustement:'&#177; Ajustement de caisse',ouverture:'&#127981; Ouverture caisse',cloture:'&#127981; Cl&#244;ture caisse'};
+  document.getElementById('caissemd-title').innerHTML=titles[type]||'Mouvement caisse';
+  document.getElementById('cai-libelle').value='';
+  document.getElementById('cai-montant').value='';
+  document.getElementById('cai-notes').value='';
+  openMd('md-caisse');
+}
+function saveCaisse(){
+  var amt=parseInt(document.getElementById('cai-montant').value)||0;
+  if(!amt){toast('Montant requis','err');return;}
+  var lib=document.getElementById('cai-libelle').value.trim()||caisseType;
+  var sol=getCaisseSolde();
+  var apres=caisseType==='sortie'?Math.max(0,sol-amt):(caisseType==='ajustement'?amt:sol+amt);
+  var data={id:gid(),date:new Date().toISOString().slice(0,10),type:caisseType,
+    montant:amt,solde_avant:sol,solde_apres:apres,libelle:lib,
+    source:document.getElementById('cai-source').value};
+  POST('veraluz_caisse',data).then(function(r){
+    CAISSE.unshift(r[0]||data);
+    closeMd('md-caisse');renderCaisse();renderDash();renderJournal();
+    toast('Mouvement enregistr&#233; &#9989;','ok');
+  }).catch(function(e){toast('Erreur: '+e,'err');});
+}
+function renderCaisse(){
+  var today=new Date().toISOString().slice(0,10);
+  var solde=getCaisseSolde();
+  var todayIn=CAISSE.filter(function(c){return c.type==='entree'&&(c.created_at||'').slice(0,10)===today;}).reduce(function(s,c){return s+(c.montant||0);},0);
+  var todayOut=CAISSE.filter(function(c){return c.type==='sortie'&&(c.created_at||'').slice(0,10)===today;}).reduce(function(s,c){return s+(c.montant||0);},0);
+  document.getElementById('caisse-solde').textContent=fmt(solde);
+  document.getElementById('caisse-today-in').textContent='+'+fmt(todayIn);
+  document.getElementById('caisse-today-out').textContent='-'+fmt(todayOut);
+  var el=document.getElementById('caisse-list');
+  var todayMvts=CAISSE.filter(function(c){return(c.created_at||c.date||'').slice(0,10)===today;});
+  if(!todayMvts.length){el.innerHTML='<div class="empty" style="padding:16px;"><div class="empty-ico">&#127981;</div>Aucun mouvement aujourd\'hui</div>';return;}
+  var typeIco={entree:'&#8593;',sortie:'&#8595;',ouverture:'&#9654;',cloture:'&#9646;',ajustement:'&#177;'};
+  var typeCls={entree:'amt-pos',sortie:'amt-neg',ouverture:'',cloture:'',ajustement:'warn'};
+  el.innerHTML=todayMvts.map(function(c){
+    var isIn=c.type==='entree'||c.type==='ouverture';
+    return '<div class="entry">'
+      +'<div class="entry-ico '+(isIn?'rev':'exp')+'" style="font-size:18px;font-weight:700;">'+(typeIco[c.type]||'&#128181;')+'</div>'
+      +'<div class="entry-body">'
+      +'<div class="entry-title">'+esc(c.libelle||c.type)+'</div>'
+      +'<div class="entry-sub">Sol. apr&#232;s: '+fmt(c.solde_apres)+' &middot; '+esc(c.source||'manuel')+'</div>'
+      +'</div>'
+      +'<div class="entry-amt '+(typeCls[c.type]||'')+'">'+(isIn?'+':'-')+fmt(c.montant)+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+/* ═══════════════════════════════════
+   JOURNAL
+═══════════════════════════════════ */
+function buildJournal(){
+  var all=[];
+  PAYMENTS.filter(function(p){return p.status==='validated';}).forEach(function(p){
+    all.push({date:p.created_at,type:'revenu',desc:'Paiement r&#233;servation #'+(p.reservation_id||'?').slice(-6),amount:p.amount,src:'R&#233;servation',method:p.method});
+  });
+  REST_ORDERS.forEach(function(o){
+    all.push({date:o.paid_at||o.created_at,type:'revenu',desc:'Vente restaurant #'+(o.id||'').slice(-6),amount:o.total||o.total_amount||0,src:'Restaurant',method:o.payment_method||'cash'});
+  });
+  EXPENSES.forEach(function(e){
+    all.push({date:e.date+'T12:00:00Z',type:'depense',desc:e.description||e.category,amount:e.amount,src:'D&#233;pense '+esc(e.category),method:e.payment_method});
+  });
+  CAISSE.forEach(function(c){
+    all.push({date:c.created_at,type:c.type==='entree'?'caisse_in':'caisse_out',desc:c.libelle||c.type,amount:c.montant,src:'Caisse',method:'cash'});
+  });
+  /* Bons de commande fournisseurs reçus = dépenses réelles */
+  SUPPLIER_ORDERS.filter(function(o){return o.status==='recu';}).forEach(function(o){
+    all.push({date:o.received_at||o.created_at,type:'depense',
+      desc:'Achat fournisseur '+(o.supplier_name||'')+(o.id?' #'+o.id.slice(-6):''),
+      amount:o.total_amount||0,src:'Fournisseur Restaurant',method:'fournisseur'});
+  });
+  return all.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+}
+function setJPeriod(p,btn){
+  jPeriod=p;
+  document.querySelectorAll('#pane-journal .btn').forEach(function(b){b.className='btn btn-sec btn-sm';});
+  if(btn)btn.className='btn btn-primary btn-sm';
+  renderJournal();
+}
+function filterJournal(){renderJournal();}
+function renderJournal(){
+  var el=document.getElementById('journal-list');
+  var q=(document.getElementById('jnl-search').value||'').toLowerCase();
+  var now=new Date();var today=now.toISOString().slice(0,10);
+  var mStart=new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10);
+  var all=buildJournal().filter(function(j){
+    var d=(j.date||'').slice(0,10);
+    if(jPeriod==='day'&&d!==today)return false;
+    if(jPeriod==='month'&&d<mStart)return false;
+    if(q&&!j.desc.toLowerCase().includes(q)&&!j.src.toLowerCase().includes(q))return false;
+    return true;
+  });
+  if(!all.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128218;</div>Aucune &#233;criture</div>';return;}
+  var totRev=all.filter(function(j){return j.type==='revenu'||j.type==='caisse_in';}).reduce(function(s,j){return s+(j.amount||0);},0);
+  var totDep=all.filter(function(j){return j.type==='depense'||j.type==='caisse_out';}).reduce(function(s,j){return s+(j.amount||0);},0);
+  var methIco={cash:'&#128181;',momo:'&#128242;',virement:'&#128717;',carte:'&#128179;'};
+  el.innerHTML='<div style="display:flex;justify-content:space-between;padding:8px 0;margin-bottom:8px;border-bottom:2px solid var(--border);font-size:12px;">'
+    +'<span>Revenus: <b style="color:var(--ok)">+'+fmt(totRev)+'</b></span>'
+    +'<span>D&#233;penses: <b style="color:var(--danger)">-'+fmt(totDep)+'</b></span>'
+    +'<span>Net: <b style="color:'+(totRev-totDep>=0?'var(--ok)':'var(--danger)')+'">'+fmt(totRev-totDep)+'</b></span>'
+    +'</div>'
+    +all.map(function(j){
+      var isPos=j.type==='revenu'||j.type==='caisse_in';
+      return '<div class="jentry">'
+        +'<div style="font-size:10px;color:var(--text3);text-align:center;min-width:32px;">'+fdate(j.date).replace(/ /g,'<br>')+'</div>'
+        +'<div><div style="font-size:12px;font-weight:600;">'+j.desc+'</div><div style="font-size:10px;color:var(--text3);">'+j.src+'</div></div>'
+        +'<div style="font-size:10px;color:var(--text3);">'+(methIco[j.method]||'')+'</div>'
+        +'<div style="font-size:13px;font-weight:700;'+(isPos?'color:var(--ok)':'color:var(--danger)')+'">'+(isPos?'+':'-')+fmt(j.amount)+'</div>'
+        +'</div>';
+    }).join('');
+}
+
+/* ═══════════════════════════════════
+   RAPPROCHEMENTS
+═══════════════════════════════════ */
+function openRapprochMd(){
+  document.getElementById('rp-date').value=new Date().toISOString().slice(0,10);
+  var sol=getCaisseSolde();
+  document.getElementById('rp-compta-sol').value=sol;
+  document.getElementById('rp-banque-sol').value='';
+  document.getElementById('rp-notes').value='';
+  openMd('md-rapproch');
+}
+function saveRapproch(){
+  var sol_b=parseInt(document.getElementById('rp-banque-sol').value)||0;
+  var sol_c=parseInt(document.getElementById('rp-compta-sol').value)||0;
+  var ecart=sol_b-sol_c;
+  var statut=ecart===0?'reconcilie':'ecart';
+  var data={id:gid(),date:document.getElementById('rp-date').value,
+    banque:document.getElementById('rp-banque').value.trim()||'BGFI Kribi',
+    solde_banque:sol_b,solde_comptable:sol_c,statut:statut,
+    notes:document.getElementById('rp-notes').value.trim()||null};
+  POST('veraluz_rapprochements',data).then(function(r){
+    RAPPROCHEMENTS.unshift(r[0]||data);
+    closeMd('md-rapproch');renderRapprochements();
+    toast(statut==='reconcilie'?'Rapprochement &#10004; OK':'&#9888; &#201;cart de '+fmt(Math.abs(ecart)),'ok');
+  }).catch(function(e){toast('Erreur: '+e,'err');});
+}
+function renderRapprochements(){
+  var el=document.getElementById('rapproch-list');
+  if(!RAPPROCHEMENTS.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">&#128260;</div>Aucun rapprochement<br><small style="color:var(--text3)">Cliquez pour cr&#233;er le premier</small></div>';return;
+  }
+  el.innerHTML=RAPPROCHEMENTS.map(function(r){
+    var ecart=(r.solde_banque||0)-(r.solde_comptable||0);
+    var cls=r.statut==='reconcilie'?'ok':Math.abs(ecart)>10000?'danger':'warn';
+    return '<div class="card">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+      +'<div><div style="font-weight:700;font-size:13px;">'+esc(r.banque||'BGFI Kribi')+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+fdate(r.date)+'</div></div>'
+      +'<span class="bdg '+cls+'">'+esc(r.statut==='reconcilie'?'&#10004; Soldes &#233;gaux':r.statut==='ecart'?'&#9888; &#201;cart':'En cours')+'</span>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;">'
+      +'<div><div style="color:var(--text3);">Solde banque</div><div style="font-weight:700;">'+fmt(r.solde_banque)+'</div></div>'
+      +'<div><div style="color:var(--text3);">Solde compta</div><div style="font-weight:700;">'+fmt(r.solde_comptable)+'</div></div>'
+      +'<div><div style="color:var(--text3);">&#201;cart</div><div style="font-weight:700;color:'+(ecart===0?'var(--ok)':'var(--danger)')+'">'+fmt(ecart)+'</div></div>'
+      +'</div>'
+      +(r.notes?'<div style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic;">'+esc(r.notes)+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+/* ═══════════════════════════════════
+   RAPPORTS
+═══════════════════════════════════ */
+function initRptDates(){
+  var now=new Date();
+  document.getElementById('rpt-from').value=new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10);
+  document.getElementById('rpt-to').value=now.toISOString().slice(0,10);
+}
+function genReport(){
+  var from=document.getElementById('rpt-from').value;
+  var to=document.getElementById('rpt-to').value;
+  if(!from||!to){toast('S&#233;lectionnez une p&#233;riode','err');return;}
+  var rev=allRevenus().filter(function(r){var d=(r.date||'').slice(0,10);return d>=from&&d<=to;});
+  var dep=EXPENSES.filter(function(e){return e.date>=from&&e.date<=to;});
+  var totRev=rev.reduce(function(s,r){return s+(r.amount||0);},0);
+  var totDep=dep.reduce(function(s,e){return s+(e.amount||0);},0);
+  var net=totRev-totDep;
+  var fromFmt=new Date(from).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+  var toFmt=new Date(to).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+  /* Breakdown par source */
+  var revBySrc={};rev.forEach(function(r){revBySrc[r.src]=(revBySrc[r.src]||0)+(r.amount||0);});
+  var depByCat={};dep.forEach(function(e){depByCat[e.category]=(depByCat[e.category]||0)+(e.amount||0);});
+  var catIco={alimentation:'&#127823;',entretien:'&#128295;',salaires:'&#128104;&#8205;&#128188;',energie:'&#9889;',marketing:'&#128226;',fournitures:'&#128203;',transport:'&#128665;',autre:'&#9734;'};
+  document.getElementById('rpt-content').innerHTML=
+    '<div class="rpt-bloc">'
+    +'<div class="rpt-title">&#128200; Rapport du '+fromFmt+' au '+toFmt+'</div>'
+    +'<div class="card-row">'
+    +'<div class="kpi"><div class="kpi-v" style="color:var(--ok)">'+fmt(totRev)+'</div><div class="kpi-l">Revenus</div></div>'
+    +'<div class="kpi danger"><div class="kpi-v">'+fmt(totDep)+'</div><div class="kpi-l">D&#233;penses</div></div>'
+    +'<div class="kpi"><div class="kpi-v" style="color:'+(net>=0?'var(--ok)':'var(--danger)')+'">'+fmt(net)+'</div><div class="kpi-l">R&#233;sultat</div></div>'
+    +'</div></div>'
+    +'<div class="rpt-bloc">'
+    +'<div class="rpt-title">&#128176; Revenus par source</div>'
+    +Object.keys(revBySrc).map(function(s){
+      var pct=totRev?Math.round((revBySrc[s]/totRev)*100):0;
+      return '<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>'+esc(s)+'</span><span style="font-weight:700;">'+fmt(revBySrc[s])+' ('+pct+'%)</span></div>'
+        +'<div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%;background:var(--ok);"></div></div></div>';
+    }).join('')+'</div>'
+    +'<div class="rpt-bloc">'
+    +'<div class="rpt-title">&#128184; D&#233;penses par cat&#233;gorie</div>'
+    +Object.keys(depByCat).sort(function(a,b){return depByCat[b]-depByCat[a];}).map(function(c){
+      var pct=totDep?Math.round((depByCat[c]/totDep)*100):0;
+      return '<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>'+(catIco[c]||'&#9734;')+' '+esc(c)+'</span><span style="font-weight:700;">'+fmt(depByCat[c])+' ('+pct+'%)</span></div>'
+        +'<div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%;background:var(--danger);"></div></div></div>';
+    }).join('')+'</div>';
+}
+
+/* ═══════════════════════════════════
+   EXPORT CSV
+═══════════════════════════════════ */
+function exportCSV(type){
+  var rows=[],filename='export.csv';
+  if(type==='rev'||type==='all'){
+    rows.push(['Type','Date','Description','Montant','Source','Mode']);
+    allRevenus().forEach(function(r){rows.push(['REVENU',r.date,r.desc,r.amount,r.src,r.method]);});
+    filename='revenus_'+new Date().toISOString().slice(0,10)+'.csv';
+  }
+  if(type==='dep'||type==='all'){
+    if(type==='all')rows.push([]);
+    rows.push(['Type','Date','Cat&#233;gorie','Description','Montant','Pay&#233; par','Mode']);
+    EXPENSES.forEach(function(e){rows.push(['DEPENSE',e.date,e.category,e.description,e.amount,e.paid_by,e.payment_method]);});
+    if(type==='dep')filename='depenses_'+new Date().toISOString().slice(0,10)+'.csv';
+  }
+  if(type==='caisse'){
+    rows.push(['Date','Type','Libell&#233;','Montant','Solde avant','Solde apr&#232;s','Source']);
+    CAISSE.forEach(function(c){rows.push([(c.created_at||'').slice(0,10),c.type,c.libelle,c.montant,c.solde_avant,c.solde_apres,c.source]);});
+    filename='caisse_'+new Date().toISOString().slice(0,10)+'.csv';
+  }
+  if(type==='journal'){
+    rows.push(['Date','Type','Description','Montant','Source','Mode']);
+    buildJournal().forEach(function(j){rows.push([j.date,j.type,j.desc,j.amount,j.src,j.method]);});
+    filename='journal_'+new Date().toISOString().slice(0,10)+'.csv';
+  }
+  if(!rows.length){toast('Aucune donn&#233;e &#224; exporter','err');return;}
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+(c||'').toString().replace(/"/g,'\"')+'"';}).join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=filename;a.click();
+  URL.revokeObjectURL(url);
+  toast('Export CSV t&#233;l&#233;charg&#233; &#9989;','ok');
+}
+
+/* ═══════════════════════════════════
+   PRINT REPORT
+═══════════════════════════════════ */
+function printReport(){
+  var content=document.getElementById('rpt-content').innerHTML;
+  var w=window.open('','_blank','width=800,height=600');
+  if(!w)return;
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rapport Finance — Veraluz</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:20px;max-width:800px;margin:0 auto;}'
+    +'.rpt-bloc{border:1px solid #ddd;border-radius:8px;padding:14px;margin-bottom:12px;}.rpt-title{font-weight:700;font-size:13px;margin-bottom:10px;color:#333;}'
+    +'.card-row{display:flex;gap:8px;margin-bottom:10px;}.kpi{flex:1;border:1px solid #ddd;border-radius:8px;padding:10px;text-align:center;}'
+    +'.kpi-v{font-size:15px;font-weight:800;}.kpi-l{font-size:9px;color:#666;margin-top:3px;}'
+    +'.bar-wrap{background:#eee;border-radius:99px;height:6px;overflow:hidden;margin:3px 0;}'
+    +'.bar-fill{height:6px;border-radius:99px;}'
+    +'@page{margin:1cm;}</style></head><body>'
+    +'<div style="text-align:center;margin-bottom:20px;border-bottom:2px solid #22d3a5;padding-bottom:12px;">'
+    +'<div style="font-size:20px;font-weight:800;color:#22d3a5;">&#127965; R&#233;sidence Veraluz — Rapport Finance</div>'
+    +'<div style="color:#666;">Kribi, Cameroun &middot; G&#233;n&#233;r&#233; le '+new Date().toLocaleDateString('fr-FR')+'</div></div>'
+    +content+'</body></html>');
+  w.document.close();
+  setTimeout(function(){w.print();},600);
+}
+
+/* ═══════════════════════════════════
+   INIT
+═══════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',function(){
+  loadAll();
+  initRptDates();
+  /* Auto-refresh quand Restaurant ou Réservations envoient un signal */
+  window.addEventListener('storage',function(ev){
+    if(ev.key==='vlz_resto_updated'||ev.key==='vlz_rez_updated'||ev.key==='vlz_finance_refresh'){
+      loadAll();
+      toast('Données mises à jour depuis un autre module &#8635;','ok');
+    }
+  });
+  /* Écoute aussi les messages postMessage (même onglet, iframes) */
+  window.addEventListener('message',function(ev){
+    if(ev.data&&(ev.data==='vlz_resto_updated'||ev.data==='vlz_rez_updated'||ev.data==='vlz_finance_refresh')){
+      loadAll();
+    }
+  });
+});
+/* GUARD [G001] *//* GUARD [G002] *//* GUARD [G003] *//* GUARD [G004] *//* GUARD [G005] */
+/* GUARD [G006] *//* GUARD [G007] *//* GUARD [G008] *//* GUARD [G009] *//* GUARD [G010] */
+/* GUARD [G011] *//* GUARD [G012] *//* GUARD [G013] *//* GUARD [G014] *//* GUARD [G015] */
+/* GUARD [G016] *//* GUARD [G017] *//* GUARD [G018] *//* GUARD [G019] *//* GUARD [G020] */
+/* GUARD [G021] *//* GUARD [G022] *//* GUARD [G023] *//* GUARD [G024] *//* GUARD [G025] */
+/* GUARD [G026] *//* GUARD [G027] *//* GUARD [G028] *//* GUARD [G029] *//* GUARD [G030] */
+</script>
+</body>
+</html>      toast('Données mises à jour depuis un autre module &#8635;','ok');
+    }
+  });
+  /* Écoute aussi les messages postMessage (même onglet, iframes) */
+  window.addEventListener('message',function(ev){
+    if(ev.data&&(ev.data==='vlz_resto_updated'||ev.data==='vlz_rez_updated'||ev.data==='vlz_finance_refresh')){
+      loadAll();
+    }
+  });
+});
+/* GUARD [G001] *//* GUARD [G002] *//* GUARD [G003] *//* GUARD [G004] *//* GUARD [G005] */
+/* GUARD [G006] *//* GUARD [G007] *//* GUARD [G008] *//* GUARD [G009] *//* GUARD [G010] */
+/* GUARD [G011] *//* GUARD [G012] *//* GUARD [G013] *//* GUARD [G014] *//* GUARD [G015] */
+/* GUARD [G016] *//* GUARD [G017] *//* GUARD [G018] *//* GUARD [G019] *//* GUARD [G020] */
+/* GUARD [G021] *//* GUARD [G022] *//* GUARD [G023] *//* GUARD [G024] *//* GUARD [G025] */
+/* GUARD [G026] *//* GUARD [G027] *//* GUARD [G028] *//* GUARD [G029] *//* GUARD [G030] */
+</script>
+</body>
+</html>
