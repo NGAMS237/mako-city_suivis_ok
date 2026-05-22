@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Housekeeping — Veraluz OS</title>
+<style>
+:root {
+  --bg:#0d0d1a;--bg2:#11112a;--bg3:#181830;--bg4:#1e1e3a;--bg-hover:#252546;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --accent:#6c63ff;--accent2:#8b7fff;
+  --success:#22d3a5;--warning:#f59e0b;--danger:#f43f5e;--info:#38bdf8;
+  --text:#e8e6ff;--text2:#9990cc;--text3:#5a5580;
+  --radius:12px;
+  /* Room status colors */
+  --c-available:#22d3a5;--c-dirty:#f59e0b;--c-cleaning:#38bdf8;
+  --c-maintenance:#f43f5e;--c-inspected:#a78bfa;--c-reserved:#6c63ff;
+  --c-out:#5a5580;--c-occupied:#fb923c;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;height:100%;overflow:hidden}
+
+/* ── Shell ── */
+.hk-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ── Header ── */
+.hk-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px}
+.hk-header h1{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;flex:1}
+.hk-header h1 svg{opacity:.7}
+.hdr-right{display:flex;gap:8px;align-items:center}
+.mode-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--bg3);color:var(--text2);letter-spacing:.5px}
+.mode-badge.emp{background:rgba(34,211,165,.15);color:var(--success)}
+
+/* ── Tabs (admin) ── */
+.hk-tabs{display:flex;gap:2px;padding:10px 12px 0;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.hk-tabs::-webkit-scrollbar{display:none}
+.hk-tab{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:8px 8px 0 0;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);border:none;background:none;white-space:nowrap;transition:all .15s;border-bottom:2px solid transparent}
+.hk-tab:hover{color:var(--text);background:var(--bg3)}
+.hk-tab.active{color:var(--accent2);border-bottom-color:var(--accent);background:var(--bg3)}
+.hk-tab .tbadge{background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:20px}
+.hk-tab .tbadge.urgent{background:var(--danger)}
+
+/* ── Content ── */
+.hk-content{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px}
+.hk-pane{display:none}.hk-pane.active{display:block}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--border2);background:var(--bg3)}
+.btn-success{background:var(--success);color:#000;font-weight:700}.btn-success:hover{opacity:.85}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{opacity:.85}
+.btn-info{background:var(--info);color:#000;font-weight:700}.btn-info:hover{opacity:.85}
+.btn-warn{background:var(--warning);color:#000;font-weight:700}.btn-warn:hover{opacity:.85}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:8px}
+.btn-icon{padding:7px;border-radius:9px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
+.btn-icon:hover{color:var(--text);border-color:var(--border2)}
+
+/* ── Stats grid ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .15s}
+.stat-card:hover{border-color:var(--border2)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.green::before{background:var(--success)}.stat-card.orange::before{background:var(--warning)}
+.stat-card.blue::before{background:var(--info)}.stat-card.red::before{background:var(--danger)}
+.stat-card.purple::before{background:var(--accent)}.stat-card.gray::before{background:var(--text3)}
+.stat-label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.stat-val{font-size:22px;font-weight:800;color:var(--text)}
+.stat-sub{font-size:10px;color:var(--text2);margin-top:2px}
+
+/* ── Room Grid ── */
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.room-tile{background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px;cursor:pointer;transition:all .2s;text-align:center;position:relative}
+.room-tile:hover{transform:translateY(-1px);border-color:var(--border2)}
+.room-tile .rt-name{font-size:13px;font-weight:700;margin-bottom:4px}
+.room-tile .rt-type{font-size:10px;color:var(--text2);margin-bottom:8px}
+.room-tile .rt-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-block}
+.room-tile .rt-tasks{position:absolute;top:8px;right:8px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:20px}
+/* Room status colors for tiles */
+.rt-available{border-color:rgba(34,211,165,.3);background:rgba(34,211,165,.05)}
+.rt-available .rt-status{background:rgba(34,211,165,.15);color:var(--c-available)}
+.rt-dirty{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.06)}
+.rt-dirty .rt-status{background:rgba(245,158,11,.15);color:var(--c-dirty)}
+.rt-cleaning{border-color:rgba(56,189,248,.3);background:rgba(56,189,248,.05)}
+.rt-cleaning .rt-status{background:rgba(56,189,248,.15);color:var(--c-cleaning)}
+.rt-maintenance{border-color:rgba(244,63,94,.35);background:rgba(244,63,94,.05)}
+.rt-maintenance .rt-status{background:rgba(244,63,94,.15);color:var(--c-maintenance)}
+.rt-inspected{border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.05)}
+.rt-inspected .rt-status{background:rgba(167,139,250,.15);color:var(--c-inspected)}
+.rt-occupied{border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.05)}
+.rt-occupied .rt-status{background:rgba(251,146,60,.15);color:var(--c-occupied)}
+
+/* ── Task Cards (admin) ── */
+.task-list{display:flex;flex-direction:column;gap:10px}
+.task-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:13px;border-left:4px solid transparent;transition:all .15s}
+.task-card:hover{border-color:var(--border2)}
+.task-card.priority-urgent{border-left-color:var(--danger)}
+.task-card.priority-high{border-left-color:var(--warning)}
+.task-card.priority-normal{border-left-color:var(--info)}
+.task-card.priority-low{border-left-color:var(--text3)}
+.task-card.status-done,.task-card.status-completed{opacity:.65}
+.tk-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.tk-room-name{font-size:15px;font-weight:800;color:var(--text)}
+.tk-type{font-size:12px;color:var(--text2);margin-top:2px}
+.tk-badges{display:flex;gap:5px;flex-wrap:wrap}
+.tk-bottom{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.tk-assign{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge-green{background:rgba(34,211,165,.15);color:var(--success)}
+.badge-orange{background:rgba(245,158,11,.15);color:var(--warning)}
+.badge-blue{background:rgba(56,189,248,.15);color:var(--info)}
+.badge-red{background:rgba(244,63,94,.15);color:var(--danger)}
+.badge-purple{background:rgba(108,99,255,.15);color:var(--accent2)}
+.badge-gray{background:rgba(255,255,255,.07);color:var(--text2)}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.search-wrap{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 11px}
+.search-wrap svg{color:var(--text3);flex-shrink:0}
+.search-wrap input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:100%}
+.search-wrap input::placeholder{color:var(--text3)}
+.filter-sel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;padding:7px 10px;cursor:pointer;outline:none}
+
+/* ── EMPLOYEE VIEW ── */
+.emp-shell{display:none;flex-direction:column;height:100vh;overflow:hidden}
+.emp-shell.active{display:flex}
+.hk-shell.emp-mode .hk-tabs{display:none}
+.emp-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 16px;flex-shrink:0}
+.emp-header h2{font-size:18px;font-weight:800;color:var(--text);margin-bottom:2px}
+.emp-header p{font-size:12px;color:var(--text2)}
+.emp-day{background:var(--bg3);padding:10px 16px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.emp-content{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+
+/* ── Employee Task Card (BIG) ── */
+.emp-task{background:var(--bg3);border-radius:14px;overflow:hidden;border:2px solid var(--border)}
+.emp-task.prio-urgent{border-color:rgba(244,63,94,.4)}
+.emp-task.prio-high{border-color:rgba(245,158,11,.35)}
+.emp-task.prio-normal{border-color:rgba(56,189,248,.25)}
+.emp-task.done{opacity:.5;pointer-events:none}
+.emp-task-top{padding:16px;display:flex;align-items:center;gap:14px}
+.emp-room-num{font-size:28px;font-weight:900;color:var(--text);min-width:60px}
+.emp-task-info{flex:1}
+.emp-task-type{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px}
+.emp-task-sub{font-size:12px;color:var(--text2)}
+.emp-prio-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.emp-prio-dot.urgent{background:var(--danger)}.emp-prio-dot.high{background:var(--warning)}
+.emp-prio-dot.normal{background:var(--info)}.emp-prio-dot.low{background:var(--text3)}
+.emp-actions{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--border)}
+.emp-btn{padding:14px 8px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:5px;transition:all .15s;color:var(--text2)}
+.emp-btn:active{transform:scale(.97)}
+.emp-btn.start{color:var(--info)}.emp-btn.start:hover{background:rgba(56,189,248,.1)}
+.emp-btn.done{color:var(--success)}.emp-btn.done:hover{background:rgba(34,211,165,.1)}
+.emp-btn.problem{color:var(--danger)}.emp-btn.problem:hover{background:rgba(244,63,94,.1)}
+.emp-btn svg{opacity:.8}
+.emp-done-overlay{background:rgba(34,211,165,.15);padding:12px 16px;font-size:13px;font-weight:700;color:var(--success);text-align:center;display:none}
+.emp-task.done .emp-done-overlay{display:block}
+
+/* ── Name picker ── */
+.name-picker{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;gap:16px}
+.name-picker h2{font-size:20px;font-weight:800;color:var(--text);text-align:center}
+.name-picker p{font-size:13px;color:var(--text2);text-align:center}
+.name-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:320px}
+.name-btn{background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;transition:all .15s;text-align:center}
+.name-btn:hover,.name-btn:active{border-color:var(--accent);background:var(--bg-hover);color:var(--accent2)}
+.name-input-wrap{display:flex;gap:8px;width:100%;max-width:320px}
+.name-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:10px 14px;font-size:14px;outline:none}
+.name-input:focus{border-color:var(--accent)}
+
+/* ── Empty / Loading ── */
+.empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty svg{margin-bottom:12px;opacity:.3}
+.all-done{text-align:center;padding:40px 20px}
+.all-done .check{font-size:56px;margin-bottom:12px}
+.all-done h3{font-size:18px;font-weight:800;color:var(--success)}
+.all-done p{font-size:13px;color:var(--text2);margin-top:6px}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:85vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s cubic-bezier(.32,1,.1,1)}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:15px 17px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-header h3{font-size:15px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;border-radius:6px}
+.modal-close:hover{color:var(--text);background:var(--bg3)}
+.modal-body{flex:1;overflow-y:auto;padding:16px}
+.modal-footer{padding:13px 17px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0}
+.form-group{margin-bottom:13px}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.form-control{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;transition:border-color .15s}
+.form-control:focus{border-color:var(--accent)}
+select.form-control option{background:var(--bg2)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── Problem modal (employee) ── */
+.problem-types{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.prob-btn{background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:12px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;text-align:center;transition:all .15s}
+.prob-btn.selected,.prob-btn:hover{border-color:var(--danger);color:var(--danger);background:rgba(244,63,94,.08)}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg4);border:1px solid var(--border2);color:var(--text);padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;transition:transform .3s;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:var(--success);color:var(--success)}
+.toast.err{border-color:var(--danger);color:var(--danger)}
+
+@media(max-width:420px){
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .room-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}
+  .name-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="hk-shell" id="hkShell">
+
+  <!-- ── ADMIN HEADER ── -->
+  <div class="hk-header" id="adminHeader">
+    <h1>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      Housekeeping
+    </h1>
+    <div class="hdr-right">
+      <button class="btn btn-ghost btn-sm" onclick="loadAll(refresh)" title="Actualiser">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="openNewTaskModal()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Tâche
+      </button>
+      <button class="btn btn-success btn-sm" onclick="switchToEmployee()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Employé
+      </button>
+    </div>
+  </div>
+
+  <!-- ── ADMIN TABS ── -->
+  <div class="hk-tabs">
+    <button class="hk-tab active" id="tab-dash" onclick="goTab('dash')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Vue d'ensemble
+    </button>
+    <button class="hk-tab" id="tab-tasks" onclick="goTab('tasks')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>
+      Tâches<span class="tbadge" id="badge-tasks">0</span>
+    </button>
+    <button class="hk-tab" id="tab-rooms" onclick="goTab('rooms')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Chambres<span class="tbadge urgent" id="badge-dirty">0</span>
+    </button>
+    <button class="hk-tab" id="tab-history" onclick="goTab('history')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Historique
+    </button>
+  </div>
+
+  <!-- ── ADMIN CONTENT ── -->
+  <div class="hk-content">
+
+    <!-- DASHBOARD -->
+    <div class="hk-pane active" id="pane-dash">
+      <div class="stat-grid" id="dash-stats"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">État des chambres</div>
+      <div class="room-grid" id="dash-rooms"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 10px">Tâches actives</div>
+      <div id="dash-active-tasks"></div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="hk-pane" id="pane-tasks">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="task-search" placeholder="Chambre, employé..." oninput="renderTasks()"/>
+        </div>
+        <select class="filter-sel" id="task-status-filter" onchange="renderTasks()">
+          <option value="active">Actives</option>
+          <option value="all">Toutes</option>
+          <option value="pending">En attente</option>
+          <option value="in_progress">En cours</option>
+          <option value="done">Terminées</option>
+        </select>
+        <select class="filter-sel" id="task-priority-filter" onchange="renderTasks()">
+          <option value="all">Toutes priorités</option>
+          <option value="urgent">Urgent</option>
+          <option value="high">Haute</option>
+          <option value="normal">Normal</option>
+        </select>
+      </div>
+      <div class="task-list" id="tasks-list"></div>
+    </div>
+
+    <!-- ROOMS -->
+    <div class="hk-pane" id="pane-rooms">
+      <div class="toolbar">
+        <select class="filter-sel" id="room-status-filter" onchange="renderRoomsTab()">
+          <option value="all">Tous statuts</option>
+          <option value="available">Disponible</option>
+          <option value="dirty">Sale</option>
+          <option value="cleaning">En nettoyage</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="inspected">Inspecté</option>
+        </select>
+      </div>
+      <div class="room-grid" id="rooms-grid"></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="hk-pane" id="pane-history">
+      <div class="toolbar">
+        <select class="filter-sel" id="hist-filter" onchange="renderHistory()">
+          <option value="done">Terminées</option>
+          <option value="all">Toutes</option>
+        </select>
+      </div>
+      <div id="history-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── EMPLOYEE SHELL ── -->
+<div class="emp-shell" id="empShell">
+
+  <!-- Employee header -->
+  <div class="hk-header" style="flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:10px;flex:1">
+      <button class="btn-icon" onclick="exitEmployeeMode()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <div style="font-size:15px;font-weight:800" id="emp-name-display">Employé</div>
+        <div style="font-size:11px;color:var(--text2)" id="emp-date-display"></div>
+      </div>
+    </div>
+    <span class="mode-badge emp">MODE EMPLOYÉ</span>
+    <button class="btn-icon" onclick="changeEmployee()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </button>
+  </div>
+
+  <!-- Name picker screen -->
+  <div class="name-picker" id="namePicker">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.4">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+    <h2>Qui êtes-vous ?</h2>
+    <p>Sélectionnez votre nom pour voir vos tâches</p>
+    <div class="name-grid" id="nameGrid"></div>
+    <div class="name-input-wrap">
+      <input class="name-input" id="nameInput" type="text" placeholder="Autre nom..."/>
+      <button class="btn btn-primary" onclick="selectEmployee(document.getElementById('nameInput').value)">OK</button>
+    </div>
+  </div>
+
+  <!-- Tasks screen -->
+  <div id="empTasksScreen" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+    <div id="emp-profile-card" style="padding:10px 12px 0;display:none"></div>
+    <div class="emp-day" id="empDayBar">
+      <span id="emp-progress-text">Chargement...</span>
+      <span id="emp-all-done-badge" style="display:none;background:rgba(34,211,165,.15);color:var(--success);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">Tout terminé !</span>
+    </div>
+    <div class="emp-content" id="empContent"></div>
+  </div>
+
+</div>
+
+<!-- ── MODAL NOUVELLE TÂCHE ── -->
+<div class="modal-overlay" id="newTaskModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="newTaskTitle">Nouvelle tâche</h3>
+      <button class="modal-close" onclick="closeModal('newTaskModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-task-id"/>
+      <div class="form-group">
+        <label>Chambre / Unité</label>
+        <select class="form-control" id="nt-unit"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type de tâche</label>
+          <select class="form-control" id="nt-type">
+            <option value="cleaning">Nettoyage départ</option>
+            <option value="daily_cleaning">Nettoyage quotidien</option>
+            <option value="preparation">Préparation arrivée</option>
+            <option value="vip">Préparation VIP</option>
+            <option value="maintenance">Maintenance légère</option>
+            <option value="urgent">Urgence</option>
+            <option value="inspection">Inspection</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Priorité</label>
+          <select class="form-control" id="nt-priority">
+            <option value="normal">Normale</option>
+            <option value="high">Haute</option>
+            <option value="urgent">Urgente</option>
+            <option value="low">Basse</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Assigné à</label>
+          <select class="form-control" id="nt-assign">
+            <option value="">Non assigné</option>
+            <option value="Marie">Marie</option>
+            <option value="Jean">Jean</option>
+            <option value="Tech">Tech / Maintenance</option>
+            <option value="Equipe">Équipe</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date prévue</label>
+          <input class="form-control" id="nt-date" type="date"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea class="form-control" id="nt-notes" rows="2" placeholder="Instructions spéciales..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('newTaskModal')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveTask()">Créer la tâche</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL ASSIGNER ── -->
+<div class="modal-overlay" id="assignModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Assigner la tâche</h3>
+      <button class="modal-close" onclick="closeModal('assignModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="assign-task-id"/>
+      <div class="form-group">
+        <label>Tâche</label>
+        <div id="assign-task-info" style="background:var(--bg3);padding:10px;border-radius:10px;font-size:13px;color:var(--text2)"></div>
+      </div>
+      <div class="form-group">
+        <label>Assigner à</label>
+        <select class="form-control" id="assign-to">
+          <option value="">Non assigné</option>
+          <option value="Marie">Marie</option>
+          <option value="Jean">Jean</option>
+          <option value="Tech">Tech / Maintenance</option>
+          <option value="Equipe">Équipe</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Priorité</label>
+        <select class="form-control" id="assign-priority">
+          <option value="normal">Normale</option>
+          <option value="high">Haute</option>
+          <option value="urgent">Urgente</option>
+          <option value="low">Basse</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('assignModal')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveAssign()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL PROBLÈME (Employee) ── -->
+<div class="modal-overlay" id="problemModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Signaler un problème</h3>
+      <button class="modal-close" onclick="closeModal('problemModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="prob-task-id"/>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px" id="prob-room-name">Chambre</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Type de problème :</div>
+      <div class="problem-types">
+        <button class="prob-btn" data-val="Climatisation" onclick="selectProblem(this)">Climatisation</button>
+        <button class="prob-btn" data-val="Plomberie" onclick="selectProblem(this)">Plomberie</button>
+        <button class="prob-btn" data-val="Electricite" onclick="selectProblem(this)">Electricité</button>
+        <button class="prob-btn" data-val="Mobilier" onclick="selectProblem(this)">Mobilier</button>
+        <button class="prob-btn" data-val="Proprete" onclick="selectProblem(this)">Propreté</button>
+        <button class="prob-btn" data-val="Securite" onclick="selectProblem(this)">Sécurité</button>
+        <button class="prob-btn" data-val="Literie" onclick="selectProblem(this)">Literie</button>
+        <button class="prob-btn" data-val="Autre" onclick="selectProblem(this)">Autre</button>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea class="form-control" id="prob-desc" rows="3" placeholder="Décrivez le problème..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('problemModal')">Annuler</button>
+      <button class="btn btn-danger" onclick="saveProblem()">Signaler</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL ROOM STATUS ── -->
+<div class="modal-overlay" id="roomModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="roomModalTitle">Chambre</h3>
+      <button class="modal-close" onclick="closeModal('roomModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="room-modal-id"/>
+      <div id="room-modal-tasks" style="margin-bottom:14px"></div>
+      <div class="form-group">
+        <label>Changer le statut ménage</label>
+        <select class="form-control" id="room-new-status">
+          <option value="available">Disponible (propre)</option>
+          <option value="dirty">Sale (à nettoyer)</option>
+          <option value="cleaning">En cours de nettoyage</option>
+          <option value="inspected">Inspecté</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="out_of_service">Hors service</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="openNewTaskForRoom()">Créer tâche</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('roomModal')">Fermer</button>
+      <button class="btn btn-primary" onclick="saveRoomStatus()">Mettre à jour</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+/* ── CONFIG ── */
+var SB = (window.__SUPABASE_URL__||'https://dfdmasejsoibxrvubegu.supabase.co');
+var SK = (window.__SUPABASE_KEY__||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY');
+var STAFF = []; // populated dynamically from veraluz_employees
+
+/* ── STATE ── */
+var _tasks = [], _units = [], _reservations = [], _employees = [], _activeTab = 'dash';
+var _empName = '', _selProblem = '';
+
+/* ── UTILITIES ── */
+function esc(s) {
+  if(!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtDate(d) {
+  if(!d) return '—';
+  try { return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}); } catch(e){return d;}
+}
+function fmtTime(d) {
+  if(!d) return '—';
+  try { return new Date(d).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); } catch(e){return d;}
+}
+
+function taskTypeLabel(t) {
+  var m={cleaning:'Nettoyage départ',daily_cleaning:'Nettoyage quotidien',preparation:'Préparation arrivée',vip:'Préparation VIP',maintenance:'Maintenance',urgent:'Urgence',inspection:'Inspection',report:'Signalement',done:'Nettoyage'};
+  return m[t]||t||'Tâche';
+}
+function statusLabel(s) {
+  var m={pending:'En attente',in_progress:'En cours',done:'Terminé',completed:'Terminé',cancelled:'Annulé',urgent:'Urgent'};
+  return m[s]||s||'—';
+}
+function hkStatusLabel(s) {
+  var m={available:'Disponible',dirty:'Sale',cleaning:'En nettoyage',maintenance:'Maintenance',inspected:'Inspecté',occupied:'Occupé',reserved:'Réservé',out_of_service:'Hors service',out:'Hors service'};
+  return m[s]||s||'—';
+}
+function priorityLabel(p) {
+  var m={urgent:'Urgent',high:'Haute',normal:'Normal',low:'Basse'};
+  return m[p]||p||'—';
+}
+function statusBadge(s) {
+  var m={pending:'badge-orange',in_progress:'badge-blue',done:'badge-green',completed:'badge-green',cancelled:'badge-gray',urgent:'badge-red'};
+  return '<span class="badge '+(m[s]||'badge-gray')+'">'+esc(statusLabel(s))+'</span>';
+}
+function priorityBadge(p) {
+  var m={urgent:'badge-red',high:'badge-orange',normal:'badge-blue',low:'badge-gray'};
+  return '<span class="badge '+(m[p]||'badge-gray')+'">'+esc(priorityLabel(p))+'</span>';
+}
+function isActive(t) {
+  return t.status !== 'done' && t.status !== 'completed' && t.status !== 'cancelled';
+}
+
+/* ── SUPABASE ── */
+function sbFetch(path, opts) {
+  return fetch(SB+'/rest/v1/'+path, Object.assign({
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'}
+  }, opts||{}));
+}
+
+/* ── LOAD ALL ── */
+function loadAll(cb) {
+  var done = 0;
+  function check() { done++; if(done>=4 && cb) cb(); }
+  // Restore cache
+  try{ var c=localStorage.getItem('vlz_hk_tasks'); if(c)_tasks=JSON.parse(c); }catch(e){}
+  try{ var c=localStorage.getItem('vlz_hk_units'); if(c)_units=JSON.parse(c); }catch(e){}
+
+  sbFetch('veraluz_housekeeping?select=*&order=scheduled_for.desc,created_at.desc&limit=200')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(Array.isArray(d)){_tasks=d;try{localStorage.setItem('vlz_hk_tasks',JSON.stringify(d));}catch(e){}}
+      check();
+    }).catch(check);
+
+  sbFetch('veraluz_units?select=id,name,type,status,hk_status,floor&order=sort_order.asc')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(Array.isArray(d)){_units=d;try{localStorage.setItem('vlz_hk_units',JSON.stringify(d));}catch(e){}}
+      check();
+    }).catch(check);
+
+  // Fetch active + recent reservations for sync
+  sbFetch('veraluz_reservations?select=id,unit_id,client_name,status,check_in,check_out&or=(status.eq.confirmed,status.eq.checkedin,status.eq.checked_in,status.eq.checkedout,status.eq.checkedout)&limit=300')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(Array.isArray(d)) _reservations=d;
+      check();
+    }).catch(check);
+
+  // Fetch active employees for assignments
+  sbFetch('veraluz_employees?select=id,full_name,role,status,base_salary,hourly_rate,contract_type,phone,email,hire_date&status=eq.actif&order=full_name.asc')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(Array.isArray(d)){
+        _employees=d;
+        STAFF=d.map(function(e){return e.full_name;});
+      }
+      check();
+    }).catch(check);
+}
+
+/* ── MODAL HELPERS ── */
+function openModal(id){var e=document.getElementById(id);if(e)e.classList.add('open');}
+function closeModal(id){var e=document.getElementById(id);if(e)e.classList.remove('open');}
+function showToast(msg,type){
+  var t=document.getElementById('toast');if(!t)return;
+  t.textContent=msg;t.className='toast show'+(type?' '+type:'');
+  setTimeout(function(){t.className='toast';},3000);
+}
+
+/* ── TABS ── */
+function goTab(t) {
+  _activeTab = t;
+  document.querySelectorAll('.hk-tab').forEach(function(b){b.classList.toggle('active',b.id==='tab-'+t);});
+  document.querySelectorAll('.hk-pane').forEach(function(p){p.classList.toggle('active',p.id==='pane-'+t);});
+  var renders={dash:renderDash,tasks:renderTasks,rooms:renderRoomsTab,history:renderHistory};
+  if(renders[t]) renders[t]();
+}
+
+/* ── REFRESH ── */
+function refresh() {
+  updateBadges();
+  if(_activeTab) goTab(_activeTab);
+}
+
+function updateBadges() {
+  var active = _tasks.filter(isActive);
+  var urgent = active.filter(function(t){return t.priority==='urgent';});
+  var dirty = _units.filter(function(u){return u.hk_status==='dirty'||u.hk_status==='cleaning';});
+  var bt = document.getElementById('badge-tasks');
+  var bd = document.getElementById('badge-dirty');
+  if(bt) bt.textContent = active.length;
+  if(bd) { bd.textContent = dirty.length; bd.style.display = dirty.length?'':'none'; }
+}
+</script><script>
+/* ── RENDER DASHBOARD ── */
+function renderDash() {
+  var active = _tasks.filter(isActive);
+  var pending = _tasks.filter(function(t){return t.status==='pending';});
+  var inProg  = _tasks.filter(function(t){return t.status==='in_progress';});
+  var done    = _tasks.filter(function(t){return t.status==='done'||t.status==='completed';});
+  var urgent  = active.filter(function(t){return t.priority==='urgent';});
+  var maint   = _units.filter(function(u){return u.hk_status==='maintenance';});
+  var dirty   = _units.filter(function(u){return u.hk_status==='dirty';});
+  var avail   = _units.filter(function(u){return u.hk_status==='available';});
+  var cleaning= _units.filter(function(u){return u.hk_status==='cleaning';});
+
+  var sg = document.getElementById('dash-stats');
+  if(sg) sg.innerHTML =
+    '<div class="stat-card green" data-tab="rooms" onclick="goTab(this.dataset.tab)"><div class="stat-label">Disponibles</div><div class="stat-val">'+avail.length+'</div><div class="stat-sub">prêtes</div></div>'+
+    '<div class="stat-card orange" data-tab="rooms" onclick="goTab(this.dataset.tab)"><div class="stat-label">Sales</div><div class="stat-val">'+dirty.length+'</div><div class="stat-sub">à nettoyer</div></div>'+
+    '<div class="stat-card blue" data-tab="tasks" onclick="goTab(this.dataset.tab)"><div class="stat-label">En nettoyage</div><div class="stat-val">'+cleaning.length+'</div><div class="stat-sub">en cours</div></div>'+
+    '<div class="stat-card red" data-tab="tasks" onclick="goTab(this.dataset.tab)"><div class="stat-label">Urgences</div><div class="stat-val">'+urgent.length+'</div><div class="stat-sub">maintenant</div></div>'+
+    '<div class="stat-card gray" data-tab="rooms" onclick="goTab(this.dataset.tab)"><div class="stat-label">Maintenance</div><div class="stat-val">'+maint.length+'</div><div class="stat-sub">bloquées</div></div>'+
+    '<div class="stat-card purple" data-tab="history" onclick="goTab(this.dataset.tab)"><div class="stat-label">Terminées</div><div class="stat-val">'+done.length+'</div><div class="stat-sub">aujourd\'hui</div></div>';
+
+  // Room grid
+  var rg = document.getElementById('dash-rooms');
+  if(rg) {
+    rg.innerHTML = _units.map(function(u) {
+      var taskCount = _tasks.filter(function(t){return t.unit_id===u.id && isActive(t);}).length;
+      var st = u.hk_status || 'available';
+      var typeMap = {chambre:'Chambre',studio:'Studio',appartement:'Appt',suite:'Suite'};
+      return '<div class="room-tile rt-'+st+'" data-uid="'+esc(u.id)+'" onclick="openRoomModal(this.dataset.uid)">'+
+        (taskCount ? '<span class="rt-tasks">'+taskCount+'</span>' : '')+
+        '<div class="rt-name">'+esc(u.name)+'</div>'+
+        '<div class="rt-type">'+esc(typeMap[u.type]||u.type||'')+'</div>'+
+        '<div class="rt-status">'+esc(hkStatusLabel(st))+'</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  // Active tasks
+  var at = document.getElementById('dash-active-tasks');
+  if(at) {
+    var activeSorted = _tasks.filter(isActive).sort(function(a,b){
+      var po={urgent:0,high:1,normal:2,low:3};
+      return (po[a.priority]||2)-(po[b.priority]||2);
+    }).slice(0,6);
+    if(!activeSorted.length) {
+      at.innerHTML = '<div class="all-done"><div class="check">✓</div><h3>Tout est propre !</h3><p>Aucune tâche active en ce moment.</p></div>';
+    } else {
+      at.innerHTML = '<div class="task-list">'+activeSorted.map(function(t){return buildTaskCard(t,true);}).join('')+'</div>';
+    }
+  }
+}
+
+/* ── BUILD TASK CARD ── */
+function buildTaskCard(t, compact) {
+  var label = t.task_label || taskTypeLabel(t.type);
+  var room = t.room_name || t.unit_id || '—';
+  var isDone = t.status==='done'||t.status==='completed';
+  return '<div class="task-card priority-'+esc(t.priority||'normal')+' status-'+esc(t.status||'pending')+'">'+
+    '<div class="tk-top">'+
+      '<div>'+
+        '<div class="tk-room-name">'+esc(room)+'</div>'+
+        '<div class="tk-type">'+esc(label)+'</div>'+
+      '</div>'+
+      '<div class="tk-badges">'+
+        priorityBadge(t.priority||'normal')+
+        statusBadge(t.status||'pending')+
+      '</div>'+
+    '</div>'+
+    (t.notes ? '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-style:italic">'+esc(t.notes)+'</div>' : '')+
+    taskPhotoThumb(t)+
+    '<div class="tk-bottom">'+
+      '<span class="tk-assign">'+
+        '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'+
+        esc(t.assigned_to||'Non assigné')+
+      '</span>'+
+      '<div style="flex:1"></div>'+
+      (!isDone && !compact ? '<button class="btn btn-ghost btn-sm" data-tid="'+esc(t.id)+'" onclick="openAssignModal(this.dataset.tid)">Assigner</button>' : '')+
+      (!isDone && t.status==='pending' ? '<button class="btn btn-info btn-sm" data-tid="'+esc(t.id)+'" onclick="startTask(this.dataset.tid)">Commencer</button>' : '')+
+      (!isDone && t.status==='in_progress' ? '<button class="btn btn-success btn-sm" data-tid="'+esc(t.id)+'" onclick="completeTask(this.dataset.tid)">Terminé</button>' : '')+
+      (isDone && t.started_at && t.completed_at ? '<span style="font-size:11px;color:var(--text2)">'+calcDuration(t.started_at,t.completed_at)+'</span>' : '')+
+    '</div>'+
+  '</div>';
+}
+
+function calcDuration(start, end) {
+  try {
+    var mins = Math.round((new Date(end)-new Date(start))/60000);
+    if(mins<1) return 'rapide';
+    if(mins<60) return mins+'min';
+    return Math.floor(mins/60)+'h'+(mins%60?String(mins%60).padStart(2,'0'):'');
+  } catch(e){return '';}
+}
+
+/* ── RENDER TASKS ── */
+function renderTasks() {
+  var search = (document.getElementById('task-search')||{}).value||'';
+  var sf = (document.getElementById('task-status-filter')||{}).value||'active';
+  var pf = (document.getElementById('task-priority-filter')||{}).value||'all';
+  var todayStr = today();
+
+  var list = _tasks.filter(function(t) {
+    var q = search.toLowerCase();
+    var matchQ = !q || (t.room_name||'').toLowerCase().includes(q) ||
+                  (t.assigned_to||'').toLowerCase().includes(q) ||
+                  (t.task_label||'').toLowerCase().includes(q);
+    var matchS = sf==='all' || (sf==='active'&&isActive(t)) ||
+                  (sf==='done'&&(t.status==='done'||t.status==='completed')) ||
+                  t.status===sf;
+    var matchP = pf==='all' || t.priority===pf;
+    return matchQ && matchS && matchP;
+  }).sort(function(a,b){
+    var po={urgent:0,high:1,normal:2,low:3};
+    return (po[a.priority]||2)-(po[b.priority]||2);
+  });
+
+  var el = document.getElementById('tasks-list');
+  if(!el) return;
+  if(!list.length) {
+    el.innerHTML = '<div class="empty">'+
+      '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>'+
+      '<p>Aucune tâche trouvée</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(function(t){return buildTaskCard(t,false);}).join('');
+}
+
+/* ── RENDER ROOMS TAB ── */
+function renderRoomsTab() {
+  var sf = (document.getElementById('room-status-filter')||{}).value||'all';
+  var list = sf==='all' ? _units : _units.filter(function(u){return u.hk_status===sf;});
+  var el = document.getElementById('rooms-grid');
+  if(!el) return;
+  if(!list.length){el.innerHTML='<div class="empty"><p>Aucune chambre</p></div>';return;}
+  el.innerHTML = list.map(function(u){
+    var taskCount = _tasks.filter(function(t){return t.unit_id===u.id&&isActive(t);}).length;
+    var st = u.hk_status||'available';
+    var typeMap={chambre:'Chambre',studio:'Studio',appartement:'Appt',suite:'Suite'};
+    return '<div class="room-tile rt-'+st+'" data-uid="'+esc(u.id)+'" onclick="openRoomModal(this.dataset.uid)">'+
+      (taskCount?'<span class="rt-tasks">'+taskCount+'</span>':'')+
+      '<div class="rt-name">'+esc(u.name)+'</div>'+
+      '<div class="rt-type">'+esc(typeMap[u.type]||u.type||'')+'</div>'+
+      '<div class="rt-status">'+esc(hkStatusLabel(st))+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ── RENDER HISTORY ── */
+function renderHistory() {
+  var sf = (document.getElementById('hist-filter')||{}).value||'done';
+  var list = (sf==='all'?_tasks:_tasks.filter(function(t){return t.status==='done'||t.status==='completed';}));
+  list = list.slice().sort(function(a,b){return new Date(b.updated_at||b.created_at)-new Date(a.updated_at||a.created_at);});
+  var el = document.getElementById('history-list');
+  if(!el) return;
+  if(!list.length){el.innerHTML='<div class="empty"><p>Aucun historique</p></div>';return;}
+  el.innerHTML = '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">'+
+    list.map(function(t,i){
+      var dur = t.started_at&&t.completed_at ? calcDuration(t.started_at,t.completed_at) : '—';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;'+(i>0?'border-top:1px solid var(--border)':'')+'">'+
+        statusBadge(t.status||'pending')+
+        '<div style="flex:1">'+
+          '<div style="font-size:13px;font-weight:600">'+esc(t.room_name||t.unit_id||'—')+'</div>'+
+          '<div style="font-size:11px;color:var(--text2)">'+esc(t.task_label||taskTypeLabel(t.type))+(t.assigned_to?' · '+esc(t.assigned_to):'')+'</div>'+
+        '</div>'+
+        '<div style="text-align:right">'+
+          '<div style="font-size:11px;color:var(--text2)">'+fmtDate(t.updated_at||t.created_at)+'</div>'+
+          (dur!=='—'?'<div style="font-size:11px;color:var(--success);font-weight:600">'+esc(dur)+'</div>':'')+
+        '</div>'+
+      '</div>';
+    }).join('')+
+  '</div>';
+}
+</script><script>
+/* ── TASK ACTIONS ── */
+function startTask(tid) {
+  sbFetch('veraluz_housekeeping?id=eq.'+tid, {
+    method:'PATCH',
+    body:JSON.stringify({status:'in_progress',started_at:new Date().toISOString()})
+  }).then(function(r){
+    if(r.ok){
+      var t=_tasks.find(function(x){return x.id===tid;});
+      if(t){t.status='in_progress';t.started_at=new Date().toISOString();}
+      // Update room hk_status to cleaning
+      var unitId = t ? t.unit_id : null;
+      if(unitId) updateUnitHkStatus(unitId,'cleaning');
+      showToast('Nettoyage démarré','ok');
+      refresh();
+    }
+  });
+}
+
+function completeTask(tid) {
+  var now = new Date().toISOString();
+  sbFetch('veraluz_housekeeping?id=eq.'+tid, {
+    method:'PATCH',
+    body:JSON.stringify({status:'done',completed_at:now,updated_at:now})
+  }).then(function(r){
+    if(r.ok){
+      var t=_tasks.find(function(x){return x.id===tid;});
+      if(t){t.status='done';t.completed_at=now;}
+      // Compute duration
+      if(t&&t.started_at){
+        var mins=Math.round((new Date(now)-new Date(t.started_at))/60000);
+        if(mins>0) sbFetch('veraluz_housekeeping?id=eq.'+tid,{method:'PATCH',body:JSON.stringify({duration_minutes:mins})});
+      }
+      // Update room to available
+      if(t&&t.unit_id) updateUnitHkStatus(t.unit_id,'available');
+      showToast('Chambre marquée propre !','ok');
+      refresh();
+    }
+  });
+}
+
+function updateUnitHkStatus(unitId, status) {
+  sbFetch('veraluz_units?id=eq.'+unitId, {
+    method:'PATCH',
+    body:JSON.stringify({hk_status:status})
+  }).then(function(r){
+    if(r.ok){
+      var u=_units.find(function(x){return x.id===unitId;});
+      if(u) u.hk_status=status;
+    }
+  });
+}
+
+/* ── NEW TASK MODAL ── */
+function openNewTaskModal(unitId) {
+  var sel = document.getElementById('nt-unit');
+  if(sel){
+    sel.innerHTML = _units.map(function(u){
+      return '<option value="'+esc(u.id)+'"'+(unitId&&u.id===unitId?' selected':'')+'>'+esc(u.name)+'</option>';
+    }).join('');
+  }
+  document.getElementById('edit-task-id').value='';
+  document.getElementById('nt-notes').value='';
+  document.getElementById('nt-date').value=today();
+  document.getElementById('nt-priority').value='normal';
+  document.getElementById('nt-type').value='cleaning';
+  document.getElementById('newTaskTitle').textContent='Nouvelle tâche';
+  // Populate assign dropdown from real employees
+  var asel=document.getElementById('nt-assign');
+  if(asel){
+    var roleMap={femme_chambre:'Femme de chambre',technicien:'Technicien',receptionniste:'Réception',agent_securite:'Sécurité',barman:'Bar',manager:'Manager',cuisinier:'Cuisine',staff:'Staff'};
+    asel.innerHTML='<option value="">Non assigné</option>'+_employees.map(function(e){
+      return '<option value="'+esc(e.full_name)+'">'+esc(e.full_name)+' ('+esc(roleMap[e.role]||e.role)+')</option>';
+    }).join('');
+    asel.value='';
+  }
+  openModal('newTaskModal');
+}
+
+function saveTask() {
+  var unitId = document.getElementById('nt-unit').value;
+  var type   = document.getElementById('nt-type').value;
+  var prio   = document.getElementById('nt-priority').value;
+  var assign = document.getElementById('nt-assign').value;
+  var date   = document.getElementById('nt-date').value||today();
+  var notes  = document.getElementById('nt-notes').value.trim();
+  if(!unitId){showToast('Sélectionnez une chambre','err');return;}
+  var unit = _units.find(function(u){return u.id===unitId;});
+  var typeLabels={cleaning:'Nettoyage départ',daily_cleaning:'Nettoyage quotidien',preparation:'Préparation arrivée',vip:'Préparation VIP',maintenance:'Maintenance',urgent:'Urgence',inspection:'Inspection'};
+  var emp = _employees.find(function(e){return e.full_name===assign;});
+  var body={
+    unit_id:unitId,type:type,status:'pending',priority:prio,
+    notes:notes||null,scheduled_for:date,
+    task_label:typeLabels[type]||type,
+    room_name:unit?unit.name:unitId,
+    reported_by:'Admin',created_at:new Date().toISOString(),updated_at:new Date().toISOString(),
+    photo_urls:'[]'
+  };
+  if(assign){body.assigned_to=assign;}
+  if(emp){body.employee_id=emp.id;}
+  // Mark room as dirty if cleaning task
+  if(type==='cleaning'||type==='daily_cleaning') {
+    updateUnitHkStatus(unitId,'dirty');
+  } else if(type==='maintenance'||type==='urgent') {
+    updateUnitHkStatus(unitId,'maintenance');
+  }
+  var btn=document.querySelector('#newTaskModal .btn-primary');
+  if(btn) btn.textContent='Création...';
+  sbFetch('veraluz_housekeeping',{method:'POST',body:JSON.stringify(body)})
+    .then(function(r){
+      if(r.ok||r.status===201){
+        closeModal('newTaskModal');
+        showToast('Tâche créée','ok');
+        loadAll(refresh);
+      } else {showToast('Erreur création','err');if(btn)btn.textContent='Créer la tâche';}
+    }).catch(function(){showToast('Erreur réseau','err');if(btn)btn.textContent='Créer la tâche';});
+}
+
+/* ── ASSIGN MODAL ── */
+function openAssignModal(tid) {
+  var t=_tasks.find(function(x){return x.id===tid;});
+  if(!t) return;
+  document.getElementById('assign-task-id').value=tid;
+  var info=document.getElementById('assign-task-info');
+  if(info) info.textContent=(t.room_name||t.unit_id)+' — '+(t.task_label||taskTypeLabel(t.type));
+  var roleMap={femme_chambre:'Femme de chambre',technicien:'Technicien',receptionniste:'Réception',agent_securite:'Sécurité',barman:'Bar',manager:'Manager',cuisinier:'Cuisine',staff:'Staff'};
+  var sel=document.getElementById('assign-to');
+  if(sel){
+    sel.innerHTML='<option value="">Non assigné</option>'+_employees.map(function(e){
+      return '<option value="'+esc(e.full_name)+'">'+esc(e.full_name)+' ('+esc(roleMap[e.role]||e.role)+')</option>';
+    }).join('');
+    sel.value=t.assigned_to||'';
+  }
+  var ps=document.getElementById('assign-priority');
+  if(ps) ps.value=t.priority||'normal';
+  openModal('assignModal');
+}
+
+function saveAssign() {
+  var tid=document.getElementById('assign-task-id').value;
+  var assignTo=document.getElementById('assign-to').value;
+  var prio=document.getElementById('assign-priority').value;
+  var emp=_employees.find(function(e){return e.full_name===assignTo;});
+  var patch={assigned_to:assignTo||null,priority:prio,updated_at:new Date().toISOString()};
+  if(emp) patch.employee_id=emp.id; else patch.employee_id=null;
+  sbFetch('veraluz_housekeeping?id=eq.'+tid,{
+    method:'PATCH',
+    body:JSON.stringify(patch)
+  }).then(function(r){
+    if(r.ok){
+      var t=_tasks.find(function(x){return x.id===tid;});
+      if(t){t.assigned_to=assignTo||null;t.priority=prio;if(emp)t.employee_id=emp.id;}
+      closeModal('assignModal');
+      showToast('Tâche assignée à '+(assignTo||'personne'),'ok');
+      refresh();
+    }
+  });
+}
+
+/* ── ROOM MODAL ── */
+function openRoomModal(uid) {
+  var u=_units.find(function(x){return x.id===uid;});
+  if(!u) return;
+  document.getElementById('room-modal-id').value=uid;
+  document.getElementById('roomModalTitle').textContent=u.name;
+  var sel=document.getElementById('room-new-status');
+  if(sel) sel.value=u.hk_status||'available';
+  var roomTasks=_tasks.filter(function(t){return t.unit_id===uid&&isActive(t);});
+  var rt=document.getElementById('room-modal-tasks');
+  if(rt){
+    if(roomTasks.length){
+      rt.innerHTML='<div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Tâches actives ('+roomTasks.length+')</div>'+
+        roomTasks.map(function(t){
+          return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">'+
+            '<span style="font-size:12px">'+esc(t.task_label||taskTypeLabel(t.type))+'</span>'+
+            statusBadge(t.status)+
+          '</div>';
+        }).join('');
+    } else {
+      rt.innerHTML='<div style="font-size:12px;color:var(--text2)">Aucune tâche active pour cette chambre.</div>';
+    }
+  }
+  openModal('roomModal');
+}
+
+function saveRoomStatus() {
+  var uid=document.getElementById('room-modal-id').value;
+  var st=document.getElementById('room-new-status').value;
+  updateUnitHkStatus(uid,st);
+  closeModal('roomModal');
+  showToast('Statut mis à jour','ok');
+  setTimeout(refresh,500);
+}
+
+function openNewTaskForRoom() {
+  var uid=document.getElementById('room-modal-id').value;
+  closeModal('roomModal');
+  openNewTaskModal(uid);
+}
+
+/* ── EMPLOYEE MODE ── */
+function switchToEmployee() {
+  document.getElementById('hkShell').style.display='none';
+  var es=document.getElementById('empShell');
+  es.style.display='flex';
+  // Update date display
+  var dd=document.getElementById('emp-date-display');
+  if(dd) dd.textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  _empName=localStorage.getItem('vlz_hk_emp_name')||'';
+  _empId=localStorage.getItem('vlz_hk_emp_id')||'';
+  if(_empName){
+    showEmployeeTasks();
+  } else {
+    showNamePicker();
+  }
+}
+
+function exitEmployeeMode() {
+  document.getElementById('empShell').style.display='none';
+  document.getElementById('hkShell').style.display='';
+}
+
+function changeEmployee() {
+  localStorage.removeItem('vlz_hk_emp_name');
+  _empName='';
+  showNamePicker();
+}
+
+function showNamePicker() {
+  document.getElementById('namePicker').style.display='flex';
+  document.getElementById('empTasksScreen').style.display='none';
+  var nd=document.getElementById('emp-name-display');
+  if(nd) nd.textContent='Employé';
+  // Build name buttons
+  var ng=document.getElementById('nameGrid');
+  if(ng){
+    var hkRoles=['femme_chambre','technicien','agent_securite','maintenance','staff','manager'];
+    var hkEmps=_employees.filter(function(e){return hkRoles.indexOf(e.role)>=0||true;}); // show all
+    ng.innerHTML=hkEmps.map(function(e){
+      var roleMap={femme_chambre:'🧹',technicien:'🔧',receptionniste:'🛎',agent_securite:'🔒',barman:'🍹',manager:'👔',cuisinier:'👨‍🍳',staff:'👤'};
+      var icon=roleMap[e.role]||'👤';
+      return '<button class="name-btn" data-name="'+esc(e.full_name)+'" data-eid="'+esc(e.id)+'" onclick="selectEmployee(this.dataset.name,this.dataset.eid)">'+icon+' '+esc(e.full_name)+'</button>';
+    }).join('');
+  }
+}
+
+var _empId = '';
+function selectEmployee(name, eid) {
+  if(!name||!name.trim()){showToast('Saisissez votre nom','err');return;}
+  name=name.trim();
+  _empName=name;
+  _empId=eid||'';
+  localStorage.setItem('vlz_hk_emp_name',name);
+  localStorage.setItem('vlz_hk_emp_id',eid||'');
+  var nd=document.getElementById('emp-name-display');
+  if(nd) nd.textContent=name;
+  showEmployeeTasks();
+}
+
+function showEmployeeTasks() {
+  document.getElementById('namePicker').style.display='none';
+  var ts=document.getElementById('empTasksScreen');
+  ts.style.display='flex';
+  ts.style.flexDirection='column';
+  ts.style.overflow='hidden';
+  var nd=document.getElementById('emp-name-display');
+  if(nd) nd.textContent=_empName;
+  renderEmpProfile();
+  renderEmployeeTasks();
+}
+
+function renderEmpProfile() {
+  var emp=_employees.find(function(e){return e.id===_empId||e.full_name===_empName;});
+  var pc=document.getElementById('emp-profile-card');
+  if(!pc) return;
+  if(!emp){pc.style.display='none';return;}
+  var roleMap={femme_chambre:'Femme de chambre',technicien:'Technicien',receptionniste:'Réceptionniste',agent_securite:'Agent de sécurité',barman:'Barman',manager:'Manager',cuisinier:'Cuisinier',staff:'Staff'};
+  var contractMap={CDI:'CDI',CDD:'CDD',contractuel:'Contractuel',vacataire:'Vacataire',stage:'Stagiaire'};
+  var salaryLabel='';
+  var ct=emp.contract_type||'CDI';
+  if(ct==='contractuel'||ct==='vacataire'){
+    salaryLabel=emp.hourly_rate&&parseFloat(emp.hourly_rate)>0
+      ? parseFloat(emp.hourly_rate).toLocaleString('fr-FR')+' FCFA/h'
+      : (emp.base_salary&&parseFloat(emp.base_salary)>0?parseFloat(emp.base_salary).toLocaleString('fr-FR')+' FCFA/mois':'—');
+  } else {
+    salaryLabel=emp.base_salary&&parseFloat(emp.base_salary)>0
+      ? parseFloat(emp.base_salary).toLocaleString('fr-FR')+' FCFA/mois':'—';
+  }
+  var hireYrs='';
+  if(emp.hire_date){
+    var ms=Date.now()-new Date(emp.hire_date).getTime();
+    var yrs=Math.floor(ms/31536000000);
+    var mths=Math.floor((ms%31536000000)/2628000000);
+    hireYrs=yrs>0?yrs+'an'+(yrs>1?'s':'')+' '+(mths>0?mths+'m':''):(mths+'m');
+  }
+  pc.style.display='block';
+  pc.innerHTML='<div style="display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;margin-bottom:8px">'+
+    '<div style="width:44px;height:44px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0">'+esc(emp.full_name.charAt(0))+'</div>'+
+    '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:15px;font-weight:800;color:var(--text)">'+esc(emp.full_name)+'</div>'+
+      '<div style="font-size:11px;color:var(--text2);margin-top:1px">'+esc(roleMap[emp.role]||emp.role)+' · '+esc(contractMap[ct]||ct)+'</div>'+
+    '</div>'+
+    '<div style="text-align:right;flex-shrink:0">'+
+      '<div style="font-size:13px;font-weight:700;color:var(--success)">'+esc(salaryLabel)+'</div>'+
+      (hireYrs?'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+esc(hireYrs)+' ancienneté</div>':'')+
+    '</div>'+
+  '</div>'+
+  (emp.phone?'<div style="font-size:11px;color:var(--text2);padding:0 4px 8px">📞 '+esc(emp.phone)+'</div>':'');
+}
+
+function renderEmployeeTasks() {
+  var todayStr=today();
+  var myTasks=_tasks.filter(function(t){
+    var assignMatch=(t.assigned_to||'').toLowerCase()===_empName.toLowerCase();
+    var todayMatch=!t.scheduled_for||(t.scheduled_for||'').startsWith(todayStr);
+    return assignMatch && todayMatch;
+  }).sort(function(a,b){
+    var po={urgent:0,high:1,normal:2,low:3};
+    return (po[a.priority]||2)-(po[b.priority]||2);
+  });
+
+  var total=myTasks.length;
+  var done=myTasks.filter(function(t){return t.status==='done'||t.status==='completed';}).length;
+  var prog=document.getElementById('emp-progress-text');
+  var allDoneBadge=document.getElementById('emp-all-done-badge');
+  if(prog) prog.textContent=done+' / '+total+' tâche'+(total!==1?'s':'')+' complétée'+(done!==1?'s':'');
+  if(allDoneBadge) allDoneBadge.style.display=(total>0&&done===total)?'':'none';
+
+  var ec=document.getElementById('empContent');
+  if(!ec) return;
+  if(!myTasks.length){
+    ec.innerHTML='<div class="empty" style="padding:60px 20px">'+
+      '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>'+
+      '<h3 style="font-size:16px;font-weight:700;margin:10px 0 6px">Aucune tâche</h3>'+
+      '<p>Pas de tâche assignée aujourd\'hui</p>'+
+    '</div>';
+    return;
+  }
+
+  var allDone=done===total&&total>0;
+  ec.innerHTML=(allDone?
+    '<div class="all-done"><div class="check">🎉</div><h3>Bravo '+(esc(_empName)||'')+' !</h3><p>Toutes les tâches sont terminées</p></div>':'')+
+    myTasks.map(function(t){
+      var isDone=t.status==='done'||t.status==='completed';
+      var isInProg=t.status==='in_progress';
+      var typeLabels={cleaning:'Nettoyage départ',daily_cleaning:'Nettoyage quotidien',preparation:'Préparation arrivée',vip:'Préparation VIP ★',maintenance:'Maintenance',urgent:'URGENCE',inspection:'Inspection'};
+      var taskLabel=t.task_label||(typeLabels[t.type]||taskTypeLabel(t.type));
+      var roomShort=(t.room_name||'').replace('Chambre ','').replace('Studio Deluxe ','Studio ').replace('Appartement Familial ','Appt ');
+      return '<div class="emp-task prio-'+(t.priority||'normal')+(isDone?' done':'')+'">'+
+        '<div class="emp-task-top">'+
+          '<div class="emp-room-num">'+esc(roomShort)+'</div>'+
+          '<div class="emp-task-info">'+
+            '<div class="emp-task-type">'+esc(taskLabel)+'</div>'+
+            '<div class="emp-task-sub">'+esc(t.room_name||'—')+
+              (isInProg?' · <span style="color:var(--info)">En cours...</span>':'')+
+              (isDone?' · <span style="color:var(--success)">Terminé ✓</span>':'')+
+            '</div>'+
+          '</div>'+
+          '<div class="emp-prio-dot '+(t.priority||'normal')+'"></div>'+
+        '</div>'+
+        (!isDone?
+          '<div class="emp-actions">'+
+            (!isInProg?
+              '<button class="emp-btn start" data-tid="'+esc(t.id)+'" onclick="empStartTask(this.dataset.tid)">'+
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Commencer'+
+              '</button>' :
+              '<button class="emp-btn start" style="opacity:.3;cursor:default">'+
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>En cours'+
+              '</button>'
+            )+
+            '<button class="emp-btn done" data-tid="'+esc(t.id)+'" onclick="empCompleteTask(this.dataset.tid)">'+
+              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Terminé'+
+            '</button>'+
+            '<button class="emp-btn problem" data-tid="'+esc(t.id)+'" data-room="'+esc(t.room_name||'')+'" onclick="empReportProblem(this.dataset.tid,this.dataset.room)">'+
+              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Problème'+
+            '</button>'+
+          '</div>'+
+          // Photo thumbnails
+          (function(){
+            var photos=[];
+            try{photos=JSON.parse(t.photo_urls||'[]');}catch(e){}
+            if(!photos.length) return '';
+            return '<div style="display:flex;gap:6px;padding:8px 12px;flex-wrap:wrap">'+
+              photos.map(function(url,i){
+                return '<img src="'+url+'" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" data-idx="'+i+'" data-tid="'+esc(t.id)+'" onclick="viewPhoto(this.dataset.idx,this.dataset.tid)">';
+              }).join('')+
+            '</div>';
+          })()+
+          '<div style="padding:8px 12px;border-top:1px solid var(--border)">'+
+            '<button class="btn btn-ghost btn-sm" style="width:100%" data-tid="'+esc(t.id)+'" onclick="empTakePhoto(this.dataset.tid)">'+
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>'+
+              '📷 Ajouter photo (contrôle qualité)'+
+            '</button>'+
+          '</div>' :
+          '<div class="emp-done-overlay" style="display:block">Tâche complétée ✓</div>'
+        )+
+      '</div>';
+    }).join('');
+}
+
+function empStartTask(tid) {
+  startTask(tid);
+  setTimeout(renderEmployeeTasks,600);
+}
+
+function empCompleteTask(tid) {
+  completeTask(tid);
+  setTimeout(renderEmployeeTasks,600);
+}
+
+function empReportProblem(tid, roomName) {
+  document.getElementById('prob-task-id').value=tid;
+  var rn=document.getElementById('prob-room-name');
+  if(rn) rn.textContent=roomName||'Chambre';
+  document.getElementById('prob-desc').value='';
+  _selProblem='';
+  document.querySelectorAll('.prob-btn').forEach(function(b){b.classList.remove('selected');});
+  openModal('problemModal');
+}
+
+function selectProblem(btn) {
+  document.querySelectorAll('.prob-btn').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  _selProblem=btn.dataset.val||btn.textContent;
+}
+
+function saveProblem() {
+  var tid=document.getElementById('prob-task-id').value;
+  var desc=document.getElementById('prob-desc').value.trim();
+  if(!_selProblem&&!desc){showToast('Décrivez le problème','err');return;}
+  var notes=(_selProblem?_selProblem+': ':'')+desc;
+  var t=_tasks.find(function(x){return x.id===tid;});
+  var unitId=t?t.unit_id:null;
+
+  // Update task status to report problem
+  sbFetch('veraluz_housekeeping?id=eq.'+tid,{
+    method:'PATCH',
+    body:JSON.stringify({status:'in_progress',notes:notes,incident_notes:notes,updated_at:new Date().toISOString()})
+  }).then(function(r){
+    if(r.ok){
+      if(t) t.notes=notes;
+      // Create a maintenance task
+      if(unitId){
+        var u=_units.find(function(x){return x.id===unitId;});
+        sbFetch('veraluz_housekeeping',{method:'POST',body:JSON.stringify({
+          unit_id:unitId,type:'maintenance',status:'pending',priority:'high',
+          notes:notes,room_name:u?u.name:unitId,
+          task_label:'Problème signalé: '+(_selProblem||'voir notes'),
+          reported_by:_empName,scheduled_for:today(),
+          created_at:new Date().toISOString(),updated_at:new Date().toISOString()
+        })});
+        updateUnitHkStatus(unitId,'maintenance');
+      }
+      closeModal('problemModal');
+      showToast('Problème signalé à l\'admin','ok');
+      loadAll(renderEmployeeTasks);
+    }
+  });
+}
+
+/* ── RESERVATIONS SYNC ── */
+function syncWithReservations() {
+  var todayStr = today();
+  var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  var tomorrowStr = tomorrow.toISOString().slice(0,10);
+
+  _reservations.forEach(function(r) {
+    // Checkout today → ensure cleaning task (only today, not old checkouts)
+    if((r.status==='checkedout'||r.status==='checked_out') && r.check_out===todayStr) {
+      ensureCleaningTask(r, todayStr, tomorrowStr);
+    }
+    // Checkout yesterday → if cleaning done, ensure room is available
+    var yesterday=new Date(); yesterday.setDate(yesterday.getDate()-1);
+    var yStr=yesterday.toISOString().slice(0,10);
+    if((r.status==='checkedout'||r.status==='checked_out') && r.check_out===yStr) {
+      var u=_units.find(function(x){return x.id===r.unit_id;});
+      if(u && (u.hk_status==='dirty'||u.hk_status==='cleaning')) {
+        updateUnitHkStatus(r.unit_id,'available');
+        u.hk_status='available';
+      }
+    }
+    // Currently occupied → mark room as occupied (only if clean/available, not dirty/cleaning/maintenance)
+    if((r.status==='checkedin'||r.status==='checked_in') && r.check_in<=todayStr && r.check_out>todayStr) {
+      var u=_units.find(function(x){return x.id===r.unit_id;});
+      if(u && (u.hk_status==='available'||u.hk_status==='inspected'||!u.hk_status)) {
+        updateUnitHkStatus(r.unit_id,'occupied');
+        u.hk_status='occupied'; // update local cache immediately
+      }
+    }
+    // Confirmed arrival today or tomorrow → ensure preparation task
+    if(r.status==='confirmed' && (r.check_in===todayStr||r.check_in===tomorrowStr)) {
+      ensurePreparationTask(r);
+    }
+  });
+}
+
+function ensureCleaningTask(r, todayStr, tomorrowStr) {
+  // Check if any cleaning task exists for this unit today (active OR already done/cancelled)
+  // This prevents the infinite-loop where sync recreates tasks after they're completed
+  var existing = _tasks.filter(function(t){
+    if(t.unit_id !== r.unit_id || t.type !== 'cleaning') return false;
+    var sf = t.scheduled_for || '';
+    var isToday = sf === todayStr || sf === r.check_out;
+    return isActive(t) || (isToday && (t.status==='done'||t.status==='completed'||t.status==='cancelled'));
+  });
+
+  if(existing.length) {
+    // If all non-cancelled tasks are done → room is clean, ensure hk_status = available
+    var nonCancelled = existing.filter(function(t){return t.status!=='cancelled';});
+    var allDone = nonCancelled.length > 0 &&
+      nonCancelled.every(function(t){return t.status==='done'||t.status==='completed';});
+    if(allDone) {
+      var u = _units.find(function(x){return x.id===r.unit_id;});
+      if(u && (u.hk_status==='dirty'||u.hk_status==='cleaning')) {
+        updateUnitHkStatus(r.unit_id,'available');
+        u.hk_status = 'available';
+      }
+    }
+    return;
+  }
+
+  // Check if another check-in is today or tomorrow → affects priority
+  var nextArrival = _reservations.find(function(x){
+    return x.unit_id===r.unit_id && x.id!==r.id &&
+      (x.check_in===todayStr||x.check_in===tomorrowStr) &&
+      (x.status==='confirmed'||x.status==='checkedin'||x.status==='checked_in');
+  });
+  var prio = nextArrival && nextArrival.check_in===todayStr ? 'urgent' : nextArrival ? 'high' : 'normal';
+  var u = _units.find(function(x){return x.id===r.unit_id;});
+  var body = {
+    unit_id:r.unit_id, type:'cleaning', status:'pending', priority:prio,
+    task_label:'Nettoyage départ',
+    room_name:u?u.name:r.unit_id,
+    notes:'Départ: '+(r.client_name||'client')+(nextArrival?' | Prochaine arrivée: '+(nextArrival.check_in===todayStr?"aujourd'hui":nextArrival.check_in):''),
+    scheduled_for:todayStr,
+    reported_by:'Auto-sync Réservations',
+    created_at:new Date().toISOString(), updated_at:new Date().toISOString()
+  };
+  sbFetch('veraluz_housekeeping',{method:'POST',body:JSON.stringify(body)}).then(function(res){
+    if(res.ok||res.status===201){
+      updateUnitHkStatus(r.unit_id,'dirty');
+      showToast((u?u.name:r.unit_id)+' — tâche ménage créée automatiquement','ok');
+      loadAll(function(){syncWithReservations();refresh();});
+    }
+  });
+}
+
+function ensurePreparationTask(r) {
+  var existing = _tasks.filter(function(t){
+    return t.unit_id===r.unit_id &&
+      (t.type==='preparation'||t.type==='vip') &&
+      t.scheduled_for===r.check_in &&
+      (isActive(t)||t.status==='done'||t.status==='completed'||t.status==='cancelled');
+  });
+  if(existing.length) return;
+
+  var todayStr = today();
+  var u = _units.find(function(x){return x.id===r.unit_id;});
+  var body = {
+    unit_id:r.unit_id, type:'preparation', status:'pending',
+    priority: r.check_in===todayStr ? 'high' : 'normal',
+    task_label:'Préparation arrivée',
+    room_name:u?u.name:r.unit_id,
+    notes:'Arrivée: '+(r.client_name||'client')+' le '+r.check_in,
+    scheduled_for:r.check_in,
+    reported_by:'Auto-sync Réservations',
+    created_at:new Date().toISOString(), updated_at:new Date().toISOString()
+  };
+  sbFetch('veraluz_housekeeping',{method:'POST',body:JSON.stringify(body)}).then(function(res){
+    if(res.ok||res.status===201){
+      showToast((u?u.name:r.unit_id)+' — préparation arrivée créée','ok');
+      loadAll(function(){refresh();});
+    }
+  });
+}
+
+function taskPhotoThumb(t) {
+  var p=[]; try{p=JSON.parse(t.photo_urls||'[]');}catch(e){}
+  if(!p.length) return '';
+  return '<div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">'+
+    p.map(function(u,i){
+      return '<img src="'+u+'" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="viewPhoto('+i+',\'' +esc(t.id)+ '\')">';
+    }).join('')+'</div>';
+}
+
+/* ── PHOTO FUNCTIONS ── */
+function empTakePhoto(tid) {
+  var inp = document.createElement('input');
+  inp.type='file'; inp.accept='image/*'; inp.capture='environment';
+  inp.onchange = function() {
+    var file=inp.files[0]; if(!file) return;
+    showToast('Compression en cours...','');
+    var reader=new FileReader();
+    reader.onload=function(e){
+      compressImage(e.target.result, 900, function(compressed){
+        saveTaskPhoto(tid, compressed);
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+}
+
+function compressImage(dataUrl, maxW, cb) {
+  var img=new Image();
+  img.onload=function(){
+    var scale=Math.min(1, maxW/img.width);
+    var canvas=document.createElement('canvas');
+    canvas.width=Math.round(img.width*scale);
+    canvas.height=Math.round(img.height*scale);
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    cb(canvas.toDataURL('image/jpeg',0.72));
+  };
+  img.src=dataUrl;
+}
+
+function saveTaskPhoto(tid, dataUrl) {
+  var t=_tasks.find(function(x){return x.id===tid;});
+  var urls=[];
+  try{urls=JSON.parse(t?(t.photo_urls||'[]'):'[]');}catch(e){}
+  urls.push(dataUrl);
+  if(urls.length>5) urls=urls.slice(-5); // max 5 photos par tâche
+  var urlsStr=JSON.stringify(urls);
+  sbFetch('veraluz_housekeeping?id=eq.'+tid,{
+    method:'PATCH',
+    body:JSON.stringify({photo_urls:urlsStr,updated_at:new Date().toISOString()})
+  }).then(function(r){
+    if(r.ok){
+      if(t) t.photo_urls=urlsStr;
+      showToast('Photo enregistrée ✓','ok');
+      renderEmployeeTasks();
+    } else {
+      showToast('Erreur sauvegarde photo','err');
+    }
+  });
+}
+
+function viewPhoto(idx, tid) {
+  var t=_tasks.find(function(x){return x.id===tid;});
+  if(!t) return;
+  var urls=[];
+  try{urls=JSON.parse(t.photo_urls||'[]');}catch(e){}
+  var url=urls[parseInt(idx)];
+  if(!url) return;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:pointer';
+  ov.innerHTML='<img src="'+url+'" style="max-width:95vw;max-height:90vh;border-radius:12px;object-fit:contain">';
+  ov.onclick=function(){document.body.removeChild(ov);};
+  document.body.appendChild(ov);
+}
+
+/* ── MODAL OVERLAY CLOSE ── */
+document.querySelectorAll('.modal-overlay').forEach(function(o){
+  o.addEventListener('click',function(e){if(e.target===o)o.classList.remove('open');});
+});
+
+/* ── INIT ── */
+var _lastHkRezSync = 0;
+
+document.addEventListener('DOMContentLoaded',function(){
+  goTab('dash');
+  loadAll(function(){
+    syncWithReservations();
+    refresh();
+  });
+
+  // Poll localStorage every 5s for reservation changes (checkout, checkin, new booking)
+  setInterval(function(){
+    try{
+      var ts = parseInt(localStorage.getItem('vlz_rez_updated')||'0');
+      if(ts > _lastHkRezSync){
+        _lastHkRezSync = ts;
+        loadAll(function(){
+          syncWithReservations();
+          refresh();
+        });
+      }
+    }catch(e){}
+  }, 5000);
+});
+</script>
+</body>
+</html>
