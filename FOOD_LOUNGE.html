@@ -350,6 +350,101 @@ svg{flex-shrink:0}
 }
 
 
+
+/* ── LIVRAISON GPS ── */
+.addr-modes{display:flex;gap:7px;margin-bottom:12px}
+.addr-mode-btn{
+  flex:1;padding:10px 8px;border-radius:var(--r12);
+  background:var(--bg3);border:1.5px solid var(--border);
+  cursor:pointer;transition:all .15s;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  font-size:.7rem;font-weight:600;color:var(--tx2);
+}
+.addr-mode-btn svg{width:18px;height:18px;color:var(--tx3)}
+.addr-mode-btn.active{background:var(--bg2);border-color:var(--tx);color:var(--tx)}
+.addr-mode-btn.active svg{color:var(--am)}
+.addr-mode-btn:active{transform:scale(.97)}
+
+.gps-card{
+  background:var(--bg2);border:1.5px solid var(--border);
+  border-radius:var(--r12);overflow:hidden;margin-bottom:12px;
+}
+.gps-map{height:130px;background:var(--bg3);position:relative;display:flex;align-items:center;justify-content:center}
+.gps-map #mini-map{position:absolute;inset:0;z-index:1}
+.gps-map .map-loading{position:relative;z-index:2;text-align:center;color:var(--tx3);font-size:.75rem}
+.gps-map .map-loading svg{margin:0 auto 6px;opacity:.4;width:28px;height:28px}
+.gps-info{padding:10px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gps-coords{font-size:.69rem;color:var(--tx2);line-height:1.5}
+.gps-coords strong{color:var(--tx);font-size:.72rem}
+.gps-retry{padding:5px 10px;border-radius:var(--r50);background:var(--bg3);border:1px solid var(--border);font-size:.68rem;font-weight:600;color:var(--tx2);cursor:pointer}
+
+.gps-btn{
+  width:100%;padding:12px;border-radius:var(--r12);
+  background:var(--bg2);border:1.5px solid var(--border);
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:.82rem;font-weight:700;color:var(--tx);cursor:pointer;
+  transition:all .18s;margin-bottom:12px;
+}
+.gps-btn svg{width:18px;height:18px;color:var(--am)}
+.gps-btn.loading{opacity:.6;pointer-events:none}
+.gps-btn.ok{background:rgba(22,163,74,.06);border-color:rgba(22,163,74,.3);color:#16a34a}
+.gps-btn.ok svg{color:#16a34a}
+
+/* Zone livraison */
+.zone-card{
+  border-radius:var(--r12);padding:11px 14px;margin-bottom:12px;
+  border:1.5px solid var(--border);background:var(--bg2);
+  display:flex;align-items:center;gap:11px;
+}
+.zone-ico{
+  width:36px;height:36px;border-radius:var(--r8);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.zone-ico svg{width:16px;height:16px}
+.zone-body{flex:1;min-width:0}
+.zone-name{font-size:.78rem;font-weight:700;color:var(--tx)}
+.zone-meta{font-size:.69rem;color:var(--tx2);margin-top:2px}
+.zone-fee{font-size:.88rem;font-weight:800;text-align:right}
+.zone-c1{background:rgba(22,163,74,.08);color:#16a34a}  /* Centre-ville */
+.zone-c2{background:rgba(59,130,246,.08);color:#3b82f6} /* La Lobé */
+.zone-c3{background:rgba(245,158,11,.08);color:#f59e0b} /* Grand Batanga */
+.zone-c4{background:rgba(239,68,68,.08);color:#ef4444}  /* Éloigné */
+
+/* Sélecteur manuel de zone */
+.zone-select{
+  width:100%;padding:10px 13px;border-radius:var(--r12);
+  background:var(--bg2);border:1.5px solid var(--border);
+  font-family:'Inter',sans-serif;font-size:.84rem;color:var(--tx);
+  outline:none;appearance:none;margin-bottom:12px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+  padding-right:32px;cursor:pointer;
+}
+.zone-select:focus{border-color:rgba(184,134,11,.45)}
+
+/* Timeline suivi */
+.timeline{padding:4px 0 8px}
+.tl-item{display:flex;gap:12px;position:relative;padding-bottom:14px}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--border);background:var(--bg3);
+  color:var(--tx3);position:relative;z-index:1;
+}
+.tl-dot svg{width:12px;height:12px}
+.tl-dot.done{background:var(--green);border-color:var(--green);color:#fff}
+.tl-dot.active{background:var(--am);border-color:var(--am);color:#fff;
+  box-shadow:0 0 0 4px rgba(184,134,11,.15)}
+.tl-line{
+  position:absolute;left:13px;top:28px;bottom:0;
+  width:2px;background:var(--border);
+}
+.tl-item.done .tl-line{background:var(--green)}
+.tl-body{flex:1;padding-top:4px}
+.tl-label{font-size:.78rem;font-weight:700;color:var(--tx)}
+.tl-time{font-size:.66rem;color:var(--tx3);margin-top:2px}
+
 /* ── RESIDENCE INFO CARD ── */
 .info-card{
   margin:12px 12px 20px;
@@ -924,6 +1019,137 @@ var _loadErr= false;
 
 /* ── Constants ── */
 var FEES      = {delivery:1000, room:500, lounge:0, pickup:0};
+
+/* ── ZONES LIVRAISON KRIBI ── */
+var RESTAURANT_LAT = 2.9366;
+var RESTAURANT_LNG = 9.9067;
+
+var DELIVERY_ZONES = [
+  {id:'z1', name:'Centre-ville',   maxKm:2,  fee:1000,  time:'15–20 min',  cls:'zone-c1'},
+  {id:'z2', name:'La Lobé',        maxKm:5,  fee:1500,  time:'25–35 min',  cls:'zone-c2'},
+  {id:'z3', name:'Grand Batanga',  maxKm:10, fee:2500,  time:'40–60 min',  cls:'zone-c3'},
+  {id:'z4', name:'Zone éloignée',  maxKm:999,fee:4000,  time:'60–90 min',  cls:'zone-c4'}
+];
+
+var _gpsLat = null, _gpsLng = null, _zone = null, _addrMode = 'text', _mapInited = false;
+
+/* Haversine distance km */
+function haversine(lat1,lng1,lat2,lng2){
+  var R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function getZoneByDist(km){
+  for(var i=0;i<DELIVERY_ZONES.length;i++){if(km<=DELIVERY_ZONES[i].maxKm)return DELIVERY_ZONES[i];}
+  return DELIVERY_ZONES[DELIVERY_ZONES.length-1];
+}
+
+function getZoneById(id){
+  for(var i=0;i<DELIVERY_ZONES.length;i++){if(DELIVERY_ZONES[i].id===id)return DELIVERY_ZONES[i];}
+  return DELIVERY_ZONES[0];
+}
+
+function setAddrMode(mode){
+  _addrMode=mode;
+  document.querySelectorAll('.addr-mode-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.mode===mode);
+  });
+  var gpsSection=document.getElementById('gps-section');
+  var txtSection=document.getElementById('txt-section');
+  if(gpsSection) gpsSection.style.display = mode==='gps'?'block':'none';
+  if(txtSection) txtSection.style.display = mode==='text'?'block':'none';
+}
+
+function startGPS(){
+  if(!navigator.geolocation){ alert('Géolocalisation non disponible sur cet appareil.'); return; }
+  var btn=document.getElementById('gps-btn');
+  if(btn){btn.classList.add('loading');btn.querySelector('span').textContent='Localisation en cours…';}
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      _gpsLat=pos.coords.latitude;
+      _gpsLng=pos.coords.longitude;
+      var km=haversine(_gpsLat,_gpsLng,RESTAURANT_LAT,RESTAURANT_LNG);
+      _zone=getZoneByDist(km);
+      if(btn){btn.classList.remove('loading');btn.classList.add('ok');btn.querySelector('span').textContent='Position capturée ✓';}
+      showGPSCard(km);
+      updateZoneCard(_zone,km);
+      updateDeliveryFee(_zone.fee);
+    },
+    function(err){
+      if(btn){btn.classList.remove('loading');btn.querySelector('span').textContent='Réessayer la localisation';}
+      var msg={1:'Permission refusée',2:'Position indisponible',3:'Délai expiré'};
+      alert('Erreur GPS : '+(msg[err.code]||err.message));
+    },
+    {timeout:10000,maximumAge:60000,enableHighAccuracy:true}
+  );
+}
+
+function showGPSCard(km){
+  var card=document.getElementById('gps-card');
+  if(!card) return;
+  card.style.display='block';
+  var ci=document.getElementById('gps-coords-info');
+  if(ci) ci.innerHTML='<strong>'+_gpsLat.toFixed(5)+'° N, '+_gpsLng.toFixed(5)+'° E</strong><br>~'+km.toFixed(1)+' km de la résidence';
+  /* Mini carte Leaflet */
+  if(!document.getElementById('leaflet-css')){
+    var lnk=document.createElement('link');
+    lnk.id='leaflet-css';lnk.rel='stylesheet';
+    lnk.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(lnk);
+  }
+  if(!window.L){
+    var sc=document.createElement('script');
+    sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    sc.onload=function(){ initMiniMap(); };
+    document.body.appendChild(sc);
+  } else { initMiniMap(); }
+}
+
+function initMiniMap(){
+  if(_mapInited) return;
+  _mapInited=true;
+  var mapEl=document.getElementById('mini-map');
+  if(!mapEl||!window.L) return;
+  try{
+    var map=window.L.map('mini-map',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false});
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    var icon=window.L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#b8860b;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+    var ricon=window.L.divIcon({className:'',html:'<div style="width:12px;height:12px;background:#1a1a18;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,.3)"></div>',iconSize:[12,12],iconAnchor:[6,6]});
+    window.L.marker([_gpsLat,_gpsLng],{icon:icon}).addTo(map);
+    window.L.marker([RESTAURANT_LAT,RESTAURANT_LNG],{icon:ricon}).addTo(map);
+    map.fitBounds([[_gpsLat,_gpsLng],[RESTAURANT_LAT,RESTAURANT_LNG]],{padding:[24,24]});
+  }catch(e){ console.warn('Map error:',e); }
+}
+
+function updateZoneCard(zone,km){
+  var zc=document.getElementById('zone-card');
+  if(!zc) return;
+  zc.style.display='flex';
+  zc.className='zone-card';
+  zc.innerHTML='<div class="zone-ico '+zone.cls+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>'
+    +'<div class="zone-body"><div class="zone-name">'+zone.name+'</div><div class="zone-meta">~'+( km?km.toFixed(1)+' km · ' :'' )+zone.time+'</div></div>'
+    +'<div class="zone-fee '+zone.cls+'">'+fmt(zone.fee)+'</div>';
+}
+
+function onZoneSelect(val){
+  _zone=getZoneById(val);
+  updateZoneCard(_zone,null);
+  updateDeliveryFee(_zone.fee);
+}
+
+function updateDeliveryFee(fee){
+  FEES.delivery=fee;
+  /* rafraîchir le résumé de commande visible */
+  var el=document.getElementById('cart-fee');
+  if(el) el.textContent=fmt(fee);
+  var tot=document.getElementById('cart-total-val');
+  var cartTotal=_cart.reduce(function(s,x){return s+x.price*x.qty;},0);
+  if(tot) tot.textContent=fmt(cartTotal+fee);
+  var btn=document.getElementById('cart-total-btn');
+  if(btn) btn.textContent=fmt(cartTotal+fee);
+}
+
 var SVC_LBLS  = {delivery:'Livraison', room:'Room service', lounge:'Lounge', pickup:'À emporter'};
 
 /* Category labels (match restaurant module IDs) */
@@ -1243,6 +1469,42 @@ function renderCartSummary(){
 }
 
 /* ── Checkout ── */
+
+function buildDeliverySection(){
+  var zonesOpts=DELIVERY_ZONES.map(function(z){
+    return '<option value="'+z.id+'">'+z.name+' — '+fmt(z.fee)+' ('+z.time+')</option>';
+  }).join('');
+  var html='<div class="fg" style="margin-top:4px">'
+    +'<label class="fl">Adresse de livraison</label>'
+    +'<div class="addr-modes">'
+    +'<button class="addr-mode-btn active" data-mode="text" onclick="setAddrMode(this.dataset.mode)">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>'
+    +'Saisir</button>'
+    +'<button class="addr-mode-btn" data-mode="gps" onclick="setAddrMode(this.dataset.mode)">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+    +'GPS</button>'
+    +'</div>'
+    +'<div id="txt-section">'
+    +'<textarea class="fi" id="co-addr" rows="2" placeholder="Ex: Quartier Talla, derrière le supermarché Total…" style="resize:none;line-height:1.5"></textarea>'
+    +'<div class="fg" style="margin-top:8px"><label class="fl">Zone de livraison</label>'
+    +'<select class="zone-select" id="co-zone" onchange="onZoneSelect(this.value)">'+zonesOpts+'</select></div>'
+    +'</div>'
+    +'<div id="gps-section" style="display:none">'
+    +'<button class="gps-btn" id="gps-btn" onclick="startGPS()" type="button">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>'
+    +'<span>Utiliser ma position actuelle</span></button>'
+    +'<div class="gps-card" id="gps-card" style="display:none">'
+    +'<div class="gps-map"><div id="mini-map"></div>'
+    +'<div class="map-loading" id="map-loading"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;display:block;margin:0 auto 6px;opacity:.4"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>Chargement carte…</div>'
+    +'</div>'
+    +'<div class="gps-info"><div class="gps-coords" id="gps-coords-info">—</div>'
+    +'<button class="gps-retry" onclick="startGPS()" type="button">Actualiser</button></div></div>'
+    +'</div>'
+    +'<div class="zone-card" id="zone-card" style="display:none"></div>'
+    +'</div>';
+  return html;
+}
+
 function openCheckout(){
   closeCart();renderCheckout();
   document.getElementById('coOv').classList.add('open');
@@ -1264,6 +1526,7 @@ function renderCheckout(){
     +'<div class="frow"><div class="fg"><label class="fl">Prénom</label><input class="fi" id="co-fn" type="text" placeholder="Jean" autocomplete="given-name"></div>'
     +'<div class="fg"><label class="fl">Nom</label><input class="fi" id="co-ln" type="text" placeholder="Dupont" autocomplete="family-name"></div></div>'
     +'<div class="fg"><label class="fl">Téléphone</label><input class="fi" id="co-ph" type="tel" placeholder="+237 6XX XXX XXX" autocomplete="tel"></div>'
+    +(svc==='delivery'?buildDeliverySection():'')
     +room+addr
     +'<div class="fg"><label class="fl">Notes</label><input class="fi" id="co-nt" placeholder="Allergies, cuisson, heure souhaitée…"></div>'
     +'<div class="fg"><div class="fl" style="margin-bottom:9px">Mode de paiement</div>'
@@ -1287,7 +1550,10 @@ function submitOrder(){
   var sub=cartSub(),fee=FEES[_svc]||0;
   var order={
     order_number:num,customer_name:fn+' '+ln,customer_phone:ph,
-    delivery_type:_svc,room_number:g('co-room')||null,address:g('co-addr')||null,
+    delivery_type:_svc,room_number:g('co-room')||null,
+    address:_gpsLat?('GPS: '+_gpsLat.toFixed(5)+', '+_gpsLng.toFixed(5)):(g('co-addr')||null),
+    delivery_lat:_gpsLat||null,delivery_lng:_gpsLng||null,
+    delivery_zone:_zone?_zone.name:(g('co-zone')?DELIVERY_ZONES.filter(function(z){return z.id===g('co-zone');})[0].name:null),
     notes:g('co-nt')||null,payment_method:_pay,
     items:JSON.stringify(_cart),subtotal:sub,delivery_fee:fee,total:sub+fee,
     status:'pending',source:'food-lounge',created_at:new Date().toISOString()
@@ -1298,7 +1564,11 @@ function submitOrder(){
     localStorage.setItem('vlz_food_updated',String(Date.now()));}catch(e){}
   try{if(window.parent&&window.parent!==window)window.parent.postMessage({veraluzEvent:true,source:'food-lounge',type:'new_food_order',data:order},'*');}catch(e){}
   sbInsert('veraluz_food_orders',order).catch(function(){});
-  var waMsg=encodeURIComponent('🍽 *Commande Veraluz Food & Lounge*\n📋 N° '+num+'\n👤 '+fn+' '+ln+'\n📞 '+ph+'\n🚀 '+SVC_LBLS[_svc]+'\n\n'
+  var addrLine=order.delivery_lat
+    ?('\n📍 GPS: https://maps.google.com/?q='+order.delivery_lat+','+order.delivery_lng)
+    :(order.address?'\n📍 '+order.address:'');
+  var zoneLine=order.delivery_zone?'\n🗺 Zone: '+order.delivery_zone:'';
+  var waMsg=encodeURIComponent('🍽 *Commande Veraluz Food & Lounge*\n📋 N° '+num+'\n👤 '+fn+' '+ln+'\n📞 '+ph+'\n🚀 '+SVC_LBLS[_svc]+addrLine+zoneLine+'\n\n'
     +_cart.map(function(x){return '• '+x.name+' ×'+x.qty+' = '+fmt(x.price*x.qty);}).join('\n')
     +'\n\n💰 Total : '+fmt(sub+fee)+'\n💳 '+_pay+(g('co-nt')?'\n📝 '+g('co-nt'):''));
   var wa=document.getElementById('wa-confirm');if(wa)wa.href='https://wa.me/'+WA+'?text='+waMsg;
