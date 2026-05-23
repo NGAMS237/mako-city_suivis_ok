@@ -1819,7 +1819,8 @@ function renderOrdersPanel(){
     var items=[];
     try{items=JSON.parse(typeof o.items==='string'?o.items:'[]');}catch(e){}
     var itemsStr=items.slice(0,2).map(function(i){return (i.qty||1)+'× '+(i.name||'?');}).join(', ')+(items.length>2?' +…':'');
-    return '<div class="op-card" onclick="openTrack(''+o.order_number+'')">'
+    var num=encodeURIComponent(String(o.order_number||''));
+    return '<div class="op-card" data-num="'+num+'" onclick="openTrack(decodeURIComponent(this.dataset.num))">'
       +'<div class="op-head">'
       +'<span class="op-num">'+o.order_number+'</span>'
       +'<span class="op-badge '+si.cls+'">'+si.ico+' '+si.lbl+'</span>'
@@ -1932,19 +1933,7 @@ function printReceipt(){
   var w=window.open('','_blank','width=360,height=600');
   w.document.write('<html><head><title>Reçu Veraluz</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:13px;max-width:320px;margin:0 auto}.rcp-wrap{border:1px solid #ddd;border-radius:8px;padding:16px}.rcp-top{text-align:center;border-bottom:1px dashed #ddd;padding-bottom:10px}.rcp-logo{font-weight:800;font-size:14px;color:#b8860b;letter-spacing:1px}.rcp-sub{color:#999;font-size:11px;margin-top:3px}.rcp-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#555}.rcp-tot{font-weight:800;font-size:14px;padding-top:8px;border-top:1px dashed #ddd;margin-top:5px;display:flex;justify-content:space-between}.rcp-pay{color:#999;font-size:11px;padding-top:4px}.pay-status-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:8px}.ps-pending{background:#fef3c7;color:#d97706}.ps-paid{background:#dcfce7;color:#16a34a}.ps-delivery{background:#ede9fe;color:#7c3aed}@media print{button{display:none}}</style></head><body>');
   w.document.write(rcp.innerHTML);
-  w.document.write('<br><button onclick="window.print()" style="width:100%;padding:10px;background:#b8860b;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px">🖨️ Imprimer</button><!-- ORDERS PANEL -->
-<div class="orders-panel" id="ordersPanel">
-  <div class="op-hdr">
-    <div class="op-hdr-close" onclick="closeOrdersPanel()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </div>
-    <div class="op-hdr-title">Mes commandes</div>
-    <span class="op-hdr-refresh" onclick="refreshOrdersStatuses()">↻ Actualiser</span>
-  </div>
-  <div id="ordersPanelList"></div>
-</div>
-
-</body></html>');
+  w.document.write('<br><button onclick="window.print()" style="width:100%;padding:10px;background:#b8860b;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px">🖨️ Imprimer</button></body></html>');
   w.document.close();
 }
 
@@ -1986,5 +1975,16 @@ window.addEventListener('message',function(ev){
   </div>
 </div>
 
+
+<div class="orders-panel" id="ordersPanel">
+  <div class="op-hdr">
+    <div class="op-hdr-close" onclick="closeOrdersPanel()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </div>
+    <div class="op-hdr-title">Mes commandes</div>
+    <span class="op-hdr-refresh" onclick="refreshOrdersStatuses()">↻ Actualiser</span>
+  </div>
+  <div id="ordersPanelList"></div>
+</div>
 </body>
 </html>
