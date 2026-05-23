@@ -319,6 +319,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
             <div id="indiv-existing" style="display:none;margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);"></div>
           </div>
         </div>
+        <!-- Historique des fiches de paie pour cet employé -->
+        <div id="indiv-history" style="margin-top:8px;"></div>
       </div>
 
       <!-- ═══ MODE COLLECTIF ═══ -->
@@ -1617,6 +1619,7 @@ function loadIndivFiche(eid){
 
   document.getElementById('indiv-fiche').style.display='';
   updateIndivCalc();
+  renderIndivHistory();
 }
 
 function updateIndivCalc(){
@@ -1667,10 +1670,12 @@ function approveIndivPayroll(){
     deductions:deduct+adv,
     cnps_employee:t.cnps_emp,cnps_employer:t.cnps_empr,irpp:t.irpp,
     apply_cnps:t.apply_cnps,apply_irpp:t.apply_irpp,
-    taxable_income:t.taxable,net_salary:net,
+    taxable_income:t.taxable,
     notes:note||null,
     status:'approuve'
   };
+  /* deductions includes cnps+irpp so generated net_salary column is correct */
+  d.deductions = deduct + adv + (t.apply_cnps?t.cnps_emp:0) + (t.apply_irpp?t.irpp:0);
   var btn=document.querySelector('#pay-individuel .btn-primary');
   if(btn){btn.disabled=true;btn.textContent='Enregistrement…';}
   var p;
@@ -1700,10 +1705,68 @@ function approveIndivPayroll(){
     /* Refresh list */
     loadPay();
     renderPay();
+    renderIndivHistory();
   }).catch(function(e){
     if(btn){btn.disabled=false;btn.textContent='✅ Approuver cette fiche';}
     toast('Erreur: '+(e.message||e),'err');
   });
+}
+
+function renderIndivHistory(){
+  var el=document.getElementById('indiv-history');
+  if(!el)return;
+  if(!_indivEmpId){el.innerHTML='';return;}
+  var emp=EMPS.find(function(e){return e.id===_indivEmpId;})||{};
+  var rows=PAYROLLS.filter(function(p){return p.employee_id===_indivEmpId;})
+    .sort(function(a,b){
+      var ma=a.period_year*100+(a.period_month||0);
+      var mb=b.period_year*100+(b.period_month||0);
+      return mb-ma;
+    });
+  if(!rows.length){el.innerHTML='';return;}
+  var stMap={en_attente:'⏳',approuve:'👍',paye:'✅ Payé'};
+  var stCol={en_attente:'#f59e0b',approuve:'#22d3a5',paye:'#10b981'};
+  var html='<div class="card" style="padding:14px 16px;">'
+    +'<div style="font-size:12px;font-weight:800;color:var(--text3);margin-bottom:10px;">📋 Fiches générées — '+esc(emp.full_name||'')+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:6px;">';
+  rows.forEach(function(p){
+    var net=netOf(p);
+    var mo=(p.period_month||0).toString().padStart(2,'0');
+    var label=(p.period_year||'?')+'-'+mo;
+    var st=stMap[p.status]||p.status;
+    var col=stCol[p.status]||'#888';
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg2);border-radius:8px;border-left:3px solid '+col+';">'
+      +'<div style="flex:1;">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text);">'+esc(label)+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">Brut : '+fmt(p.gross_salary||0)+' · Net : <strong>'+fmt(net)+'</strong> FCFA</div>'
+      +'</div>'
+      +'<span style="font-size:11px;color:'+col+';font-weight:700;">'+esc(st)+'</span>'
+      +(p.status!=='paye'
+        ?'<button data-pid="'+esc(p.id)+'" onclick="deletePayrollRecord(this.dataset.pid)" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">🗑</button>'
+        :'')
+      +'</div>';
+  });
+  html+='</div></div>';
+  el.innerHTML=html;
+}
+
+function deletePayrollRecord(pid){
+  if(!confirm('Supprimer cette fiche de paie ?'))return;
+  var url=SB_URL+'/rest/v1/veraluz_payroll?id=eq.'+pid;
+  fetch(url,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=minimal'}})
+    .then(function(){
+      var idx=PAYROLLS.findIndex(function(x){return x.id===pid;});
+      if(idx>=0)PAYROLLS.splice(idx,1);
+      /* Reset existing id if deleted */
+      if(_indivExistingId===pid){
+        _indivExistingId=null;
+        document.getElementById('indiv-existing').style.display='none';
+        document.getElementById('indiv-pdf-btn').style.display='none';
+      }
+      renderIndivHistory();
+      loadPay();
+      toast('Fiche supprimée','ok');
+    }).catch(function(e){toast('Erreur suppression: '+(e.message||e),'err');});
 }
 
 function printIndivPayslip(){
@@ -1968,10 +2031,10 @@ function approveAllPayroll(){
     var existing=PAYROLLS.find(function(x){return x.employee_id===p.emp.id&&payM(x)===month;});
     var d={employee_id:p.emp.id,period_year:pyr,period_month:pmo,
       gross_salary:p.gross||p.base,base_salary:p.base,bonus:p.bonus,
-      deductions:(p.deduct||0)+(p.adv||0),
+      deductions:(p.deduct||0)+(p.adv||0)+(p.apply_cnps?p.cnps_emp||0:0)+(p.apply_irpp?p.irpp||0:0),
       cnps_employee:p.cnps_emp||0,cnps_employer:p.cnps_empr||0,irpp:p.irpp||0,
       apply_cnps:p.apply_cnps,apply_irpp:p.apply_irpp,
-      taxable_income:p.taxable||0,net_salary:p.net,status:'approuve'};
+      taxable_income:p.taxable||0,status:'approuve'};
     if(existing){return PATCH('veraluz_payroll',existing.id,d);}
     else{d.id=gid();return POST('veraluz_payroll',d).then(function(r){PAYROLLS.unshift(r[0]||d);});}
   });
@@ -1999,10 +2062,11 @@ function savePay(){
   var net=t.gross-deduct-(t.apply_cnps?t.cnps_emp:0)-(t.apply_irpp?t.irpp:0);
   var d={id:gid(),employee_id:document.getElementById('pay-emp').value,
     period_year:pyr,period_month:pmo,
-    gross_salary:t.gross,base_salary:base,bonus:bonus,deductions:deduct,
+    gross_salary:t.gross,base_salary:base,bonus:bonus,
+    deductions:deduct+(t.apply_cnps?t.cnps_emp:0)+(t.apply_irpp?t.irpp:0),
     cnps_employee:t.cnps_emp,cnps_employer:t.cnps_empr,irpp:t.irpp,
     apply_cnps:t.apply_cnps,apply_irpp:t.apply_irpp,taxable_income:t.taxable,
-    net_salary:Math.max(0,net),status:document.getElementById('pay-status').value,
+    status:document.getElementById('pay-status').value,
     notes:document.getElementById('pay-notes').value.trim()||null};
   if(!d.employee_id){toast('Employ&#233; requis','err');return;}
   POST('veraluz_payroll',d).then(function(r){PAYROLLS.unshift(r[0]||d);closeMd('md-add-pay');loadPay();toast('Fiche ajout&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
