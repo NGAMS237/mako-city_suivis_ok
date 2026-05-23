@@ -615,11 +615,11 @@ function buildOrderCard(o){
   var ini=((o.customer_name||'?')[0]).toUpperCase();
   return '<div class="order-card">'
     +'<div class="sp-bar">'+stepsHtml+'</div>'
-    +'<div class="oc-head"><span class="oc-num">#'+escH(String(o.order_ref||o.id||'').slice(-6).toUpperCase())+'</span><span class="oc-status '+st.cls+'">'+st.ico+' '+st.lbl+'</span></div>'
+    +'<div class="oc-head"><span class="oc-num">#'+escH(String(o.order_number||o.id||'').slice(-6).toUpperCase())+'</span><span class="oc-status '+st.cls+'">'+st.ico+' '+st.lbl+'</span></div>'
     +'<div class="oc-body">'
     +'<div class="oc-client"><div class="oc-av">'+ini+'</div><div><div class="oc-cn">'+escH(o.customer_name||'Client')+'</div>'+(o.customer_phone?'<div class="oc-cp">'+escH(o.customer_phone)+'</div>':'')+'</div></div>'
-    +(o.delivery_address?'<div class="oc-addr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><div class="oc-addr-t">'+escH(o.delivery_address)+(o.delivery_zone?'<div class="oc-addr-z">Zone: '+escH(o.delivery_zone)+'</div>':'')+'</div></div>':'')
-    +(itemsHtml?'<div class="oc-items">'+itemsHtml+'<div class="oc-total"><span>Total</span><span>'+fmtXAF(o.total_amount||0)+'</span></div></div>':'')
+    +(o.address?'<div class="oc-addr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><div class="oc-addr-t">'+escH(o.address)+(o.delivery_zone?'<div class="oc-addr-z">Zone: '+escH(o.delivery_zone)+'</div>':'')+'</div></div>':'')
+    +(itemsHtml?'<div class="oc-items">'+itemsHtml+'<div class="oc-total"><span>Total</span><span>'+fmtXAF(o.total||0)+'</span></div></div>':'')
     +(tm?'<div class="oc-time">🕐 '+tm+'</div>':'')
     +'<div class="oc-actions">'+gpsHtml+phoneHtml+actionHtml+'</div>'
     +photoProofHtml
