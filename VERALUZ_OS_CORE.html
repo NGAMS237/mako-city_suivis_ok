@@ -101,35 +101,99 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   color:#000;font-weight:700;cursor:pointer;font-size:13px;margin-top:4px;}
 
 /* ── Dashboard ───────────────────────────────────────────────── */
-#view-dashboard{padding:16px;padding-bottom:calc(var(--bn-h) + var(--sab) + 16px);}
-@media(min-width:768px){#view-dashboard{padding:24px;padding-bottom:24px;}}
-.dash-greeting{font-size:20px;font-weight:700;margin-bottom:4px;}
-.dash-sub{font-size:13px;color:var(--text3);margin-bottom:20px;}
-.dash-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
-@media(min-width:640px){.dash-stats{grid-template-columns:repeat(4,1fr);}}
+#view-dashboard{padding:14px;padding-bottom:calc(var(--bn-h)+var(--sab)+80px);overflow-x:hidden;}
+@media(min-width:768px){#view-dashboard{padding:20px 24px 32px;}}
+.dash-hero{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
+.dash-greet{flex:1;}
+.dash-greeting{font-size:21px;font-weight:800;margin-bottom:2px;letter-spacing:-.3px;}
+.dash-sub{font-size:12px;color:var(--text3);}
+.dash-clock-box{text-align:right;flex-shrink:0;}
+.dash-time{font-size:30px;font-weight:800;color:var(--accent);letter-spacing:-1px;line-height:1;}
+.dash-occ-pill{margin-top:5px;font-size:10px;background:rgba(34,211,165,.12);color:var(--accent);padding:3px 10px;border-radius:20px;font-weight:700;display:inline-block;}
+.dash-refresh{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:12px;}
+.dash-refresh-txt{font-size:10px;color:var(--text3);}
+.dash-refresh-btn{font-size:10px;background:rgba(34,211,165,.1);color:var(--accent);border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-weight:600;}
+/* KPI grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+@media(min-width:480px){.kpi-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:900px){.kpi-grid{grid-template-columns:repeat(6,1fr);}}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 12px;position:relative;overflow:hidden;transition:transform .15s;}
+.kpi-card:hover{transform:translateY(-2px);}
+.kpi-card::before{content:'';position:absolute;inset:0;opacity:.06;pointer-events:none;}
+.kpi-card.c-green::before{background:linear-gradient(135deg,#22d3a5,transparent);}
+.kpi-card.c-blue::before{background:linear-gradient(135deg,#818cf8,transparent);}
+.kpi-card.c-amber::before{background:linear-gradient(135deg,#f59e0b,transparent);}
+.kpi-card.c-red::before{background:linear-gradient(135deg,#f43f5e,transparent);}
+.kpi-card.c-purple::before{background:linear-gradient(135deg,#a855f7,transparent);}
+.kpi-card.c-sky::before{background:linear-gradient(135deg,#38bdf8,transparent);}
+.kpi-ico{font-size:17px;margin-bottom:5px;}
+.kpi-val{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1;margin-bottom:2px;}
+.kpi-val.c-green{color:var(--accent);}.kpi-val.c-blue{color:#818cf8;}
+.kpi-val.c-amber{color:#f59e0b;}.kpi-val.c-red{color:#f43f5e;}
+.kpi-val.c-purple{color:#a855f7;}.kpi-val.c-sky{color:#38bdf8;}
+.kpi-lbl{font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.kpi-delta{font-size:9px;margin-top:3px;color:var(--text3);}
+/* 2-col panels */
+.dash-two{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px;}
+@media(min-width:768px){.dash-two{grid-template-columns:1fr 1fr;}}
+.dash-panel{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.dp-head{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.dp-title{font-size:11px;font-weight:700;flex:1;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);}
+.dp-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.dp-body{padding:10px;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;}
+.dp-empty{padding:18px;text-align:center;font-size:12px;color:var(--text3);}
+/* Timeline items */
+.tl-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:var(--bg3);}
+.tl-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.tl-dot.in{background:#22d3a5;box-shadow:0 0 5px rgba(34,211,165,.5);}
+.tl-dot.out{background:#f59e0b;box-shadow:0 0 5px rgba(245,158,11,.4);}
+.tl-dot.stay{background:#818cf8;}.tl-dot.food{background:#f43f5e;}
+.tl-dot.hk{background:#a855f7;}.tl-dot.pend{background:#f59e0b;}
+.tl-info{flex:1;min-width:0;}
+.tl-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tl-sub{font-size:10px;color:var(--text3);}
+.tl-tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;flex-shrink:0;white-space:nowrap;}
+.tl-tag.in{background:rgba(34,211,165,.15);color:#22d3a5;}
+.tl-tag.out{background:rgba(245,158,11,.15);color:#f59e0b;}
+.tl-tag.stay{background:rgba(129,140,248,.15);color:#818cf8;}
+.tl-tag.food{background:rgba(244,63,94,.15);color:#f43f5e;}
+.tl-tag.hk{background:rgba(168,85,247,.15);color:#a855f7;}
+.tl-tag.pend{background:rgba(245,158,11,.15);color:#f59e0b;}
+/* Sparkline */
+.dash-spark-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:13px 15px;margin-bottom:16px;}
+.spark-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.spark-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);}
+.spark-total{font-size:13px;font-weight:800;color:var(--accent);}
+#dash-sparkline{width:100%;height:56px;display:block;}
+.spark-lbl-row{display:flex;justify-content:space-between;margin-top:3px;}
+/* Staff strip */
+.staff-strip{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}
+.staff-pill{display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 5px;}
+.staff-av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#000;flex-shrink:0;}
+.staff-nm{font-size:11px;font-weight:600;}
+.staff-role{font-size:9px;color:var(--text3);}
+/* Shared */
+.dash-section{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;font-weight:600;margin-bottom:8px;}
+/* Modules */
+.modules-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px;}
+@media(min-width:640px){.modules-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:900px){.modules-grid{grid-template-columns:repeat(4,1fr);}}
+.mod-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px;cursor:pointer;transition:all .15s;text-align:left;border-color:transparent;color:var(--text);width:100%;}
+.mod-card:hover{background:var(--bg3);transform:translateY(-1px);}
+.mod-card.dim{cursor:default;opacity:.4;border:1px dashed var(--border);background:transparent;}
+.mod-card.dim:hover{transform:none;background:transparent;}
+.mod-icon{font-size:22px;margin-bottom:7px;}.mod-name{font-size:12px;font-weight:700;margin-bottom:2px;}
+.mod-desc{font-size:10px;color:var(--text3);}
+.mod-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-top:4px;background:rgba(34,211,165,.15);color:var(--accent);}
+.mod-badge.s{background:rgba(100,116,139,.15);color:var(--text3);}
+/* Legacy compat */
 .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;}
 .stat-val{font-size:26px;font-weight:700;margin-bottom:2px;}
 .stat-label{font-size:11px;color:var(--text3);}
 .stat-val.a{color:var(--accent);}.stat-val.w{color:var(--warn);}
-.dash-section{font-size:11px;color:var(--text3);text-transform:uppercase;
-  letter-spacing:.7px;font-weight:600;margin-bottom:12px;}
-.modules-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px;}
-@media(min-width:640px){.modules-grid{grid-template-columns:repeat(3,1fr);}}
-.mod-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
-  padding:16px;cursor:pointer;transition:all .15s;text-align:left;
-  border-color:transparent;color:var(--text);width:100%;}
-.mod-card:hover{background:var(--bg3);transform:translateY(-1px);}
-.mod-card.dim{cursor:default;opacity:.4;border:1px dashed var(--border);background:transparent;}
-.mod-card.dim:hover{transform:none;background:transparent;}
-.mod-icon{font-size:24px;margin-bottom:8px;}
-.mod-name{font-size:13px;font-weight:700;margin-bottom:3px;}
-.mod-desc{font-size:11px;color:var(--text3);}
-.mod-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;
-  border-radius:8px;margin-top:6px;background:rgba(34,211,165,.15);color:var(--accent);}
-.mod-badge.s{background:rgba(100,116,139,.15);color:var(--text3);}
+.dash-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
 .recent-list{display:flex;flex-direction:column;gap:8px;}
-.rec-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
-  padding:12px 14px;display:flex;align-items:center;gap:12px;}
+.rec-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;}
 .rec-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .rec-dot.ok{background:var(--ok);}.rec-dot.w{background:var(--warn);}.rec-dot.i{background:var(--acc2);}
 .rec-text{flex:1;font-size:13px;}.rec-time{font-size:11px;color:var(--text3);flex-shrink:0;}
@@ -360,20 +424,65 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
       <button class="err-retry" onclick="retryModule()">Réessayer</button>
     </div>
     <div id="view-dashboard" class="view active">
-      <div class="dash-greeting" id="dash-greeting">Bonjour &#128075;</div>
-      <div class="dash-sub" id="dash-date">Résidence Veraluz · Kribi</div>
-      <div class="dash-stats">
-        <div class="stat-card"><div class="stat-val a" id="st-rez">…</div><div class="stat-label">Réservations actives</div></div>
-        <div class="stat-card"><div class="stat-val" id="st-pay">…</div><div class="stat-label">Paiements en attente</div></div>
-        <div class="stat-card"><div class="stat-val" id="st-units">…</div><div class="stat-label">Unités disponibles</div></div>
-        <div class="stat-card"><div class="stat-val w" id="st-rev">…</div><div class="stat-label">Revenus validés (FCFA)</div></div>
+      <!-- Hero -->
+      <div class="dash-hero">
+        <div class="dash-greet">
+          <div class="dash-greeting" id="dash-greeting">Bonjour 👋</div>
+          <div class="dash-sub" id="dash-date">Résidence Veraluz · Kribi</div>
+        </div>
+        <div class="dash-clock-box">
+          <div class="dash-time" id="dash-liveclock">--:--</div>
+          <div class="dash-occ-pill" id="dash-occ-pill">…</div>
+        </div>
       </div>
+      <!-- Refresh -->
+      <div class="dash-refresh">
+        <span class="dash-refresh-txt" id="dash-last-upd">—</span>
+        <button class="dash-refresh-btn" onclick="loadDashboardData()">↺ Actualiser</button>
+      </div>
+      <!-- KPI 6 cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card c-green"><div class="kpi-ico">🏨</div><div class="kpi-val c-green" id="kpi-occ">…</div><div class="kpi-lbl">Occupation</div><div class="kpi-delta" id="kpi-occ-d"></div></div>
+        <div class="kpi-card c-blue"><div class="kpi-ico">📅</div><div class="kpi-val c-blue" id="kpi-arr">…</div><div class="kpi-lbl">Arrivées auj.</div><div class="kpi-delta" id="kpi-arr-d"></div></div>
+        <div class="kpi-card c-amber"><div class="kpi-ico">🚪</div><div class="kpi-val c-amber" id="kpi-dep">…</div><div class="kpi-lbl">Départs auj.</div><div class="kpi-delta" id="kpi-dep-d"></div></div>
+        <div class="kpi-card c-green"><div class="kpi-ico">💰</div><div class="kpi-val c-green" id="kpi-rev">…</div><div class="kpi-lbl">Revenus mois</div><div class="kpi-delta" id="kpi-rev-d"></div></div>
+        <div class="kpi-card c-red"><div class="kpi-ico">⏳</div><div class="kpi-val c-red" id="kpi-pend">…</div><div class="kpi-lbl">Paiements att.</div><div class="kpi-delta" id="kpi-pend-d"></div></div>
+        <div class="kpi-card c-purple"><div class="kpi-ico">🍽️</div><div class="kpi-val c-purple" id="kpi-food">…</div><div class="kpi-lbl">Commandes actives</div><div class="kpi-delta" id="kpi-food-d"></div></div>
+      </div>
+      <!-- 2 panels -->
+      <div class="dash-two">
+        <div class="dash-panel">
+          <div class="dp-head">
+            <span>📋</span>
+            <span class="dp-title">Séjours du jour</span>
+            <span class="dp-badge" id="dp-badge-rez" style="background:rgba(34,211,165,.12);color:var(--accent);">0</span>
+          </div>
+          <div class="dp-body" id="dp-sejours"><div class="dp-empty">Chargement…</div></div>
+        </div>
+        <div class="dash-panel">
+          <div class="dp-head">
+            <span>⚡</span>
+            <span class="dp-title">Activité temps réel</span>
+            <span class="dp-badge" id="dp-badge-act" style="background:rgba(244,63,94,.12);color:#f43f5e;">0</span>
+          </div>
+          <div class="dp-body" id="dp-activity"><div class="dp-empty">Chargement…</div></div>
+        </div>
+      </div>
+      <!-- Sparkline revenus 7j -->
+      <div class="dash-spark-wrap">
+        <div class="spark-head">
+          <span class="spark-title">📈 Revenus — 7 derniers jours</span>
+          <span class="spark-total" id="spark-total">—</span>
+        </div>
+        <svg id="dash-sparkline" viewBox="0 0 400 56" preserveAspectRatio="none"></svg>
+        <div class="spark-lbl-row" id="spark-labels"></div>
+      </div>
+      <!-- Staff on duty -->
+      <div class="dash-section" id="staff-section-lbl">Personnel présent</div>
+      <div class="staff-strip" id="dash-staff"><div style="font-size:12px;color:var(--text3);">Chargement…</div></div>
+      <!-- Modules -->
       <div class="dash-section">Modules actifs</div>
       <div class="modules-grid" id="dash-grid"></div>
-      <div class="dash-section">Réservations récentes</div>
-      <div class="recent-list" id="recent-list">
-        <div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Chargement…</div></div>
-      </div>
     </div>
     <div id="view-module" class="view">
       <iframe id="module-frame" title="Module Veraluz OS"
@@ -628,54 +737,170 @@ function buildNav(){
   });
 }
 
-/* ── Dashboard data ───────────────────────────────────────── */
+/* ── Dashboard helpers ─────────────────────────────────────── */
+function dSetEl(id,val){var el=document.getElementById(id);if(el)el.textContent=String(val==null?'—':val);}
+function dFmtK(n){n=Number(n)||0;if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return Math.round(n/1000)+'k';return String(Math.round(n));}
+
+/* ── Dashboard data ────────────────────────────────────────── */
+var _dashTimer=null;
 function loadDashboardData(){
+  var updEl=document.getElementById('dash-last-upd');
+  if(updEl)updEl.textContent='Actualisation…';
+  var now=new Date();
+  var todayStr=now.toISOString().slice(0,10);
+  var monthStr=todayStr.slice(0,7);
   Promise.all([
-    sbGet('/rest/v1/veraluz_reservations?select=id,status,client_name,unit_id,check_in&order=created_at.desc&limit=6'),
-    sbGet('/rest/v1/veraluz_payments?select=id,status,amount&order=created_at.desc'),
-    sbGet('/rest/v1/veraluz_units?select=id,status'),
-  ]).then(function(r){
-    var rezs  = r[0]||[];
-    var pays  = r[1]||[];
-    var units = r[2]||[];
-    var active  = rezs.filter(function(x){ return x.status==='checkedin'||x.status==='confirmed'; });
-    var pending = pays.filter(function(x){ return x.status==='pending'; });
-    var avail   = units.filter(function(x){ return x.status==='available'; });
-    var rev     = pays.filter(function(x){ return x.status==='validated'; })
-                      .reduce(function(s,p){ return s+(p.amount||0); },0);
-    document.getElementById('st-rez').textContent   = active.length;
-    document.getElementById('st-pay').textContent   = pending.length;
-    document.getElementById('st-units').textContent = avail.length;
-    document.getElementById('st-rev').textContent   = rev.toLocaleString('fr-FR');
-    var list = document.getElementById('recent-list');
-    if(!rezs.length){
-      list.innerHTML='<div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Aucune réservation</div></div>';
-      return;
+    sbGet('/rest/v1/veraluz_reservations?select=id,status,client_name,unit_id,check_in,check_out&order=check_in.asc&limit=150'),
+    sbGet('/rest/v1/veraluz_payments?select=id,status,amount,created_at&order=created_at.desc&limit=300'),
+    sbGet('/rest/v1/veraluz_units?select=id,status,name&limit=50'),
+    sbGet('/rest/v1/veraluz_food_orders?select=id,status,created_at&order=created_at.desc&limit=40'),
+    sbGet('/rest/v1/veraluz_attendance?select=id,employee_id,date,check_in,check_out&date=eq.'+todayStr),
+    sbGet('/rest/v1/veraluz_employees?select=id,full_name,role&status=eq.actif&limit=60'),
+    sbGet('/rest/v1/veraluz_housekeeping?select=id,status,room,created_at&order=created_at.desc&limit=30'),
+  ]).then(function(res){
+    var rezs =res[0]||[]; var pays=res[1]||[]; var units=res[2]||[];
+    var food =res[3]||[]; var atts=res[4]||[]; var emps=res[5]||[]; var hk=res[6]||[];
+
+    /* ── KPI: Occupation ── */
+    var total=units.length||1;
+    var inStay=rezs.filter(function(r){return r.status==='checkedin';}).length;
+    var occUnits=Math.max(units.filter(function(u){return u.status==='occupied';}).length,inStay);
+    var occ=Math.round(occUnits/(total||1)*100);
+    dSetEl('kpi-occ',occ+'%');
+    dSetEl('dash-occ-pill',occ+'% occupation · '+occUnits+'/'+total+' unités');
+    dSetEl('kpi-occ-d',occUnits+' occupées · '+(total-occUnits)+' libres');
+
+    /* ── KPI: Arrivées aujourd'hui ── */
+    var arr=rezs.filter(function(r){return r.check_in===todayStr;});
+    dSetEl('kpi-arr',arr.length);
+    dSetEl('kpi-arr-d',arr.filter(function(r){return r.status==='checkedin';}).length+' check-in faits');
+
+    /* ── KPI: Départs aujourd'hui ── */
+    var dep=rezs.filter(function(r){return r.check_out===todayStr;});
+    dSetEl('kpi-dep',dep.length);
+    dSetEl('kpi-dep-d',dep.filter(function(r){return r.status==='checkedout';}).length+' check-out faits');
+
+    /* ── KPI: Revenus mois ── */
+    var revMonth=pays.filter(function(p){
+      return(p.status==='validated'||p.status==='paye')&&(p.created_at||'').slice(0,7)===monthStr;
+    }).reduce(function(s,p){return s+(p.amount||0);},0);
+    dSetEl('kpi-rev',dFmtK(revMonth));
+    dSetEl('kpi-rev-d','FCFA · '+monthStr);
+
+    /* ── KPI: Paiements en attente ── */
+    var pend=pays.filter(function(p){return p.status==='pending';});
+    dSetEl('kpi-pend',pend.length);
+    dSetEl('kpi-pend-d',dFmtK(pend.reduce(function(s,p){return s+(p.amount||0);},0))+' FCFA');
+
+    /* ── KPI: Food actif ── */
+    var foodAct=food.filter(function(f){var s=f.status||'';return s==='pending'||s==='confirmed'||s==='preparing'||s==='ready'||s==='en_cours';});
+    dSetEl('kpi-food',foodAct.length);
+    dSetEl('kpi-food-d',food.filter(function(f){return(f.created_at||'').slice(0,10)===todayStr;}).length+' auj.');
+
+    /* ── Panel Séjours ── */
+    var allTd=[];
+    arr.forEach(function(r){allTd.push({r:r,dot:'in',tag:'in',lbl:'Arrivée'});});
+    dep.forEach(function(r){if(allTd.findIndex(function(x){return x.r.id===r.id;})>=0)return;allTd.push({r:r,dot:'out',tag:'out',lbl:'Départ'});});
+    rezs.filter(function(r){return r.status==='checkedin'&&r.check_in!==todayStr&&r.check_out!==todayStr;}).slice(0,5).forEach(function(r){allTd.push({r:r,dot:'stay',tag:'stay',lbl:'En séjour'});});
+    dSetEl('dp-badge-rez',allTd.length);
+    var sejEl=document.getElementById('dp-sejours');
+    if(sejEl){
+      sejEl.innerHTML=allTd.length?allTd.map(function(it){
+        return '<div class="tl-item"><div class="tl-dot '+it.dot+'"></div>'
+          +'<div class="tl-info"><div class="tl-name">'+escapeHtml(it.r.client_name||'—')+'</div>'
+          +'<div class="tl-sub">Unité '+(it.r.unit_id||'—')+' · '+(it.r.check_in||'')+(it.tag==='out'?' → '+(it.r.check_out||''):'')+'</div>'
+          +'</div><span class="tl-tag '+it.tag+'">'+it.lbl+'</span></div>';
+      }).join(''):'<div class="dp-empty">Aucun mouvement aujourd\'hui ✨</div>';
     }
-    list.innerHTML=rezs.slice(0,5).map(function(r){
-      var dot=r.status==='checkedin'?'ok':r.status==='confirmed'?'i':'w';
-      var lbl={checkedin:'En séjour',confirmed:'Confirmée',checkedout:'Départ',cancelled:'Annulée'}[r.status]||r.status;
-      return '<div class="rec-item">'
-        +'<div class="rec-dot '+dot+'"></div>'
-        +'<div class="rec-text"><strong>'+(r.client_name||'—')+'</strong> — Unité '+(r.unit_id||'—')+' · '+lbl+'</div>'
-        +'<div class="rec-time">'+(r.check_in||'')+'</div>'
-        +'</div>';
-    }).join('');
-  }).catch(function(e){
-    console.warn('[Core] Supabase error:',e);
-    ['st-rez','st-pay','st-units','st-rev'].forEach(function(id){
-      document.getElementById(id).textContent='—';
+
+    /* ── Panel Activité ── */
+    var acts=[];
+    foodAct.slice(0,4).forEach(function(f){
+      var stM={pending:'Nouveau',confirmed:'Confirmé',preparing:'En préparation',ready:'Prêt',en_cours:'En cours'};
+      acts.push({dot:'food',tag:'food',name:'Commande food',sub:(stM[f.status]||f.status)+' · '+(f.created_at||'').slice(11,16),lbl:stM[f.status]||f.status});
     });
+    hk.filter(function(h){return h.status==='pending'||h.status==='en_cours';}).slice(0,3).forEach(function(h){
+      acts.push({dot:'hk',tag:'hk',name:'Chambre '+(h.room||'—'),sub:'HK · '+(h.status==='en_cours'?'En cours':'À faire'),lbl:h.status==='en_cours'?'En cours':'À faire'});
+    });
+    pend.slice(0,2).forEach(function(p){
+      acts.push({dot:'pend',tag:'pend',name:'Paiement en attente',sub:dFmtK(p.amount||0)+' FCFA',lbl:'⏳'});
+    });
+    dSetEl('dp-badge-act',acts.length);
+    var actEl=document.getElementById('dp-activity');
+    if(actEl){
+      actEl.innerHTML=acts.length?acts.map(function(it){
+        return '<div class="tl-item"><div class="tl-dot '+it.dot+'"></div>'
+          +'<div class="tl-info"><div class="tl-name">'+escapeHtml(it.name)+'</div>'
+          +'<div class="tl-sub">'+escapeHtml(it.sub)+'</div></div>'
+          +'<span class="tl-tag '+it.tag+'">'+escapeHtml(it.lbl)+'</span></div>';
+      }).join(''):'<div class="dp-empty">Tout est calme ✨</div>';
+    }
+
+    /* ── Sparkline 7 jours ── */
+    var days7=[]; for(var d=6;d>=0;d--){var dd=new Date(now);dd.setDate(dd.getDate()-d);days7.push(dd.toISOString().slice(0,10));}
+    var dayVals=days7.map(function(ds){
+      return pays.filter(function(p){return(p.status==='validated'||p.status==='paye')&&(p.created_at||'').slice(0,10)===ds;}).reduce(function(s,p){return s+(p.amount||0);},0);
+    });
+    dashDrawSparkline(days7,dayVals);
+    dSetEl('spark-total',dFmtK(dayVals.reduce(function(s,v){return s+v;},0))+' FCFA / 7j');
+
+    /* ── Staff présent ── */
+    var presIds=atts.filter(function(a){return a.check_in&&!a.check_out;}).map(function(a){return a.employee_id;});
+    dSetEl('staff-section-lbl','Personnel présent ('+presIds.length+')');
+    var stEl=document.getElementById('dash-staff');
+    if(stEl){
+      stEl.innerHTML=presIds.length?presIds.map(function(eid){
+        var emp=emps.find(function(e){return e.id===eid;})||{full_name:'?',role:''};
+        var ini=(emp.full_name||'?').charAt(0).toUpperCase();
+        return '<div class="staff-pill"><div class="staff-av">'+ini+'</div>'
+          +'<div><div class="staff-nm">'+escapeHtml((emp.full_name||'').split(' ')[0])+'</div>'
+          +'<div class="staff-role">'+escapeHtml(emp.role||'')+'</div></div></div>';
+      }).join(''):'<div style="font-size:12px;color:var(--text3);">Aucun pointage aujourd\'hui</div>';
+    }
+
+    /* ── Last update ── */
+    if(updEl)updEl.textContent='↺ '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    /* Auto-refresh 90s */
+    if(_dashTimer)clearTimeout(_dashTimer);
+    _dashTimer=setTimeout(loadDashboardData,90000);
+  }).catch(function(e){
+    console.warn('[Dashboard]',e);
+    if(updEl)updEl.textContent='⚠ Erreur';
+    if(_dashTimer)clearTimeout(_dashTimer);
+    _dashTimer=setTimeout(loadDashboardData,30000);
   });
 }
 
-/* ── Greeting ─────────────────────────────────────────────── */
+function dashDrawSparkline(days,vals){
+  var svg=document.getElementById('dash-sparkline');
+  if(!svg||!days.length)return;
+  var W=400,H=56,pad=4;
+  var max=Math.max.apply(null,vals)||1;
+  var pts=vals.map(function(v,i){
+    return [pad+(i/(vals.length-1||1))*(W-pad*2), H-pad-(v/max)*(H-pad*2)];
+  });
+  var lineD='M'+pts[0][0]+','+pts[0][1]+pts.slice(1).map(function(p){return' L'+p[0]+','+p[1];}).join('');
+  var areaD=lineD+' L'+pts[pts.length-1][0]+','+(H-pad)+' L'+pts[0][0]+','+(H-pad)+' Z';
+  svg.innerHTML='<defs><linearGradient id="dsg" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="0%" stop-color="#22d3a5" stop-opacity=".35"/>'
+    +'<stop offset="100%" stop-color="#22d3a5" stop-opacity="0"/>'
+    +'</linearGradient></defs>'
+    +'<path d="'+areaD+'" fill="url(#dsg)"/>'
+    +'<path d="'+lineD+'" fill="none" stroke="#22d3a5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+    +pts.map(function(p,i){return'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3" fill="'+(i===pts.length-1?'#fff':'#22d3a5')+'" stroke="#22d3a5" stroke-width="'+(i===pts.length-1?'2':'0')+'"/>';}).join('');
+  var labEl=document.getElementById('spark-labels');
+  if(labEl){labEl.innerHTML=days.map(function(d){var dd=new Date(d);return'<span style="font-size:9px;color:var(--text3);">'+dd.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric'})+'</span>';}).join('');}
+}
+
+/* ── Greeting + live clock ─────────────────────────────────── */
 function initGreeting(){
   var h=new Date().getHours();
   var s=h<12?'Bonjour':h<18?'Bon après-midi':'Bonsoir';
   document.getElementById('dash-greeting').textContent=s+', Smith 👋';
-  document.getElementById('dash-date').textContent='Résidence Veraluz · '
+  document.getElementById('dash-date').textContent='Résidence Veraluz · Kribi · '
     +new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  function tick(){var el=document.getElementById('dash-liveclock');if(el)el.textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+  tick(); setInterval(tick,15000);
 }
 
 /* ── Sidebar mobile ───────────────────────────────────────── */
