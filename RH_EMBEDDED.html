@@ -135,6 +135,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 /* ── Pay list ── */
 .pay-month-nav{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:12px;}
+
+/* indiv pay */
+#indiv-calc>div:last-child{border-bottom:none!important;}
 </style>
 </head>
 <body>
@@ -245,47 +248,119 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <!-- PAIE WORKFLOW -->
     <div class="pane" id="pane-pay">
 
-      <!-- ── Step 1 : Contrôles ── -->
-      <div class="pay-step" style="margin-bottom:10px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <span class="step-num">1</span>
-          <span style="font-size:14px;font-weight:700;">Cycle de paie</span>
-        </div>
-        <div class="card-row" style="margin-bottom:10px;">
-          <div class="kpi"><div class="kpi-v" id="pay-mass">&#8212;</div><div class="kpi-l">Masse salariale</div></div>
-          <div class="kpi warn"><div class="kpi-v" id="pay-pending">&#8212;</div><div class="kpi-l">&#9203; En attente</div></div>
-          <div class="kpi ok"><div class="kpi-v" id="pay-paid">&#8212;</div><div class="kpi-l">&#9989; Pay&#233;es</div></div>
-        </div>
-        <div class="btn-row">
-          <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" />
-          <button class="btn btn-primary" onclick="calcPayroll()">&#128200; Calculer</button>
-          <button class="btn btn-sec" onclick="openAddPay()">&#43; Manuel</button>
-          <button class="btn btn-sec" onclick="exportPayCSV()">&#128438; Export CSV</button>
+      <!-- ═══ TABS MODE ═══ -->
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <button id="pay-mode-indiv" class="btn btn-primary" style="flex:1;font-size:12px;" onclick="setPayMode('individuel')">👤 Individuel</button>
+        <button id="pay-mode-coll"  class="btn btn-sec"     style="flex:1;font-size:12px;" onclick="setPayMode('collectif')">👥 Collectif</button>
+      </div>
+
+      <!-- ═══ MODE INDIVIDUEL ═══ -->
+      <div id="pay-individuel">
+        <div class="card" style="margin-bottom:12px;padding:14px 16px;">
+          <div style="font-size:13px;font-weight:800;color:var(--acc1);margin-bottom:12px;">📋 Fiche de paie individuelle</div>
+
+          <!-- Sélecteurs mois + employé -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <div style="flex:0 0 140px;">
+              <label class="fl" style="font-size:11px;">Mois</label>
+              <input type="month" id="indiv-month" class="fi" style="padding:7px 10px;margin-bottom:0;" onchange="onIndivChange()">
+            </div>
+            <div style="flex:1;min-width:160px;">
+              <label class="fl" style="font-size:11px;">Employé</label>
+              <select id="indiv-emp" class="fi" style="margin-bottom:0;" onchange="onIndivEmpSelect()">
+                <option value="">— Sélectionner —</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Fiche (cachée par défaut) -->
+          <div id="indiv-fiche" style="display:none;">
+
+            <!-- Infos employé -->
+            <div id="indiv-emp-info" style="display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:8px;padding:10px 12px;margin-bottom:12px;"></div>
+
+            <!-- Champs éditables -->
+            <div class="fg" style="margin-bottom:10px;">
+              <div>
+                <label class="fl" style="font-size:11px;">Salaire de base (FCFA)</label>
+                <input type="number" id="indiv-base" class="fi" style="margin-bottom:0;background:var(--bg2);color:var(--text3);" readonly>
+              </div>
+              <div>
+                <label class="fl" style="font-size:11px;">🎁 Primes / Bonus</label>
+                <input type="number" id="indiv-bonus" class="fi" style="margin-bottom:0;" placeholder="0" oninput="updateIndivCalc()">
+              </div>
+            </div>
+            <div class="fg" style="margin-bottom:10px;">
+              <div>
+                <label class="fl" style="font-size:11px;">➖ Retenues / Pénalités</label>
+                <input type="number" id="indiv-deduct" class="fi" style="margin-bottom:0;" placeholder="0" oninput="updateIndivCalc()">
+              </div>
+              <div>
+                <label class="fl" style="font-size:11px;">💸 Avances à déduire</label>
+                <input type="number" id="indiv-adv" class="fi" style="margin-bottom:0;background:var(--bg2);color:var(--text3);" readonly title="Calculé depuis les avances en attente">
+              </div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <label class="fl" style="font-size:11px;">📝 Note interne</label>
+              <input type="text" id="indiv-note" class="fi" style="margin-bottom:0;" placeholder="Optionnel…">
+            </div>
+
+            <!-- Calcul live -->
+            <div id="indiv-calc" style="background:var(--bg2);border-radius:10px;border:1px solid var(--border);padding:12px;margin-bottom:12px;font-size:12px;"></div>
+
+            <!-- Actions -->
+            <div class="btn-row" style="margin-bottom:0;">
+              <button class="btn btn-primary" style="flex:2;" onclick="approveIndivPayroll()">✅ Approuver cette fiche</button>
+              <button class="btn btn-sec" id="indiv-pdf-btn" style="flex:1;display:none;" onclick="printIndivPayslip()">📋 Bulletin PDF</button>
+              <button class="btn btn-sec" style="flex:1;" onclick="clearIndivFiche()">✕ Effacer</button>
+            </div>
+
+            <!-- Statut fiche existante -->
+            <div id="indiv-existing" style="display:none;margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);"></div>
+          </div>
         </div>
       </div>
 
-      <!-- ── Step 2 : Prévisualisation ── -->
-      <div id="payroll-preview" style="display:none;" class="pay-step" style="margin-bottom:10px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <span class="step-num">2</span>
-          <span style="font-size:14px;font-weight:700;">V&#233;rifier &amp; Approuver</span>
+      <!-- ═══ MODE COLLECTIF ═══ -->
+      <div id="pay-collectif" style="display:none;">
+        <div class="pay-step" style="margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span class="step-num">1</span>
+            <span style="font-size:14px;font-weight:700;">Cycle collectif</span>
+          </div>
+          <div class="card-row" style="margin-bottom:10px;">
+            <div class="kpi"><div class="kpi-v" id="pay-mass">—</div><div class="kpi-l">Masse salariale</div></div>
+            <div class="kpi warn"><div class="kpi-v" id="pay-pending">—</div><div class="kpi-l">⏳ En attente</div></div>
+            <div class="kpi ok"><div class="kpi-v" id="pay-paid">—</div><div class="kpi-l">✅ Payées</div></div>
+          </div>
+          <div class="btn-row">
+            <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" />
+            <button class="btn btn-primary" onclick="calcPayroll()">📊 Calculer tout</button>
+            <button class="btn btn-sec" onclick="exportPayCSV()">📥 Export CSV</button>
+          </div>
         </div>
-        <div id="payroll-table-wrap" style="overflow-x:auto;"></div>
-        <div class="btn-row" style="margin-top:12px;">
-          <button class="btn btn-primary" onclick="approveAllPayroll()">&#9989; Approuver tout</button>
-          <button class="btn btn-sec" onclick="document.getElementById('payroll-preview').style.display='none'">Annuler</button>
+        <div id="payroll-preview" style="display:none;" class="pay-step" style="margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span class="step-num">2</span>
+            <span style="font-size:14px;font-weight:700;">Vérifier &amp; Approuver tout</span>
+          </div>
+          <div id="payroll-table-wrap" style="overflow-x:auto;"></div>
+          <div class="btn-row" style="margin-top:12px;">
+            <button class="btn btn-primary" onclick="approveAllPayroll()">✅ Approuver tout</button>
+            <button class="btn btn-sec" onclick="document.getElementById('payroll-preview').style.display='none'">Annuler</button>
+          </div>
         </div>
       </div>
 
-      <!-- ── Navigateur de mois ── -->
+      <!-- ═══ NAVIGATEUR DE MOIS ═══ -->
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:12px;">
-        <button class="btn btn-sec" style="padding:4px 12px;font-size:16px;min-width:36px;" onclick="shiftPayMonth(-1)">&#9664;</button>
+        <button class="btn btn-sec" style="padding:4px 12px;font-size:16px;min-width:36px;" onclick="shiftPayMonth(-1)">◀</button>
         <span id="pay-month-label" style="font-size:14px;font-weight:800;color:var(--text);"></span>
-        <button class="btn btn-sec" style="padding:4px 12px;font-size:16px;min-width:36px;" onclick="shiftPayMonth(1)">&#9654;</button>
+        <button class="btn btn-sec" style="padding:4px 12px;font-size:16px;min-width:36px;" onclick="shiftPayMonth(1)">▶</button>
       </div>
 
-      <!-- ── Liste paie groupée par équipe ── -->
-      <div id="pay-list"><div class="empty"><div class="empty-ico">&#128176;</div>Chargement&#8230;</div></div>
+      <!-- ═══ LISTE PAR ÉQUIPE ═══ -->
+      <div id="pay-list"><div class="empty"><div class="empty-ico">💶</div>Chargement…</div></div>
     </div>
 
     <!-- AVANCES -->
@@ -804,7 +879,7 @@ function goTab(p){
   else if(p==='contrats'){loadContracts();}
   else if(p==='sched'){renderSched();}
   else if(p==='att'){loadAtt();}
-  else if(p==='pay'){_payMonth=_payMonth||new Date().toISOString().slice(0,7);var cm=document.getElementById('calc-month');if(cm)cm.value=_payMonth;loadPay();}
+  else if(p==='pay'){_payMonth=_payMonth||new Date().toISOString().slice(0,7);var cm=document.getElementById('calc-month');if(cm)cm.value=_payMonth;setPayMode('individuel');loadPay();}
   else if(p==='adv'){loadAdv();}
   else if(p==='docs'){loadDocs();}
   else if(p==='tasks'){loadTasks();}
@@ -1410,6 +1485,206 @@ function loadPay(){
   document.getElementById('pay-paid').textContent=fmt(paid)+' F';
   renderPay();
 }
+/* ══════════════════════════════════════════
+   PAIE INDIVIDUELLE
+══════════════════════════════════════════ */
+var _payMode='individuel';
+var _indivEmpId=null, _indivExistingId=null;
+
+function setPayMode(mode){
+  _payMode=mode;
+  document.getElementById('pay-individuel').style.display=mode==='individuel'?'':'none';
+  document.getElementById('pay-collectif').style.display=mode==='collectif'?'':'none';
+  document.getElementById('pay-mode-indiv').className='btn '+(mode==='individuel'?'btn-primary':'btn-sec');
+  document.getElementById('pay-mode-coll').className='btn '+(mode==='collectif'?'btn-primary':'btn-sec');
+  if(mode==='individuel') populateIndivEmpSel();
+  if(mode==='collectif') loadPay();
+}
+
+function populateIndivEmpSel(){
+  var sel=document.getElementById('indiv-emp');
+  if(!sel)return;
+  var mo=document.getElementById('indiv-month');
+  if(mo&&!mo.value) mo.value=_payMonth;
+  var active=EMPS.filter(function(e){return e.status==='actif';});
+  sel.innerHTML='<option value="">— Sélectionner un employé —</option>'
+    +active.map(function(e){
+      var def=EQUIPE_DEFS.find(function(d){return d.key===getEmpTeamKey(e);})||{ico:'👤'};
+      return '<option value="'+esc(e.id)+'">'+def.ico+' '+esc(e.full_name)+(e.role?' ('+esc(e.role)+')':'')+'</option>';
+    }).join('');
+}
+
+function onIndivChange(){
+  var mo=document.getElementById('indiv-month');
+  if(mo) _payMonth=mo.value||_payMonth;
+  updatePayMonthLabel();
+  if(_indivEmpId) loadIndivFiche(_indivEmpId);
+}
+
+function onIndivEmpSelect(){
+  var sel=document.getElementById('indiv-emp');
+  _indivEmpId=sel?sel.value:'';
+  if(!_indivEmpId){document.getElementById('indiv-fiche').style.display='none';return;}
+  loadIndivFiche(_indivEmpId);
+}
+
+function loadIndivFiche(eid){
+  var emp=EMPS.find(function(e){return e.id===eid;});
+  if(!emp){document.getElementById('indiv-fiche').style.display='none';return;}
+  var month=document.getElementById('indiv-month').value||_payMonth;
+  _payMonth=month;
+  updatePayMonthLabel();
+
+  /* Employee info banner */
+  var def=EQUIPE_DEFS.find(function(d){return d.key===getEmpTeamKey(emp);})||{ico:'👤',color:'#22d3a5',lbl:'Staff'};
+  var ini=emp.full_name.charAt(0).toUpperCase();
+  document.getElementById('indiv-emp-info').innerHTML=
+    '<div style="width:36px;height:36px;border-radius:50%;background:'+def.color+';display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;">'+esc(ini)+'</div>'
+    +'<div style="flex:1;">'
+    +'<div style="font-size:14px;font-weight:800;color:var(--text);">'+esc(emp.full_name)+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);">'+def.ico+' '+def.lbl+(emp.role?' · '+esc(emp.role):'')+(emp.momo_number?' · 📱 '+esc(emp.momo_number):'')+'</div>'
+    +'</div>'
+    +'<div style="text-align:right;">'
+    +'<div style="font-size:13px;font-weight:700;color:var(--acc1);">'+fmt(emp.base_salary||0)+' FCFA</div>'
+    +'<div style="font-size:10px;color:var(--text3);">salaire de base</div>'
+    +'</div>';
+
+  /* Base salary */
+  document.getElementById('indiv-base').value=emp.base_salary||0;
+
+  /* Bonuses for this month */
+  var bonuses=BONUSES.filter(function(b){return b.employee_id===eid&&b.month===month;});
+  var totalBonus=bonuses.filter(function(b){return b.type==='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
+  var totalDeduct=bonuses.filter(function(b){return b.type!=='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
+  document.getElementById('indiv-bonus').value=totalBonus||'';
+  document.getElementById('indiv-deduct').value=totalDeduct||'';
+
+  /* Pending advances */
+  var adv=ADVANCES.filter(function(a){return a.employee_id===eid&&a.status==='en_attente';}).reduce(function(s,a){return s+(a.amount||0);},0);
+  document.getElementById('indiv-adv').value=adv||'';
+
+  /* Check existing payroll record */
+  var existing=PAYROLLS.find(function(p){return p.employee_id===eid&&payM(p)===month;});
+  _indivExistingId=existing?existing.id:null;
+  var existEl=document.getElementById('indiv-existing');
+  var pdfBtn=document.getElementById('indiv-pdf-btn');
+  if(existing){
+    var stMap={en_attente:'⏳ En attente',approuve:'👍 Approuvé',paye:'✅ Payé'};
+    existEl.style.display='block';
+    existEl.innerHTML='ℹ️ Fiche existante pour '+month+' — Statut : <strong>'+(stMap[existing.status]||existing.status)+'</strong> — Net enregistré : <strong>'+fmt(netOf(existing))+' FCFA</strong><br><span style="opacity:.7;">Approuver remplacera cette fiche.</span>';
+    if(pdfBtn) pdfBtn.style.display='';
+    /* Pre-fill with existing values */
+    document.getElementById('indiv-bonus').value=existing.bonus||'';
+    document.getElementById('indiv-deduct').value=existing.deductions||'';
+    document.getElementById('indiv-note').value=existing.notes||'';
+  } else {
+    existEl.style.display='none';
+    if(pdfBtn) pdfBtn.style.display='none';
+    document.getElementById('indiv-note').value='';
+  }
+
+  document.getElementById('indiv-fiche').style.display='';
+  updateIndivCalc();
+}
+
+function updateIndivCalc(){
+  var base=parseFloat(document.getElementById('indiv-base').value)||0;
+  var bonus=parseFloat(document.getElementById('indiv-bonus').value)||0;
+  var deduct=parseFloat(document.getElementById('indiv-deduct').value)||0;
+  var adv=parseFloat(document.getElementById('indiv-adv').value)||0;
+  var t=calcTaxes(base,bonus,SETTINGS);
+  var net=Math.max(0, t.gross - deduct - adv - (t.apply_cnps?t.cnps_emp:0) - (t.apply_irpp?t.irpp:0));
+  var sC=t.apply_cnps, sI=t.apply_irpp;
+  var rows=[
+    {lbl:'Salaire brut',val:fmt(t.gross),color:'var(--text)',bold:false},
+    {lbl:'+ Primes',val:bonus>0?'+'+fmt(bonus):'—',color:bonus>0?'var(--ok)':'var(--text3)',bold:false},
+    {lbl:'− Retenues',val:deduct>0?'−'+fmt(deduct):'—',color:deduct>0?'var(--danger)':'var(--text3)',bold:false},
+    {lbl:'− Avances',val:adv>0?'−'+fmt(adv):'—',color:adv>0?'#f97316':'var(--text3)',bold:false},
+  ];
+  if(sC) rows.push({lbl:'− CNPS salarié ('+parseFloat(SETTINGS.cnps_rate_employee||4.2).toFixed(1)+'%)',val:'−'+fmt(t.cnps_emp),color:'var(--danger)',bold:false});
+  if(sC) rows.push({lbl:'  CNPS patronal',val:fmt(t.cnps_empr),color:'var(--text3)',bold:false,italic:true});
+  if(sI) rows.push({lbl:'− IRPP',val:'−'+fmt(t.irpp),color:'var(--danger)',bold:false});
+  rows.push({lbl:'NET À PAYER',val:fmt(net)+' FCFA',color:'var(--acc1)',bold:true});
+
+  document.getElementById('indiv-calc').innerHTML=
+    rows.map(function(r){
+      return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);'+(r.bold?'margin-top:4px;border-top:2px solid var(--acc1);border-bottom:none;':'')+(r.italic?'opacity:.6;':'')+'">'
+        +'<span style="color:var(--text3);font-size:11px;'+(r.bold?'font-weight:800;font-size:13px;color:'+r.color+';':'')+'">'+r.lbl+'</span>'
+        +'<span style="font-weight:'+(r.bold?'800':'600')+';color:'+r.color+';font-size:'+(r.bold?'14':'12')+'px;">'+r.val+'</span>'
+        +'</div>';
+    }).join('');
+}
+
+function approveIndivPayroll(){
+  var eid=_indivEmpId;
+  if(!eid){toast('Sélectionnez un employé','err');return;}
+  var emp=EMPS.find(function(e){return e.id===eid;});
+  var month=document.getElementById('indiv-month').value||_payMonth;
+  var base=parseFloat(document.getElementById('indiv-base').value)||0;
+  var bonus=parseFloat(document.getElementById('indiv-bonus').value)||0;
+  var deduct=parseFloat(document.getElementById('indiv-deduct').value)||0;
+  var adv=parseFloat(document.getElementById('indiv-adv').value)||0;
+  var note=document.getElementById('indiv-note').value.trim();
+  var t=calcTaxes(base,bonus,SETTINGS);
+  var net=Math.max(0, t.gross - deduct - adv - (t.apply_cnps?t.cnps_emp:0) - (t.apply_irpp?t.irpp:0));
+  var mparts=month.split('-');
+  var d={
+    employee_id:eid,
+    period_year:parseInt(mparts[0]),period_month:parseInt(mparts[1]),
+    gross_salary:t.gross,base_salary:base,bonus:bonus,
+    deductions:deduct+adv,
+    cnps_employee:t.cnps_emp,cnps_employer:t.cnps_empr,irpp:t.irpp,
+    apply_cnps:t.apply_cnps,apply_irpp:t.apply_irpp,
+    taxable_income:t.taxable,net_salary:net,
+    notes:note||null,
+    status:'approuve'
+  };
+  var btn=document.querySelector('#pay-individuel .btn-primary');
+  if(btn){btn.disabled=true;btn.textContent='Enregistrement…';}
+  var p;
+  if(_indivExistingId){
+    p=PATCH('veraluz_payroll',_indivExistingId,d).then(function(){
+      var idx=PAYROLLS.findIndex(function(x){return x.id===_indivExistingId;});
+      if(idx>=0)Object.assign(PAYROLLS[idx],d,{id:_indivExistingId});
+      _indivExistingId=_indivExistingId;
+    });
+  } else {
+    d.id=gid();
+    p=POST('veraluz_payroll',d).then(function(r){
+      var rec=r&&r[0]?r[0]:d;
+      PAYROLLS.unshift(rec);
+      _indivExistingId=rec.id;
+    });
+  }
+  p.then(function(){
+    if(btn){btn.disabled=false;btn.textContent='✅ Approuver cette fiche';}
+    toast('✅ Fiche de '+emp.full_name+' approuvée — '+month,'ok');
+    /* Show PDF button */
+    document.getElementById('indiv-pdf-btn').style.display='';
+    /* Refresh existing notice */
+    var existEl=document.getElementById('indiv-existing');
+    existEl.style.display='block';
+    existEl.innerHTML='✅ Fiche approuvée pour '+month+' — Net : <strong>'+fmt(net)+' FCFA</strong>';
+    /* Refresh list */
+    loadPay();
+    renderPay();
+  }).catch(function(e){
+    if(btn){btn.disabled=false;btn.textContent='✅ Approuver cette fiche';}
+    toast('Erreur: '+(e.message||e),'err');
+  });
+}
+
+function printIndivPayslip(){
+  if(!_indivExistingId)return;
+  printPayslip(_indivExistingId);
+}
+
+function clearIndivFiche(){
+  _indivEmpId=null;_indivExistingId=null;
+  var sel=document.getElementById('indiv-emp');if(sel)sel.value='';
+  document.getElementById('indiv-fiche').style.display='none';
+}
+
 function shiftPayMonth(delta){
   var d=new Date(_payMonth+'-01');
   d.setMonth(d.getMonth()+delta);
