@@ -132,6 +132,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 #toast.on{opacity:1;}
 .empty{text-align:center;padding:40px 20px;color:var(--text3);}
 .empty-ico{font-size:36px;margin-bottom:8px;}
+
+/* ── Pay list ── */
+.pay-month-nav{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:12px;}
 </style>
 </head>
 <body>
@@ -241,33 +244,47 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
     <!-- PAIE WORKFLOW -->
     <div class="pane" id="pane-pay">
-      <div class="pay-step">
+
+      <!-- ── Step 1 : Contrôles ── -->
+      <div class="pay-step" style="margin-bottom:10px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <span class="step-num">1</span>
           <span style="font-size:14px;font-weight:700;">Cycle de paie</span>
         </div>
-        <div class="card-row">
+        <div class="card-row" style="margin-bottom:10px;">
           <div class="kpi"><div class="kpi-v" id="pay-mass">&#8212;</div><div class="kpi-l">Masse salariale</div></div>
-          <div class="kpi warn"><div class="kpi-v" id="pay-pending">&#8212;</div><div class="kpi-l">En attente</div></div>
-          <div class="kpi ok"><div class="kpi-v" id="pay-paid">&#8212;</div><div class="kpi-l">Pay&#233;es</div></div>
+          <div class="kpi warn"><div class="kpi-v" id="pay-pending">&#8212;</div><div class="kpi-l">&#9203; En attente</div></div>
+          <div class="kpi ok"><div class="kpi-v" id="pay-paid">&#8212;</div><div class="kpi-l">&#9989; Pay&#233;es</div></div>
         </div>
         <div class="btn-row">
-          <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" /><button class="btn btn-primary" onclick="calcPayroll()">&#128200; Calculer la paie du mois</button>
-          <button class="btn btn-sec"     onclick="openAddPay()">&#43; Fiche manuelle</button>
-          <button class="btn btn-sec"     onclick="exportPayCSV()">&#128438; Export banque</button>
+          <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" />
+          <button class="btn btn-primary" onclick="calcPayroll()">&#128200; Calculer</button>
+          <button class="btn btn-sec" onclick="openAddPay()">&#43; Manuel</button>
+          <button class="btn btn-sec" onclick="exportPayCSV()">&#128438; Export CSV</button>
         </div>
       </div>
-      <div id="payroll-preview" style="display:none;" class="pay-step">
+
+      <!-- ── Step 2 : Prévisualisation ── -->
+      <div id="payroll-preview" style="display:none;" class="pay-step" style="margin-bottom:10px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <span class="step-num">2</span>
           <span style="font-size:14px;font-weight:700;">V&#233;rifier &amp; Approuver</span>
         </div>
-        <div id="payroll-table-wrap"></div>
+        <div id="payroll-table-wrap" style="overflow-x:auto;"></div>
         <div class="btn-row" style="margin-top:12px;">
           <button class="btn btn-primary" onclick="approveAllPayroll()">&#9989; Approuver tout</button>
-          <button class="btn btn-sec"     onclick="document.getElementById('payroll-preview').style.display='none'">Annuler</button>
+          <button class="btn btn-sec" onclick="document.getElementById('payroll-preview').style.display='none'">Annuler</button>
         </div>
       </div>
+
+      <!-- ── Navigateur de mois ── -->
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:12px;">
+        <button class="btn btn-sec" style="padding:4px 12px;font-size:16px;min-width:36px;" onclick="shiftPayMonth(-1)">&#9664;</button>
+        <span id="pay-month-label" style="font-size:14px;font-weight:800;color:var(--text);"></span>
+        <button class="btn btn-sec" style="padding:4px 12px;font-size:16px;min-width:36px;" onclick="shiftPayMonth(1)">&#9654;</button>
+      </div>
+
+      <!-- ── Liste paie groupée par équipe ── -->
       <div id="pay-list"><div class="empty"><div class="empty-ico">&#128176;</div>Chargement&#8230;</div></div>
     </div>
 
@@ -762,6 +779,7 @@ function fdt(d){if(!d)return'—';try{var dt=new Date(d);return dt.toLocaleDateS
 function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='on'+(type==='err'?' danger':'');setTimeout(function(){t.className='';},3000);}
 
 /* ═══════════════ STATE ═══════════════ */
+var _payMonth=new Date().toISOString().slice(0,7);
 var EMPS=[],TEAMS=[],CONTRACTS=[],SCHEDS=[],ATTS=[],PAYROLLS=[],ADVANCES=[],DOCS=[],TASKS=[],HIST=[],BONUSES=[],SETTINGS={};
 var empFilter='all',cFilter='all',attFilter='all',payFilter='all',advFilter='all',docFilter='all',taskFilter='all',histFilter='all';
 var schedWeekOffset=0;
@@ -786,7 +804,7 @@ function goTab(p){
   else if(p==='contrats'){loadContracts();}
   else if(p==='sched'){renderSched();}
   else if(p==='att'){loadAtt();}
-  else if(p==='pay'){loadPay();}
+  else if(p==='pay'){_payMonth=_payMonth||new Date().toISOString().slice(0,7);var cm=document.getElementById('calc-month');if(cm)cm.value=_payMonth;loadPay();}
   else if(p==='adv'){loadAdv();}
   else if(p==='docs'){loadDocs();}
   else if(p==='tasks'){loadTasks();}
@@ -1382,6 +1400,166 @@ function saveAtt(){
 }
 
 /* ═══════════════ PAIE ═══════════════ */
+function netOf(p){return p.net_salary||p.net_amount||0;}
+function loadPay(){
+  var total=PAYROLLS.reduce(function(s,p){return s+(netOf(p));},0);
+  var pending=PAYROLLS.filter(function(p){return p.status==='en_attente';}).reduce(function(s,p){return s+(netOf(p));},0);
+  var paid=PAYROLLS.filter(function(p){return p.status==='paye';}).reduce(function(s,p){return s+(netOf(p));},0);
+  document.getElementById('pay-mass').textContent=fmt(total)+' F';
+  document.getElementById('pay-pending').textContent=fmt(pending)+' F';
+  document.getElementById('pay-paid').textContent=fmt(paid)+' F';
+  renderPay();
+}
+function shiftPayMonth(delta){
+  var d=new Date(_payMonth+'-01');
+  d.setMonth(d.getMonth()+delta);
+  _payMonth=d.toISOString().slice(0,7);
+  updatePayMonthLabel();
+  renderPay();
+}
+function updatePayMonthLabel(){
+  var el=document.getElementById('pay-month-label');
+  if(!el)return;
+  var d=new Date(_payMonth+'-15');
+  el.textContent=d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}).replace(/^./,function(c){return c.toUpperCase();});
+  // Also sync calc-month
+  var cm=document.getElementById('calc-month');
+  if(cm)cm.value=_payMonth;
+}
+function payTeam(teamKey,month){
+  var list=PAYROLLS.filter(function(p){
+    var emp=EMPS.find(function(e){return e.id===p.employee_id;});
+    return emp&&getEmpTeamKey(emp)===teamKey&&payM(p)===month&&p.status!=='paye';
+  });
+  if(!list.length){toast('Tous déjà payés','ok');return;}
+  Promise.all(list.map(function(p){
+    return PATCH('veraluz_payroll',p.id,{status:'paye'}).then(function(){p.status='paye';});
+  })).then(function(){renderPay();loadPay();toast('✅ '+list.length+' paiement(s) validé(s)','ok');});
+}
+function renderPay(){
+  updatePayMonthLabel();
+  var month=_payMonth;
+  var list=PAYROLLS.filter(function(p){return payM(p)===month;});
+  var el=document.getElementById('pay-list');
+  if(!list.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">💶</div>Aucune fiche pour '+month+'</div>';
+    return;
+  }
+  /* Group by team */
+  var groups={};
+  list.forEach(function(p){
+    var emp=EMPS.find(function(e){return e.id===p.employee_id;});
+    var tk=emp?getEmpTeamKey(emp):'autre';
+    if(!groups[tk])groups[tk]={def:null,items:[]};
+    groups[tk].def=EQUIPE_DEFS.find(function(d){return d.key===tk;})||{key:tk,lbl:'Autre',ico:'👤',color:'#999'};
+    groups[tk].items.push({p:p,emp:emp});
+  });
+  var statusMap={en_attente:{lbl:'En attente',cls:'warn',ico:'⏳'},approuve:{lbl:'Approuvé',cls:'acc',ico:'👍'},paye:{lbl:'Payé',cls:'ok',ico:'✅'}};
+  var html='';
+  EQUIPE_DEFS.forEach(function(def){
+    var grp=groups[def.key];
+    if(!grp)return;
+    var totalNet=grp.items.reduce(function(s,x){return s+netOf(x.p);},0);
+    var countPaid=grp.items.filter(function(x){return x.p.status==='paye';}).length;
+    var countPending=grp.items.length-countPaid;
+    html+='<div style="margin-bottom:18px;">';
+    /* Team header */
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;background:'+def.color+'15;border:1px solid '+def.color+'33;border-radius:10px 10px 0 0;padding:10px 14px;">';
+    html+='<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.1rem;">'+def.ico+'</span>'
+      +'<span style="font-size:13px;font-weight:800;color:var(--text);">'+def.lbl+'</span>'
+      +'<span style="font-size:11px;color:var(--text3);">('+grp.items.length+')</span></div>';
+    html+='<div style="display:flex;align-items:center;gap:8px;">';
+    html+='<span style="font-size:12px;font-weight:700;color:'+def.color+';">'+fmt(totalNet)+' F</span>';
+    if(countPending>0){
+      html+='<button class="btn btn-primary" style="font-size:11px;padding:4px 10px;" '
+        +'data-tk="'+esc(def.key)+'" data-mo="'+esc(month)+'" '
+        +'onclick="payTeam(this.dataset.tk,this.dataset.mo)">✅ Payer tout</button>';
+    }
+    html+='</div></div>';
+    /* Employee cards */
+    html+='<div style="border:1px solid '+def.color+'22;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;">';
+    grp.items.forEach(function(x,i){
+      var p=x.p; var emp=x.emp;
+      var st=statusMap[p.status]||{lbl:p.status,cls:'warn',ico:'•'};
+      var gross=p.gross_salary||((p.base_salary||0)+(p.bonus||0));
+      var cnpsE=p.cnps_employee||0;
+      var net=netOf(p);
+      var momo=emp?emp.momo_number||'':'';
+      html+='<div style="padding:12px 14px;'+(i>0?'border-top:1px solid var(--border);':'')+'">';
+      /* Row 1: name + status */
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
+      html+='<div style="display:flex;align-items:center;gap:8px;">';
+      var ini=(emp?emp.full_name:'?').charAt(0).toUpperCase();
+      html+='<div style="width:30px;height:30px;border-radius:50%;background:'+def.color+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">'+esc(ini)+'</div>';
+      html+='<div><div style="font-size:13px;font-weight:700;color:var(--text);">'+esc(emp?emp.full_name:'—')+'</div>'
+        +'<div style="font-size:11px;color:var(--text3);">'+esc(emp?emp.role:'')+''+(momo?'&nbsp;· &nbsp;📱 '+esc(momo):'')+'</div></div>';
+      html+='</div>';
+      html+='<span class="bdg '+st.cls+'" style="font-size:11px;">'+st.ico+' '+st.lbl+'</span>';
+      html+='</div>';
+      /* Row 2: salary breakdown */
+      html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">';
+      html+='<div style="flex:1;min-width:70px;background:var(--bg2);border-radius:6px;padding:5px 8px;text-align:center;">'
+        +'<div style="font-size:10px;color:var(--text3);">Brut</div>'
+        +'<div style="font-size:12px;font-weight:700;">'+fmt(gross)+'</div></div>';
+      if(cnpsE>0){
+        html+='<div style="flex:1;min-width:70px;background:#fee2e2;border-radius:6px;padding:5px 8px;text-align:center;">'
+          +'<div style="font-size:10px;color:#b91c1c;">CNPS sal.</div>'
+          +'<div style="font-size:12px;font-weight:700;color:#b91c1c;">-'+fmt(cnpsE)+'</div></div>';
+      }
+      if(p.deductions&&p.deductions>0){
+        html+='<div style="flex:1;min-width:70px;background:#fee2e2;border-radius:6px;padding:5px 8px;text-align:center;">'
+          +'<div style="font-size:10px;color:#b91c1c;">Retenues</div>'
+          +'<div style="font-size:12px;font-weight:700;color:#b91c1c;">-'+fmt(p.deductions)+'</div></div>';
+      }
+      html+='<div style="flex:1;min-width:80px;background:var(--acc1)18;border:1px solid var(--acc1)44;border-radius:6px;padding:5px 8px;text-align:center;">'
+        +'<div style="font-size:10px;color:var(--acc1);">NET à payer</div>'
+        +'<div style="font-size:13px;font-weight:800;color:var(--acc1);">'+fmt(net)+'</div></div>';
+      html+='</div>';
+      /* Row 3: actions */
+      html+='<div class="btn-row" style="margin-bottom:0;">';
+      html+='<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">📋 Bulletin</button>';
+      html+='<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="sendPayslipEmail(this.dataset.pid)">✉️ Email</button>';
+      if(p.status!=='paye'){
+        html+='<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">✅ Marquer payé</button>';
+      }
+      html+='</div>';
+      html+='</div>';
+    });
+    html+='</div>';
+    html+='</div>';
+  });
+  /* Uncategorized teams */
+  Object.keys(groups).forEach(function(tk){
+    if(EQUIPE_DEFS.find(function(d){return d.key===tk;}))return;
+    var grp=groups[tk];
+    // render simply
+    grp.items.forEach(function(x){
+      var p=x.p; var emp=x.emp;
+      var st=statusMap[p.status]||{lbl:p.status,cls:'warn',ico:'•'};
+      html+='<div class="card" style="margin-bottom:8px;padding:12px 14px;">'
+        +'<div style="display:flex;justify-content:space-between;"><span style="font-weight:700;">'+esc(emp?emp.full_name:'—')+'</span>'
+        +'<span class="bdg '+st.cls+'">'+st.ico+' '+st.lbl+'</span></div>'
+        +'<div style="font-size:16px;font-weight:800;color:var(--acc1);margin:4px 0;">'+fmt(netOf(p))+' FCFA</div>'
+        +'<div class="btn-row" style="margin-bottom:0;">'
+        +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">📋 Bulletin</button>'
+        +(p.status!=='paye'?'<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">✅ Payer</button>':'')
+        +'</div></div>';
+    });
+  });
+  el.innerHTML=html||'<div class="empty"><div class="empty-ico">💶</div>Aucune fiche pour '+month+'</div>';
+}
+function loadPay(){
+  var month=_payMonth;
+  var list=PAYROLLS.filter(function(p){return payM(p)===month;});
+  var total=list.reduce(function(s,p){return s+(netOf(p));},0);
+  var pending=list.filter(function(p){return p.status==='en_attente'||p.status==='approuve';}).reduce(function(s,p){return s+(netOf(p));},0);
+  var paid=list.filter(function(p){return p.status==='paye';}).reduce(function(s,p){return s+(netOf(p));},0);
+  document.getElementById('pay-mass').textContent=fmt(total)+' F';
+  document.getElementById('pay-pending').textContent=fmt(pending)+' F';
+  document.getElementById('pay-paid').textContent=fmt(paid)+' F';
+  renderPay();
+}
+
 function netOf(p){return p.net_salary||p.net_amount||0;}
 function loadPay(){
   var total=PAYROLLS.reduce(function(s,p){return s+(netOf(p));},0);
