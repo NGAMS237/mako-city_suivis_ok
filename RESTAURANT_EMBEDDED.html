@@ -413,7 +413,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);
           <div class="cacts">
             <button class="btn bg bs" onclick="clearCart()" style="flex:1">&#128465;</button>
             <button class="btn bw bs" onclick="openPickTbl()" style="flex:1">&#128203; Table</button>
-            <button class="btn bw bs" onclick="openPickChambre()" style="flex:1" id="btn-pick-chambre" title="Facturer &#224; une chambre h&#244;tel">&#127974; Chambre</button>
+            <button class="btn bw bs" onclick="openPickChambre()" style="flex:1" id="btn-pick-chambre">&#127974; Chambre</button>
+            <button class="btn bw bs" onclick="openPickLivraison()" style="flex:1" id="btn-pick-livraison">&#128666; Livraison</button>
             <button id="send-btn" class="btn bp bs" onclick="sendKitchen()" style="flex:2">&#9989; Envoyer en cuisine</button>
           </div>
         </div>
@@ -1322,7 +1323,7 @@ function confirmPick(){
 }
 
 /* Send to kitchen */
-function sendKitchen(){
+function _sendKitchenInternal(){
   if(!CART.length){toast('Panier vide','er');return;}
   /* Anti-409 : check mémoire locale d'abord */
   if(!cartOrd&&cartTbl&&cartTbl.id&&!cartTbl.id.startsWith('room_')&&!cartTbl.id.startsWith('guest_')){
@@ -1636,6 +1637,57 @@ function kdsCard(o){
     +'</div>';
 }
 
+
+
+/* LIVRAISON TELEPHONIQUE */
+var _livClient={name:'',phone:'',addr:'',livId:null,livName:'',pay:'cash'};
+function openPickLivraison(){
+  var sel=document.getElementById('liv-livreur-sel');
+  if(sel){sel.innerHTML='<option value="">— Assigner plus tard —</option>'+(LIVREURS||[]).map(function(l){return '<option value="'+l.id+'">'+esc((l.prenom||'')+' '+(l.nom||''))+'</option>';}).join('');if(_livClient.livId)sel.value=_livClient.livId;}
+  var n=document.getElementById('liv-client-name');if(n)n.value=_livClient.name;
+  var p=document.getElementById('liv-client-phone');if(p)p.value=_livClient.phone;
+  var a=document.getElementById('liv-client-addr');if(a)a.value=_livClient.addr;
+  openMd('md-livraison');
+}
+function confirmPickLivraison(){
+  var name=(document.getElementById('liv-client-name')||{value:''}).value.trim();
+  var phone=(document.getElementById('liv-client-phone')||{value:''}).value.trim();
+  var addr=(document.getElementById('liv-client-addr')||{value:''}).value.trim();
+  if(!name||!phone){toast('Nom et telephone requis','err');return;}
+  var sel=document.getElementById('liv-livreur-sel');
+  var livId=sel?sel.value:'';
+  var lObj=(LIVREURS||[]).find(function(l){return l.id===livId;})||{prenom:'',nom:''};
+  var payEl=document.querySelector('input[name="liv-pay"]:checked');
+  _livClient={name:name,phone:phone,addr:addr,livId:livId||null,livName:livId?((lObj.prenom||'')+' '+(lObj.nom||'')).trim():'',pay:payEl?payEl.value:'cash'};
+  cartType='livraison';
+  cartTbl={id:'tel_'+Date.now(),name:'Livraison '+name};
+  var sub=document.getElementById('cart-sub');if(sub)sub.textContent='Livraison - '+name+(phone?' - '+phone:'');
+  var title=document.getElementById('cart-title');if(title)title.textContent='Commande telephonique';
+  closeMd('md-livraison');
+  toast('Client: '+name+' - mode livraison','ok');
+}
+function sendKitchen(){
+  if(cartType==='livraison'){_sendLivraisonTel();}else{_sendKitchenInternal();}
+}
+function _sendLivraisonTel(){
+  if(!CART.length){toast('Panier vide','err');return;}
+  if(!_livClient.name||!_livClient.phone){toast('Infos client manquantes','err');return;}
+  var num='VLZ-TEL-'+Date.now().toString().slice(-6);
+  var items=CART.map(function(c){return{name:c.p.name,price:c.p.price,qty:c.q};});
+  var sub=cartTot();
+  POST('veraluz_food_orders',{order_number:num,customer_name:_livClient.name,customer_phone:_livClient.phone,
+    address:_livClient.addr,delivery_type:'delivery',payment_method:_livClient.pay,payment_status:'pay_on_delivery',
+    items:JSON.stringify(items),subtotal:sub,delivery_fee:1000,total:sub+1000,status:'preparing',source:'restaurant-tel',
+    notes:document.getElementById('cnote').value.trim()||null,livreur_id:_livClient.livId||null,assigned_to:_livClient.livName||null
+  }).then(function(res){
+    var saved=res&&res[0]?res[0]:{};
+    if(!FOOD_ORDERS)FOOD_ORDERS=[];FOOD_ORDERS.unshift(saved);
+    clearCart();cartType='table';_livClient={name:'',phone:'',addr:'',livId:null,livName:'',pay:'cash'};
+    var s=document.getElementById('cart-sub');if(s)s.textContent='Aucune table';
+    var t=document.getElementById('cart-title');if(t)t.textContent='Nouvelle commande';
+    updateBdg();renderKDS();toast('Livraison #'+num+' en cuisine','ok');
+  }).catch(function(e){toast('Erreur: '+e,'er');});
+}
 
 /* ══════════════════════════════════════════════════════════
    REÇU IMPRIMABLE — Cuisine / KDS
@@ -2610,47 +2662,69 @@ function goVnt(t,btn){
 }
 function renderVentes(){
   var el=document.getElementById('vnt-body');
+  if(!el)return;
   var now=new Date();var todayStr=now.toISOString().slice(0,10);
-  var paid=ORDERS.filter(function(o){return o.status==='paye';});
-  var list=curVnt==='today'?paid.filter(function(o){return(o.paid_at||o.created_at||'').slice(0,10)===todayStr;}):paid;
-
-  if(!list.length){el.innerHTML='<div class="empty">Aucune vente'+(curVnt==='today'?' Aujourd\'hui':'')+' </div>';return;}
-
-  var total=list.reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
-  var byCash=list.filter(function(o){return o.payment_method==='cash';}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
-  var byMomo=list.filter(function(o){return o.payment_method==='momo';}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
-  var byCard=list.filter(function(o){return o.payment_method==='card';}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
-
-  var html='<div style="background:var(--bg3);border-radius:12px;padding:14px;margin-bottom:12px;">'
-    +'<div style="font-size:11px;color:var(--text3);margin-bottom:6px;">&#128200; '+(curVnt==='today'?'CHIFFRE D\'AFFAIRES AUJOURD\'HUI':'TOTAL HISTORIQUE')+'</div>'
-    +'<div style="font-size:24px;font-weight:800;color:var(--accent);">'+fmt(total)+'</div>'
-    +'<div style="display:flex;gap:12px;margin-top:10px;font-size:12px;">'
-    +(byCash?'<span style="color:var(--text2)">&#128181; Cash: <b>'+fmt(byCash)+'</b></span>':'')
-    +(byMomo?'<span style="color:var(--acc2)">&#128242; MoMo: <b>'+fmt(byMomo)+'</b></span>':'')
-    +(byCard?'<span style="color:var(--warn)">&#128179; Carte: <b>'+fmt(byCard)+'</b></span>':'')
-    +'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:6px;">'+list.length+' commande'+(list.length>1?'s':'')+'</div>'
-    +'</div>';
-
-  html+=list.map(function(o){
+  var restPaid=ORDERS.filter(function(o){return o.status==='paye';}).map(function(o){
     var tbl=TABLES.find(function(t){return t.id===o.table_id;});
-    var tnm=o.type==='room'?'&#128718; Room '+(o.room_number||'?'):tbl?esc(tbl.name):'Emporter';
-    var items=(o.items||o.items_json||[]).map(function(it){return it.qty+'&#215;'+esc(it.name);}).join(', ');
-    var dt=fdt(o.paid_at||o.created_at);
-    return '<div style="background:var(--bg3);border-radius:10px;padding:10px;margin-bottom:8px;border-left:3px solid var(--ok);">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-      +'<span style="font-weight:700;font-size:13px;">'+tnm+'</span>'
-      +'<span style="font-size:13px;font-weight:700;color:var(--accent);">'+fmt(o.total||o.total_amount)+'</span>'
+    return {_src:'restaurant',
+      ref:o.type==='room'?'🏨 Room '+(o.room_number||'?'):tbl?tbl.name:'Sur Place',
+      client:o.client_name||'',items:o.items_json||o.items||[],
+      total:o.total||o.total_amount||0,payment_method:o.payment_method||'cash',
+      date:o.paid_at||o.created_at||''};
+  });
+  var foodPaid=(FOOD_ORDERS||[]).filter(function(o){
+    return o.status==='delivered'||(o.payment_status==='paid'&&o.status!=='cancelled');
+  }).map(function(o){
+    var modeIco={delivery:'🚚',room:'🏨',lounge:'🍸',pickup:'🥡'}[o.delivery_type]||'🚚';
+    var items=[];try{items=typeof o.items==='string'?JSON.parse(o.items):o.items||[];}catch(e){}
+    var srcLbl=o.source==='restaurant-tel'?'📞 Tél':'🌐 App';
+    return {_src:'food',
+      ref:modeIco+' Livraison '+srcLbl+(o.order_number?' #'+o.order_number:''),
+      client:o.customer_name||'',items:items,
+      total:o.total||0,payment_method:o.payment_method||'cash',
+      date:o.delivered_at||o.created_at||''};
+  });
+  var allPaid=restPaid.concat(foodPaid).sort(function(a,b){return b.date.localeCompare(a.date);});
+  var list=curVnt==='today'?allPaid.filter(function(o){return o.date.slice(0,10)===todayStr;}):allPaid;
+  if(!list.length){el.innerHTML='<div class="empty">Aucune vente'+(curVnt==='today'?' aujourd\'hui':'')+' 📭</div>';return;}
+  var total=list.reduce(function(s,o){return s+o.total;},0);
+  var restTot=list.filter(function(o){return o._src==='restaurant';}).reduce(function(s,o){return s+o.total;},0);
+  var foodTot=list.filter(function(o){return o._src==='food';}).reduce(function(s,o){return s+o.total;},0);
+  var byCash=list.filter(function(o){return o.payment_method==='cash';}).reduce(function(s,o){return s+o.total;},0);
+  var byMomo=list.filter(function(o){return['momo','orange','mtn','mobile_money'].indexOf(o.payment_method)>=0;}).reduce(function(s,o){return s+o.total;},0);
+  var byCard=list.filter(function(o){return['card','carte'].indexOf(o.payment_method)>=0;}).reduce(function(s,o){return s+o.total;},0);
+  var html='<div style="background:var(--bg3);border-radius:12px;padding:14px;margin-bottom:14px;">'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">📈 '+(curVnt==='today'?'CA aujourd\'hui':'Historique total')+'</div>'
+    +'<div style="font-size:28px;font-weight:900;color:var(--accent);">'+fmt(total)+'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'
+    +(restTot?'<span style="font-size:11px;background:rgba(201,168,76,.15);color:var(--accent);padding:3px 9px;border-radius:20px">🍽️ Restaurant: <b>'+fmt(restTot)+'</b></span>':'')
+    +(foodTot?'<span style="font-size:11px;background:rgba(34,197,94,.12);color:#4ade80;padding:3px 9px;border-radius:20px">🚚 Livraison: <b>'+fmt(foodTot)+'</b></span>':'')
+    +'</div>'
+    +'<div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;font-size:11px;color:var(--text3);">'
+    +(byCash?'<span>💵 Cash: <b style="color:var(--text2)">'+fmt(byCash)+'</b></span>':'')
+    +(byMomo?'<span>📱 MoMo: <b style="color:var(--acc2)">'+fmt(byMomo)+'</b></span>':'')
+    +(byCard?'<span>💳 Carte: <b style="color:var(--warn)">'+fmt(byCard)+'</b></span>':'')
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:6px;">'+list.length+' vente'+(list.length>1?'s':'')+' · '+restPaid.length+' resto · '+foodPaid.length+' livraison</div>'
+    +'</div>';
+  html+=list.map(function(o){
+    var items=o.items.map(function(it){return (it.qty||it.quantity||1)+'×'+esc(it.name||it.product_name||'?');}).join(', ');
+    var payIco={cash:'💵',orange:'📱',mtn:'📱',momo:'📱',mobile_money:'📱',card:'💳',carte:'💳'}[o.payment_method]||'💰';
+    var brd=o._src==='food'?'#4ade80':'var(--ok)';
+    return '<div style="background:var(--bg3);border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid '+brd+';">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+      +'<span style="font-weight:700;font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(o.ref)+'</span>'
+      +'<span style="font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap">'+fmt(o.total)+'</span>'
       +'</div>'
-      +'<div style="font-size:11px;color:var(--text3);margin-top:3px;">'+items.slice(0,80)+'</div>'
-      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;">'
-      +'<span>'+(o.payment_method==='cash'?'&#128181;':'o.payment_method'==='momo'?'&#128242;':'&#128179;')+' '+(o.payment_method||'?')+'</span>'
-      +'<span>'+dt+'</span>'
-      +'</div>'
-      +'</div>';
+      +(o.client?'<div style="font-size:11px;color:var(--text3);margin-top:2px;">👤 '+esc(o.client)+'</div>':'')
+      +(items?'<div style="font-size:11px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(items.slice(0,80))+'</div>':'')
+      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:5px;">'
+      +'<span>'+payIco+' '+esc(o.payment_method||'?')+'</span><span>'+fdt(o.date)+'</span>'
+      +'</div></div>';
   }).join('');
   el.innerHTML=html;
 }
+
 
 /* ═══════════════════════════════════════════
    RÉSERVATIONS SALLE (Supabase)
@@ -3272,5 +3346,26 @@ function saveAppCfg(){
   </div>
 </div>
 
+
+<!-- MODAL LIVRAISON TELEPHONIQUE -->
+<div class="ov" id="md-livraison">
+  <div class="md" style="max-width:400px;">
+    <div class="mdh"><span class="mdt">&#128666; Commande Livraison T&#233;l&#233;phonique</span><button class="mdc" onclick="closeMd('md-livraison')">&#10005;</button></div>
+    <div class="mdb" style="display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:11px;color:var(--text3);padding:8px;background:rgba(201,168,76,.08);border-radius:6px;border-left:3px solid var(--accent)">&#128222; Commande re&#231;ue par t&#233;l&#233;phone</div>
+      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Nom du client *</label><input id="liv-client-name" class="inp" type="text" placeholder="Pr&#233;nom Nom" style="width:100%"></div>
+      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">T&#233;l&#233;phone *</label><input id="liv-client-phone" class="inp" type="tel" placeholder="6XX XXX XXX" style="width:100%"></div>
+      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Adresse / Quartier</label><input id="liv-client-addr" class="inp" type="text" placeholder="Quartier, point de rep&#232;re..." style="width:100%"></div>
+      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Livreur (optionnel)</label><select id="liv-livreur-sel" class="inp" style="width:100%"><option value="">&#8212; Assigner plus tard &#8212;</option></select></div>
+      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:6px">Paiement</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="radio" name="liv-pay" value="cash" checked> &#128181; Cash</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="radio" name="liv-pay" value="orange"> &#128242; Orange Money</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="radio" name="liv-pay" value="mtn"> &#128242; MTN MoMo</label>
+        </div></div>
+      <button class="btn bp" style="width:100%;margin-top:4px" onclick="confirmPickLivraison()">&#10003; Valider et pr&#233;parer</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
