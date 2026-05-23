@@ -510,53 +510,85 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <!-- PERSONAL VIEW -->
 <div id="emp-personal">
+  <!-- Header -->
   <div class="ep-hdr">
     <div id="ep-avatar" style="width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#fff;flex-shrink:0;"></div>
     <div style="flex:1;">
       <div id="ep-name" style="font-size:15px;font-weight:800;"></div>
       <div id="ep-role" style="font-size:11px;color:var(--text3);"></div>
     </div>
-    <button class="btn btn-sec btn-sm" onclick="showClockScreen()">&#9200; Pointage</button>
-    <button class="btn btn-sec btn-sm" onclick="logoutEmp()">&#128682;</button>
+    <button class="btn btn-sec btn-sm" onclick="logoutEmp()">&#128682; Quitter</button>
   </div>
+
+  <!-- Tabs -->
   <div class="ep-tabs">
-    <button class="ep-tab on" onclick="goEpTab('ep-profil',this)">&#128100; Profil</button>
-    <button class="ep-tab"    onclick="goEpTab('ep-salaire',this)">&#128176; Salaire</button>
-    <button class="ep-tab"    onclick="goEpTab('ep-paie',this)">&#128196; Fiches de paie</button>
-    <button class="ep-tab"    onclick="goEpTab('ep-taches',this)">&#9989; Mes t&#226;ches</button>
-    <button class="ep-tab"    onclick="goEpTab('ep-planning',this)">&#128197; Planning</button>
-    <button class="ep-tab"    onclick="goEpTab('ep-pointages',this)">&#9200; Pointages</button>
-    <button class="ep-tab"    onclick="goEpTab('ep-pin',this)">&#128274; Mon PIN</button>
+    <button class="ep-tab on"  onclick="goEpTab('ep-pointages',this)">&#9200; Pointage</button>
+    <button class="ep-tab"     onclick="goEpTab('ep-profil',this)">&#128100; Mon Profil</button>
+    <button class="ep-tab"     onclick="goEpTab('ep-taches',this)">&#9989; Mes T&#226;ches</button>
+    <button class="ep-tab"     onclick="goEpTab('ep-paie',this)">&#128176; Paie</button>
+    <button class="ep-tab"     onclick="goEpTab('ep-planning',this)">&#128197; Planning</button>
   </div>
+
+  <!-- Panes -->
   <div class="ep-body">
-    <div class="ep-pane on" id="ep-profil">
+
+    <!-- ═══ POINTAGE & HEURES ═══ -->
+    <div class="ep-pane on" id="ep-pointages">
+      <!-- Clock card -->
+      <div class="card" style="margin-bottom:12px;padding:14px 16px;">
+        <div style="font-size:12px;font-weight:800;color:var(--acc1);margin-bottom:10px;">&#9200; Aujourd&#8217;hui</div>
+        <div id="ep-clock-status" style="font-size:13px;color:var(--text3);margin-bottom:12px;text-align:center;padding:10px;background:var(--bg2);border-radius:8px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button id="ep-btn-arrive" class="btn btn-primary" style="flex:1;font-size:13px;" onclick="epPunchIn()">&#128994; Arrivée</button>
+          <button id="ep-btn-depart" class="btn btn-sec"     style="flex:1;font-size:13px;" onclick="epPunchOut()" disabled>&#128308; Départ</button>
+        </div>
+      </div>
+      <!-- Weekly stats -->
+      <div class="card" style="margin-bottom:12px;padding:14px 16px;">
+        <div style="font-size:12px;font-weight:800;color:var(--acc1);margin-bottom:10px;">&#128197; Semaine en cours</div>
+        <div id="ep-week-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:11px;"></div>
+        <div id="ep-week-total" style="text-align:right;font-size:12px;color:var(--text3);margin-top:8px;"></div>
+      </div>
+      <!-- Monthly & history -->
+      <div class="card" style="padding:14px 16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:12px;font-weight:800;color:var(--acc1);">&#128218; Historique des présences</span>
+          <span id="ep-month-hours" style="font-size:11px;color:var(--text3);"></span>
+        </div>
+        <div id="ep-pointages-body"></div>
+      </div>
+    </div>
+
+    <!-- ═══ PROFIL RH PRIVÉ ═══ -->
+    <div class="ep-pane" id="ep-profil">
       <div id="ep-profil-body"></div>
+      <!-- Changer PIN -->
+      <div class="card" style="margin-top:12px;">
+        <div class="sec-title" style="margin-bottom:12px;">&#128274; Changer mon code PIN</div>
+        <label class="fl" style="font-size:11px;">Nouveau PIN (4 chiffres)</label>
+        <input class="fi" id="new-pin1" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
+        <label class="fl" style="font-size:11px;">Confirmer le PIN</label>
+        <input class="fi" id="new-pin2" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
+        <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="changePin()">Enregistrer le PIN</button>
+      </div>
     </div>
-    <div class="ep-pane" id="ep-salaire">
-      <div id="ep-salaire-body"></div>
-    </div>
-    <div class="ep-pane" id="ep-paie">
-      <div id="ep-paie-body"></div>
-    </div>
+
+    <!-- ═══ MES TÂCHES ═══ -->
     <div class="ep-pane" id="ep-taches">
       <div id="ep-taches-body"></div>
     </div>
+
+    <!-- ═══ PAIE (salaire + fiches) ═══ -->
+    <div class="ep-pane" id="ep-paie">
+      <div id="ep-salaire-body" style="margin-bottom:12px;"></div>
+      <div id="ep-paie-body"></div>
+    </div>
+
+    <!-- ═══ PLANNING ═══ -->
     <div class="ep-pane" id="ep-planning">
       <div id="ep-planning-body"></div>
     </div>
-    <div class="ep-pane" id="ep-pointages">
-      <div id="ep-pointages-body"></div>
-    </div>
-    <div class="ep-pane" id="ep-pin">
-      <div class="card">
-        <div class="sec-title" style="margin-bottom:12px;">&#128274; Changer mon PIN</div>
-        <label class="fl">Nouveau PIN (4 chiffres)</label>
-        <input class="fi" id="new-pin1" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
-        <label class="fl">Confirmer le PIN</label>
-        <input class="fi" id="new-pin2" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
-        <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="changePin()">Enregistrer le nouveau PIN</button>
-      </div>
-    </div>
+
   </div>
 </div>
 
@@ -2340,74 +2372,315 @@ function goEpTab(pane,btn){
   if(btn)btn.classList.add('on');
   document.querySelectorAll('.ep-pane').forEach(function(p){p.classList.remove('on');});
   var p=document.getElementById(pane);if(p)p.classList.add('on');
-  if(pane==='ep-profil')renderEpProfil();
-  else if(pane==='ep-salaire')renderEpSalaire();
-  else if(pane==='ep-paie')renderEpPaie();
-  else if(pane==='ep-taches')renderEpTaches();
-  else if(pane==='ep-planning')renderEpPlanning();
-  else if(pane==='ep-pointages')renderEpPointages();
+  if(pane==='ep-profil')   renderEpProfil();
+  else if(pane==='ep-taches')   renderEpTaches();
+  else if(pane==='ep-paie'){renderEpSalaire();renderEpPaie();}
+  else if(pane==='ep-planning')  renderEpPlanning();
+  else if(pane==='ep-pointages') renderEpPointages();
 }
+
+function showPersonalView(){
+  if(!LOGGED_EMP)return;
+  document.getElementById('clock-screen').classList.remove('on');
+  document.getElementById('emp-personal').classList.add('on');
+  var color=avatarColor(LOGGED_EMP.full_name);
+  var initials=avatarInitials(LOGGED_EMP.full_name);
+  var av=document.getElementById('ep-avatar');av.style.background=color;av.textContent=initials;
+  document.getElementById('ep-name').textContent=LOGGED_EMP.full_name;
+  document.getElementById('ep-role').textContent=LOGGED_EMP.role||'';
+  goEpTab('ep-pointages',document.querySelector('.ep-tab'));
+}
+
+/* ── Pointage in-tab ── */
+function epPunchIn(){
+  if(!LOGGED_EMP)return;
+  var today=new Date().toISOString().slice(0,10);
+  var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var d={id:gid(),employee_id:LOGGED_EMP.id,date:today,status:'present',check_in:now};
+  POST('veraluz_attendance',d).then(function(r){
+    ATTS.unshift(r[0]||d);
+    renderEpPointages();
+    toast('✅ Arrivée enregistrée à '+now,'ok');
+  }).catch(function(e){toast('Erreur: '+e,'err');});
+}
+function epPunchOut(){
+  if(!LOGGED_EMP)return;
+  var today=new Date().toISOString().slice(0,10);
+  var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var att=ATTS.find(function(a){return a.employee_id===LOGGED_EMP.id&&a.date===today;});
+  if(!att){toast('Pas d\'arrivée enregistrée','err');return;}
+  PATCH('veraluz_attendance',att.id,{check_out:now,time_out:now}).then(function(){
+    att.check_out=now;att.time_out=now;
+    renderEpPointages();
+    toast('✅ Départ enregistré à '+now,'ok');
+  }).catch(function(e){toast('Erreur: '+e,'err');});
+}
+
+/* ── Helpers ── */
+function attDurMin(a){
+  var ci=a.check_in||a.time_in; var co=a.check_out||a.time_out;
+  if(!ci||!co)return 0;
+  try{var dm=Math.round((new Date('1970-01-01T'+co)-new Date('1970-01-01T'+ci))/60000);return dm>0?dm:0;}catch(e){return 0;}
+}
+function fmtDur(min){if(!min)return '—';return Math.floor(min/60)+'h'+(min%60?(min%60<10?'0':'')+min%60+'':'');}
+function fmtDayDate(iso){
+  if(!iso)return '';
+  var d=new Date(iso+'T12:00:00');
+  return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}).replace(/^./,function(c){return c.toUpperCase();});
+}
+function isoWeekStart(d){
+  var day=d.getDay()||7; var ms=new Date(d);ms.setDate(ms.getDate()-day+1);ms.setHours(0,0,0,0);return ms;
+}
+
+/* ── Render Pointages ── */
+function renderEpPointages(){
+  var eid=LOGGED_EMP.id;
+  var today=new Date().toISOString().slice(0,10);
+  var myAtts=ATTS.filter(function(a){return a.employee_id===eid;}).sort(function(a,b){return b.date.localeCompare(a.date);});
+
+  /* Today status */
+  var todayAtt=myAtts.find(function(a){return a.date===today;});
+  var statusEl=document.getElementById('ep-clock-status');
+  var btnIn=document.getElementById('ep-btn-arrive');
+  var btnOut=document.getElementById('ep-btn-depart');
+  if(!todayAtt){
+    if(statusEl)statusEl.textContent='Pas encore pointé aujourd\'hui';
+    if(btnIn){btnIn.disabled=false;btnIn.className='btn btn-primary';}
+    if(btnOut){btnOut.disabled=true;btnOut.className='btn btn-sec';}
+  } else if(todayAtt.check_in&&!(todayAtt.check_out||todayAtt.time_out)){
+    if(statusEl)statusEl.innerHTML='🟢 Arrivée : <strong>'+(todayAtt.check_in||todayAtt.time_in)+'</strong> — En service';
+    if(btnIn){btnIn.disabled=true;btnIn.className='btn btn-sec';}
+    if(btnOut){btnOut.disabled=false;btnOut.className='btn btn-primary';}
+  } else {
+    var dur=fmtDur(attDurMin(todayAtt));
+    if(statusEl)statusEl.innerHTML='✅ Journée terminée — Arrivée <strong>'+(todayAtt.check_in||todayAtt.time_in)+'</strong> · Départ <strong>'+(todayAtt.check_out||todayAtt.time_out)+'</strong> · <strong>'+dur+'</strong>';
+    if(btnIn){btnIn.disabled=true;btnIn.className='btn btn-sec';}
+    if(btnOut){btnOut.disabled=true;btnOut.className='btn btn-sec';}
+  }
+
+  /* Weekly grid */
+  var weekGrid=document.getElementById('ep-week-grid');
+  var weekTotal=document.getElementById('ep-week-total');
+  if(weekGrid){
+    var now=new Date();
+    var monStart=isoWeekStart(now);
+    var days=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+    var totalMins=0;
+    weekGrid.innerHTML=days.map(function(lbl,i){
+      var dt=new Date(monStart);dt.setDate(dt.getDate()+i);
+      var iso=dt.toISOString().slice(0,10);
+      var att=myAtts.find(function(a){return a.date===iso;});
+      var min=att?attDurMin(att):0;
+      totalMins+=min;
+      var isToday=iso===today;
+      var hasPunch=att&&(att.check_in||att.time_in);
+      var bg=isToday?'var(--acc1)20':hasPunch?'var(--ok)15':'var(--bg2)';
+      var col=isToday?'var(--acc1)':hasPunch?'var(--ok)':'var(--text3)';
+      return '<div style="background:'+bg+';border-radius:6px;padding:5px 2px;">'
+        +'<div style="font-size:10px;color:var(--text3);">'+lbl+'</div>'
+        +'<div style="font-size:11px;font-weight:700;color:'+col+';">'+(min?fmtDur(min):'—')+'</div>'
+        +'</div>';
+    }).join('');
+    if(weekTotal)weekTotal.textContent='Total semaine : '+fmtDur(totalMins);
+  }
+
+  /* Monthly total */
+  var curMonth=new Date().toISOString().slice(0,7);
+  var mthAtts=myAtts.filter(function(a){return a.date&&a.date.slice(0,7)===curMonth;});
+  var mthMins=mthAtts.reduce(function(s,a){return s+attDurMin(a);},0);
+  var mthEl=document.getElementById('ep-month-hours');
+  if(mthEl)mthEl.textContent='Ce mois : '+fmtDur(mthMins)+' ('+mthAtts.length+' jour'+(mthAtts.length>1?'s':'')+')';
+
+  /* History */
+  var el=document.getElementById('ep-pointages-body');
+  if(!myAtts.length){el.innerHTML='<div class="empty"><div class="empty-ico">🕐</div>Aucun pointage enregistré</div>';return;}
+
+  /* Group by week */
+  var groups={};
+  myAtts.forEach(function(a){
+    var dt=new Date((a.date||'2000-01-01')+'T12:00:00');
+    var ws=isoWeekStart(dt);
+    var key=ws.toISOString().slice(0,10);
+    if(!groups[key]){groups[key]={label:'',items:[],totalMins:0,ws:ws};}
+    var wsEnd=new Date(ws);wsEnd.setDate(wsEnd.getDate()+6);
+    groups[key].label='Sem. du '+ws.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' au '+wsEnd.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+    groups[key].items.push(a);
+    groups[key].totalMins+=attDurMin(a);
+  });
+
+  var html='';
+  Object.keys(groups).sort(function(a,b){return b.localeCompare(a);}).forEach(function(key){
+    var g=groups[key];
+    html+='<div style="margin-bottom:14px;">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);">'
+      +'<span>📅 '+g.label+'</span>'
+      +'<span style="color:var(--acc1);">'+fmtDur(g.totalMins)+'</span>'
+      +'</div>';
+    g.items.forEach(function(a){
+      var dur=fmtDur(attDurMin(a));
+      var ci=a.check_in||a.time_in||'—'; var co=a.check_out||a.time_out||'—';
+      var stMap={present:{cls:'ok',lbl:'Présent'},retard:{cls:'warn',lbl:'Retard'},absent:{cls:'danger',lbl:'Absent'}};
+      var st=stMap[a.status]||{cls:'warn',lbl:a.status||'?'};
+      var isToday=a.date===today;
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)22;">';
+      html+='<div style="flex:0 0 90px;">'
+        +'<div style="font-size:12px;font-weight:700;color:var(--text)'+(isToday?';color:var(--acc1)':'')+';">'+fmtDayDate(a.date).split(' ').slice(0,1).join(' ')+' '+a.date.slice(8)+'</div>'
+        +'<div style="font-size:10px;color:var(--text3);">'+a.date.slice(5,7)+'/'+a.date.slice(0,4)+'</div>'
+        +'</div>';
+      html+='<span class="bdg '+st.cls+'" style="font-size:10px;flex-shrink:0;">'+st.lbl+'</span>';
+      html+='<div style="flex:1;text-align:center;">'
+        +'<div style="font-size:11px;color:var(--ok);">🟢 '+ci+'</div>'
+        +(co!=='—'?'<div style="font-size:11px;color:var(--danger);">🔴 '+co+'</div>':'')
+        +'</div>';
+      html+='<div style="text-align:right;font-size:12px;font-weight:700;color:var(--acc1);">'+dur+'</div>';
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+/* ── Render Profil RH privé ── */
 function renderEpProfil(){
   var e=LOGGED_EMP;
   var team=TEAMS.find(function(t){return t.id===e.team_id;});
-  document.getElementById('ep-profil-body').innerHTML='<div class="card">'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">'
-    +'<div><div style="font-size:10px;color:var(--text3);">Nom</div><div style="font-weight:700;">'+esc(e.full_name)+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--text3);">R&#244;le</div><div>'+esc(e.role||'—')+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--text3);">T&#233;l&#233;phone</div><div>'+esc(e.phone||'—')+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--text3);">Email</div><div>'+esc(e.email||'—')+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--text3);">&#201;quipe</div><div>'+esc(team?team.name:'—')+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--text3);">Embauche</div><div>'+fdate(e.hire_date)+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--text3);">MoMo</div><div>'+esc(e.momo_number||'—')+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--text3);">Statut</div><div><span class="bdg ok">'+esc(e.status)+'</span></div></div>'
+  var def=EQUIPE_DEFS.find(function(d){return d.key===getEmpTeamKey(e);})||{ico:'👤',color:'#22d3a5',lbl:'Équipe'};
+  /* Ancienneté */
+  var seniority='';
+  if(e.hire_date){
+    var ms=Date.now()-new Date(e.hire_date).getTime();
+    var yrs=Math.floor(ms/31536000000);
+    var mths=Math.floor((ms%31536000000)/2628000000);
+    seniority=(yrs>0?yrs+' an'+(yrs>1?'s ':' '):'')+(mths>0?mths+' mois':'');
+  }
+  var ctMap={CDI:'CDI',CDD:'CDD',contractuel:'Contractuel',vacataire:'Vacataire',stage:'Stagiaire'};
+  var color=avatarColor(e.full_name);
+
+  document.getElementById('ep-profil-body').innerHTML=
+    /* Avatar block */
+    '<div class="card" style="margin-bottom:12px;padding:20px 16px;text-align:center;">'
+    +'<div style="width:64px;height:64px;border-radius:50%;background:'+color+';display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;margin:0 auto 10px;">'+esc(avatarInitials(e.full_name))+'</div>'
+    +'<div style="font-size:18px;font-weight:800;color:var(--text);">'+esc(e.full_name)+'</div>'
+    +'<div style="font-size:12px;color:var(--text3);margin-top:4px;">'+esc(e.role||'—')+'</div>'
+    +'<div style="display:inline-flex;align-items:center;gap:5px;background:'+def.color+'18;border:1px solid '+def.color+'44;border-radius:20px;padding:3px 10px;margin-top:8px;font-size:11px;color:'+def.color+';font-weight:700;">'+def.ico+' '+def.lbl+'</div>'
+    +'</div>'
+    /* Info grid */
+    +'<div class="card" style="margin-bottom:12px;padding:14px 16px;">'
+    +'<div style="font-size:11px;font-weight:800;color:var(--acc1);margin-bottom:10px;">📋 Informations personnelles</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">'
+    +ep_row('📞 Téléphone',e.phone||'—')
+    +ep_row('📧 Email',e.email||'—')
+    +ep_row('📱 MoMo',e.momo_number||'—')
+    +ep_row('📅 Embauché le',e.hire_date?fdate(e.hire_date):'—')
+    +'</div></div>'
+    /* Contract */
+    +'<div class="card" style="margin-bottom:12px;padding:14px 16px;">'
+    +'<div style="font-size:11px;font-weight:800;color:var(--acc1);margin-bottom:10px;">💼 Contrat & Rémunération</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">'
+    +ep_row('Type de contrat',ctMap[e.contract_type||'CDI']||e.contract_type||'CDI')
+    +ep_row('⏱ Ancienneté',seniority||'—')
+    +ep_row('💰 Salaire de base',fmt(e.base_salary||0)+' FCFA/mois')
+    +ep_row('👥 Équipe',team?team.name:def.lbl)
     +'</div></div>';
 }
-function renderEpSalaire(){
-  var e=LOGGED_EMP;
-  var curMonth=new Date().toISOString().slice(0,7);
-  var bonuses=BONUSES.filter(function(b){return b.employee_id===e.id&&b.month===curMonth;});
-  var bonus=bonuses.filter(function(b){return b.type==='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
-  var deduct=bonuses.filter(function(b){return b.type!=='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
-  var net=(e.base_salary||0)+bonus-deduct;
-  document.getElementById('ep-salaire-body').innerHTML='<div class="card">'
-    +'<div class="sec-title" style="margin-bottom:12px;">&#128176; Salaire — '+curMonth+'</div>'
-    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span>Salaire de base</span><span>'+fmt(e.base_salary)+' FCFA</span></div>'
-    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);color:var(--ok);"><span>+ Primes</span><span>+'+fmt(bonus)+' FCFA</span></div>'
-    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);color:var(--danger);"><span>- Retenues</span><span>-'+fmt(deduct)+' FCFA</span></div>'
-    +'<div style="display:flex;justify-content:space-between;padding:10px 0;font-size:17px;font-weight:800;color:var(--acc1);"><span>Net &#224; payer</span><span>'+fmt(net)+' FCFA</span></div>'
-    +'</div>';
+
+function ep_row(lbl,val){
+  return '<div><div style="font-size:10px;color:var(--text3);margin-bottom:2px;">'+lbl+'</div><div style="font-weight:600;word-break:break-word;">'+esc(val)+'</div></div>';
 }
-function renderEpPaie(){
-  var list=PAYROLLS.filter(function(p){return p.employee_id===LOGGED_EMP.id;});
-  var el=document.getElementById('ep-paie-body');
-  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128196;</div>Aucune fiche de paie</div>';return;}
-  el.innerHTML=list.map(function(p){
-    return '<div class="card" style="margin-bottom:8px;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-      +'<span style="font-weight:700;">'+esc(payM(p)||'')+'</span>'
-      +'<span class="bdg '+(p.status==='paye'?'ok':'warn')+'">'+esc(p.status)+'</span>'
-      +'</div>'
-      +'<div style="font-size:18px;font-weight:800;color:var(--acc1);margin-top:6px;">'+fmt(netOf(p))+' FCFA</div>'
-      +'<button class="btn btn-sec btn-sm" style="margin-top:8px;" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; Voir le bulletin PDF</button>'
-      +'<button class="btn btn-sec btn-sm" style="margin-top:8px;" data-pid="'+esc(p.id)+'" onclick="sendPayslipEmail(this.dataset.pid)">&#128140; Recevoir par email</button>'
-      +'</div>';
-  }).join('');
-}
+
+/* ── Render Tâches avec historique daté ── */
 function renderEpTaches(){
-  var list=TASKS.filter(function(t){return t.employee_id===LOGGED_EMP.id;});
+  var eid=LOGGED_EMP.id;
+  var list=TASKS.filter(function(t){return t.employee_id===eid;}).sort(function(a,b){
+    /* Active first, then by date */
+    if(a.status!=='termine'&&b.status==='termine')return -1;
+    if(a.status==='termine'&&b.status!=='termine')return 1;
+    return (b.created_at||'').localeCompare(a.created_at||'');
+  });
   var el=document.getElementById('ep-taches-body');
-  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#9989;</div>Aucune t&#226;che assign&#233;e</div>';return;}
-  el.innerHTML=list.map(function(t){
-    return '<div class="entry"><div class="entry-ico '+(t.status==='termine'?'ok':t.status==='en_cours'?'acc':'warn')+'">'+(t.status==='termine'?'&#9989;':t.status==='en_cours'?'&#9654;':'&#9723;')+'</div>'
-      +'<div class="entry-body"><div class="entry-title">'+esc(t.title)+'</div>'
-      +'<div class="entry-sub">'+(t.due_date?'&#201;ch&#233;ance: '+fdate(t.due_date):'')+(t.description?' · '+esc(t.description):'')+'</div></div>'
-      +(t.status!=='termine'?'<button class="btn btn-primary btn-sm" data-tid="'+esc(t.id)+'" onclick="empCompleteTask(this.dataset.tid)">&#10003;</button>':'<span class="bdg ok">&#9989;</span>')
-      +'</div>';
-  }).join('');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">✅</div>Aucune tâche assignée</div>';return;}
+
+  var active=list.filter(function(t){return t.status!=='termine';});
+  var done=list.filter(function(t){return t.status==='termine';});
+  var prioMap={haute:{cls:'danger',lbl:'⚡ Haute'},normale:{cls:'acc',lbl:'Normal'},basse:{cls:'ok',lbl:'↓ Basse'}};
+  var html='';
+
+  /* Active tasks */
+  if(active.length){
+    html+='<div style="font-size:11px;font-weight:800;color:var(--acc1);margin-bottom:8px;">⚡ Tâches en cours ('+active.length+')</div>';
+    active.forEach(function(t){
+      var prio=prioMap[t.priority||'normale']||prioMap.normale;
+      var stCls=t.status==='en_cours'?'acc':'warn';
+      var stLbl=t.status==='en_cours'?'▶ En cours':'⬜ À faire';
+      var assignDate=t.created_at?fmtDayDate(t.created_at.slice(0,10)):'';
+      var dueDate=t.due_date?fmtDayDate(t.due_date):'';
+      html+='<div class="card" style="margin-bottom:8px;padding:12px 14px;border-left:3px solid var(--acc1);">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">'
+        +'<div style="font-size:13px;font-weight:700;color:var(--text);flex:1;">'+esc(t.title)+'</div>'
+        +'<span class="bdg '+prio.cls+'" style="font-size:10px;flex-shrink:0;">'+prio.lbl+'</span>'
+        +'</div>';
+      if(t.description)html+='<div style="font-size:11px;color:var(--text3);margin-bottom:6px;">'+esc(t.description)+'</div>';
+      html+='<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:10px;color:var(--text3);margin-bottom:8px;">';
+      if(assignDate)html+='<span>📋 Assignée le '+assignDate+'</span>';
+      if(dueDate)html+='<span>⏰ Échéance : <strong style="color:var(--warn);">'+dueDate+'</strong></span>';
+      html+='<span class="bdg '+stCls+'" style="font-size:10px;">'+stLbl+'</span>';
+      html+='</div>';
+      html+='<button class="btn btn-primary" style="width:100%;font-size:12px;" data-tid="'+esc(t.id)+'" onclick="empCompleteTask(this.dataset.tid)">✅ Marquer comme terminée</button>';
+      html+='</div>';
+    });
+  }
+
+  /* Completed tasks grouped by week */
+  if(done.length){
+    html+='<div style="font-size:11px;font-weight:800;color:var(--text3);margin:14px 0 8px;">✅ Historique des tâches terminées ('+done.length+')</div>';
+    var doneGroups={};
+    done.forEach(function(t){
+      var iso=(t.updated_at||t.created_at||'').slice(0,10)||'0000-00-00';
+      var dt=new Date(iso+'T12:00:00');
+      var ws=isoWeekStart(dt);
+      var key=ws.toISOString().slice(0,10);
+      if(!doneGroups[key]){
+        var wsEnd=new Date(ws);wsEnd.setDate(wsEnd.getDate()+6);
+        doneGroups[key]={label:'Sem. du '+ws.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' au '+wsEnd.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}),items:[]};
+      }
+      doneGroups[key].items.push(t);
+    });
+    Object.keys(doneGroups).sort(function(a,b){return b.localeCompare(a);}).forEach(function(key){
+      var g=doneGroups[key];
+      html+='<div style="margin-bottom:12px;">';
+      html+='<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:6px;padding-bottom:3px;border-bottom:1px solid var(--border);">📅 '+g.label+'</div>';
+      g.items.forEach(function(t){
+        var assignDate=t.created_at?t.created_at.slice(0,10):'';
+        var doneDate=(t.updated_at||'').slice(0,10)||assignDate;
+        html+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)22;">';
+        html+='<span style="font-size:16px;">✅</span>';
+        html+='<div style="flex:1;">'
+          +'<div style="font-size:12px;font-weight:600;color:var(--text);">'+esc(t.title)+'</div>'
+          +'<div style="font-size:10px;color:var(--text3);">'
+          +(assignDate?'Assignée le '+fmtDayDate(assignDate):'')
+          +(doneDate&&doneDate!==assignDate?' · Terminée le '+fmtDayDate(doneDate):'')
+          +'</div>'
+          +'</div>';
+        html+='</div>';
+      });
+      html+='</div>';
+    });
+  }
+
+  el.innerHTML=html;
 }
+
 function empCompleteTask(tid){
-  PATCH('veraluz_hr_tasks',tid,{status:'termine'}).then(function(){var t=TASKS.find(function(x){return x.id===tid;});if(t)t.status='termine';renderEpTaches();toast('T&#226;che termin&#233;e &#9989;','ok');});
+  var now=new Date().toISOString();
+  PATCH('veraluz_hr_tasks',tid,{status:'termine',updated_at:now}).then(function(){
+    var t=TASKS.find(function(x){return x.id===tid;});
+    if(t){t.status='termine';t.updated_at=now;}
+    renderEpTaches();
+    toast('✅ Tâche marquée terminée','ok');
+  });
 }
+
+
 function renderEpPlanning(){
   var today=new Date();var monday=new Date(today);var d=monday.getDay()||7;monday.setDate(monday.getDate()-d+1);
   var days=[];for(var i=0;i<7;i++){var dt=new Date(monday);dt.setDate(dt.getDate()+i);days.push(dt);}
