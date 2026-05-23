@@ -552,7 +552,7 @@ select.form-control option{background:var(--bg2)}
 /* ── CONFIG ── */
 var SB = (window.__SUPABASE_URL__||'https://dfdmasejsoibxrvubegu.supabase.co');
 var SK = (window.__SUPABASE_KEY__||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY');
-var STAFF = []; // populated dynamically from veraluz_rh_employes (equipe housekeeping)
+var STAFF = []; // populated dynamically from veraluz_employees (housekeeping team)
 
 /* ── STATE ── */
 var _tasks = [], _units = [], _reservations = [], _employees = [], _activeTab = 'dash';
@@ -562,10 +562,6 @@ var _empName = '', _selProblem = '';
 function esc(s) {
   if(!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function empName(e) {
-  if(!e) return '';
-  return ((e.prenom||'') + ' ' + (e.nom||'')).trim();
 }
 function today() { return new Date().toISOString().split('T')[0]; }
 function fmtDate(d) {
@@ -643,12 +639,12 @@ function loadAll(cb) {
     }).catch(check);
 
   // Fetch active employees for assignments
-  sbFetch('veraluz_rh_employes?select=id,prenom,nom,poste,equipe,actif,salaire_base,taux_horaire,type_contrat,telephone,email,date_embauche&actif=eq.true&equipe=eq.housekeeping&order=nom.asc')
+  sbFetch('veraluz_employees?select=id,full_name,role,team_id,status,base_salary,hourly_rate,contract_type,phone,email,hire_date&status=eq.actif&order=full_name.asc')
     .then(function(r){return r.json();})
     .then(function(d){
       if(Array.isArray(d)){
         _employees=d;
-        STAFF=d.map(function(e){return empName(e);});
+        STAFF=d.map(function(e){return e.full_name;});
       }
       check();
     }).catch(check);
@@ -931,7 +927,7 @@ function openNewTaskModal(unitId) {
   if(asel){
     var roleMap={femme_chambre:'Femme de chambre',technicien:'Technicien',receptionniste:'Réception',agent_securite:'Sécurité',barman:'Bar',manager:'Manager',cuisinier:'Cuisine',staff:'Staff'};
     asel.innerHTML='<option value="">Non assigné</option>'+_employees.map(function(e){
-      return '<option value="'+esc(empName(e))+'">'+esc(empName(e))+' ('+esc(roleMap[e.poste]||e.poste)+')</option>';
+      return '<option value="'+esc(e.full_name)+'">'+esc(e.full_name)+' ('+esc(roleMap[e.role]||e.role)+')</option>';
     }).join('');
     asel.value='';
   }
@@ -948,7 +944,7 @@ function saveTask() {
   if(!unitId){showToast('Sélectionnez une chambre','err');return;}
   var unit = _units.find(function(u){return u.id===unitId;});
   var typeLabels={cleaning:'Nettoyage départ',daily_cleaning:'Nettoyage quotidien',preparation:'Préparation arrivée',vip:'Préparation VIP',maintenance:'Maintenance',urgent:'Urgence',inspection:'Inspection'};
-  var emp = _employees.find(function(e){return empName(e)===assign;});
+  var emp = _employees.find(function(e){return e.full_name===assign;});
   var body={
     unit_id:unitId,type:type,status:'pending',priority:prio,
     notes:notes||null,scheduled_for:date,
@@ -988,7 +984,7 @@ function openAssignModal(tid) {
   var sel=document.getElementById('assign-to');
   if(sel){
     sel.innerHTML='<option value="">Non assigné</option>'+_employees.map(function(e){
-      return '<option value="'+esc(empName(e))+'">'+esc(empName(e))+' ('+esc(roleMap[e.poste]||e.poste)+')</option>';
+      return '<option value="'+esc(e.full_name)+'">'+esc(e.full_name)+' ('+esc(roleMap[e.role]||e.role)+')</option>';
     }).join('');
     sel.value=t.assigned_to||'';
   }
@@ -1001,7 +997,7 @@ function saveAssign() {
   var tid=document.getElementById('assign-task-id').value;
   var assignTo=document.getElementById('assign-to').value;
   var prio=document.getElementById('assign-priority').value;
-  var emp=_employees.find(function(e){return empName(e)===assignTo;});
+  var emp=_employees.find(function(e){return e.full_name===assignTo;});
   var patch={assigned_to:assignTo||null,priority:prio,updated_at:new Date().toISOString()};
   if(emp) patch.employee_id=emp.id; else patch.employee_id=null;
   sbFetch('veraluz_housekeeping?id=eq.'+tid,{
@@ -1096,11 +1092,12 @@ function showNamePicker() {
   var ng=document.getElementById('nameGrid');
   if(ng){
     var hkRoles=['femme_chambre','technicien','agent_securite','maintenance','staff','manager'];
-    var hkEmps=_employees.filter(function(e){return hkRoles.indexOf(e.poste)>=0||true;}); // show all
+    var hkEmps=_employees.filter(function(e){return hkRoles.indexOf(e.role)>=0;});
+    if(!hkEmps.length)hkEmps=_employees; // fallback: show all if no role match
     ng.innerHTML=hkEmps.map(function(e){
       var roleMap={femme_chambre:'🧹',technicien:'🔧',receptionniste:'🛎',agent_securite:'🔒',barman:'🍹',manager:'👔',cuisinier:'👨‍🍳',staff:'👤'};
-      var icon=roleMap[e.poste]||'👤';
-      return '<button class="name-btn" data-name="'+esc(empName(e))+'" data-eid="'+esc(e.id)+'" onclick="selectEmployee(this.dataset.name,this.dataset.eid)">'+icon+' '+esc(empName(e))+'</button>';
+      var icon=roleMap[e.role]||'👤';
+      return '<button class="name-btn" data-name="'+esc(e.full_name)+'" data-eid="'+esc(e.id)+'" onclick="selectEmployee(this.dataset.name,this.dataset.eid)">'+icon+' '+esc(e.full_name)+'</button>';
     }).join('');
   }
 }
@@ -1131,34 +1128,34 @@ function showEmployeeTasks() {
 }
 
 function renderEmpProfile() {
-  var emp=_employees.find(function(e){return e.id===_empId||empName(e)===_empName;});
+  var emp=_employees.find(function(e){return e.id===_empId||e.full_name===_empName;});
   var pc=document.getElementById('emp-profile-card');
   if(!pc) return;
   if(!emp){pc.style.display='none';return;}
   var roleMap={femme_chambre:'Femme de chambre',technicien:'Technicien',receptionniste:'Réceptionniste',agent_securite:'Agent de sécurité',barman:'Barman',manager:'Manager',cuisinier:'Cuisinier',staff:'Staff'};
   var contractMap={CDI:'CDI',CDD:'CDD',contractuel:'Contractuel',vacataire:'Vacataire',stage:'Stagiaire'};
   var salaryLabel='';
-  var ct=emp.type_contrat||'CDI';
+  var ct=emp.contract_type||'CDI';
   if(ct==='contractuel'||ct==='vacataire'){
-    salaryLabel=emp.taux_horaire&&parseFloat(emp.taux_horaire)>0
-      ? parseFloat(emp.taux_horaire).toLocaleString('fr-FR')+' FCFA/h'
-      : (emp.salaire_base&&parseFloat(emp.salaire_base)>0?parseFloat(emp.salaire_base).toLocaleString('fr-FR')+' FCFA/mois':'—');
+    salaryLabel=emp.hourly_rate&&parseFloat(emp.hourly_rate)>0
+      ? parseFloat(emp.hourly_rate).toLocaleString('fr-FR')+' FCFA/h'
+      : (emp.base_salary&&parseFloat(emp.base_salary)>0?parseFloat(emp.base_salary).toLocaleString('fr-FR')+' FCFA/mois':'—');
   } else {
-    salaryLabel=emp.salaire_base&&parseFloat(emp.salaire_base)>0
-      ? parseFloat(emp.salaire_base).toLocaleString('fr-FR')+' FCFA/mois':'—';
+    salaryLabel=emp.base_salary&&parseFloat(emp.base_salary)>0
+      ? parseFloat(emp.base_salary).toLocaleString('fr-FR')+' FCFA/mois':'—';
   }
   var hireYrs='';
-  if(emp.date_embauche){
-    var ms=Date.now()-new Date(emp.date_embauche).getTime();
+  if(emp.hire_date){
+    var ms=Date.now()-new Date(emp.hire_date).getTime();
     var yrs=Math.floor(ms/31536000000);
     var mths=Math.floor((ms%31536000000)/2628000000);
     hireYrs=yrs>0?yrs+'an'+(yrs>1?'s':'')+' '+(mths>0?mths+'m':''):(mths+'m');
   }
   pc.style.display='block';
   pc.innerHTML='<div style="display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;margin-bottom:8px">'+
-    '<div style="width:44px;height:44px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0">'+esc(empName(emp).charAt(0))+'</div>'+
+    '<div style="width:44px;height:44px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0">'+esc(emp.full_name.charAt(0))+'</div>'+
     '<div style="flex:1;min-width:0">'+
-      '<div style="font-size:15px;font-weight:800;color:var(--text)">'+esc(empName(emp))+'</div>'+
+      '<div style="font-size:15px;font-weight:800;color:var(--text)">'+esc(emp.full_name)+'</div>'+
       '<div style="font-size:11px;color:var(--text2);margin-top:1px">'+esc((emp.poste||'Housekeeping'))+' · '+esc(contractMap[ct]||ct)+'</div>'+
     '</div>'+
     '<div style="text-align:right;flex-shrink:0">'+
@@ -1166,7 +1163,7 @@ function renderEmpProfile() {
       (hireYrs?'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+esc(hireYrs)+' ancienneté</div>':'')+
     '</div>'+
   '</div>'+
-  (emp.telephone?'<div style="font-size:11px;color:var(--text2);padding:0 4px 8px">📞 '+esc(emp.telephone)+'</div>':'');
+  (emp.phone?'<div style="font-size:11px;color:var(--text2);padding:0 4px 8px">📞 '+esc(emp.phone)+'</div>':'');
 }
 
 function renderEmployeeTasks() {
