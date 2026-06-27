@@ -1052,6 +1052,7 @@ svg{flex-shrink:0}
   <span class="toast-msg" id="toastMsg"></span>
 </div>
 
+<script src="veraluz-core.js?v=0.3.0"></script>
 <script>
 /* ══════════════════════════════════════════
    VERALUZ FOOD & LOUNGE v3
@@ -1062,6 +1063,8 @@ svg{flex-shrink:0}
 var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 var WA  = '237600000000';
+/* ── Veraluz Core — référence globale + fallback ── */
+var VC  = window.VeraluzCore || {};
 
 /* ── State ── */
 var _prods  = [];    /* live from Supabase */
@@ -1369,10 +1372,14 @@ window.addEventListener('focus',maybeRefresh);
 window.addEventListener('visibilitychange',function(){if(!document.hidden)maybeRefresh();});
 
 /* ── Utils ── */
-function fmt(n){return Number(n||0).toLocaleString('fr-FR')+' FCFA';}
+/* VERALUZ CORE v0.3.0 — déléguée à VC.fmtMoney (format FCFA) */
+var fmt = VC.fmtMoney || function(n){ return Number(n||0).toLocaleString('fr-FR')+' FCFA'; };
 function oNum(){return 'VLZ-'+Date.now().toString(36).toUpperCase().slice(-5);}
 function g(id){return (document.getElementById(id)||{}).value||'';}
 function applyWA(n){if(!n)return;WA=n.replace(/\D/g,'');['wa-topbar','hero-wa','wa-confirm'].forEach(function(id){var e=document.getElementById(id);if(e)e.href='https://wa.me/'+WA;});}
+/* TODO VERALUZ CORE: toast local conservé — utilise #toast + #toastMsg spécifiques à ce module.
+   Incompatible avec VC.toast() qui crée son propre conteneur.
+   Migration possible dans PROMPT 004 si structure DOM unifiée. */
 function toast(msg,dur){
   var t=document.getElementById('toast'),m=document.getElementById('toastMsg');
   if(!t)return;m.textContent=msg;t.className='toast show';
@@ -1749,35 +1756,14 @@ function goLounge(){document.getElementById('lounge-section').scrollIntoView({be
 
 
 /* ══════════════════════════════════════════
-   NORMALIZE UTILS — P0 FIX
+   NORMALIZE UTILS — VERALUZ CORE v0.3.0
+   Déléguée à veraluz-core.js.
+   Utilisé pour le suivi client (renderTrackOrder).
 ══════════════════════════════════════════ */
-/* Compatibilité ascendante — anciens statuts français → statuts canoniques.
-   Utilisé pour le suivi client (renderTrackOrder). */
-function normalizeOrderStatus(status) {
-  var map = {
-    /* pending */
-    'attente':         'pending',          'pending':          'pending',
-    /* confirmed — NE PAS mapper vers pending */
-    'confirme':        'confirmed',        'confirmé':         'confirmed',        'confirmed':  'confirmed',
-    /* preparing */
-    'preparing':       'preparing',        'preparation':      'preparing',
-    'préparation':     'preparing',        'en_preparation':   'preparing',
-    /* ready */
-    'pret':            'ready',            'prêt':             'ready',            'ready':      'ready',
-    /* out_for_delivery — statut canonique */
-    'en_livraison':    'out_for_delivery', 'out_for_delivery': 'out_for_delivery',
-    'delivering':      'out_for_delivery', /* legacy interne → canonique */
-    /* delivered */
-    'delivered':       'delivered',        'livre':            'delivered',        'livré':      'delivered',
-    /* LEGACY READ ONLY — ne jamais écrire ces valeurs comme status operationnel */
-    'recu':            'delivered',        /* reçu = livré */
-    'paye':            'delivered',        'payé':             'delivered',        'paid':       'delivered',
-    /* cancelled */
-    'cancelled':       'cancelled',        'annule':           'cancelled',
-    'annulé':          'cancelled',        'canceled':         'cancelled'
-  };
-  return map[String(status || '').toLowerCase()] || 'pending';
-}
+var normalizeOrderStatus = VC.normalizeOrderStatus || function(s) {
+  /* Fallback minimal — passe le statut tel quel */
+  return String(s || 'pending');
+};
 
 /* ══════════════════════════════════
    TRACKING CLIENT
@@ -1862,4 +1848,27 @@ function printReceipt(){
   var w=window.open('','_blank','width=360,height=600');
   w.document.write('<html><head><title>Reçu Veraluz</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:13px;max-width:320px;margin:0 auto}.rcp-wrap{border:1px solid #ddd;border-radius:8px;padding:16px}.rcp-top{text-align:center;border-bottom:1px dashed #ddd;padding-bottom:10px}.rcp-logo{font-weight:800;font-size:14px;color:#b8860b;letter-spacing:1px}.rcp-sub{color:#999;font-size:11px;margin-top:3px}.rcp-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#555}.rcp-tot{font-weight:800;font-size:14px;padding-top:8px;border-top:1px dashed #ddd;margin-top:5px;display:flex;justify-content:space-between}.rcp-pay{color:#999;font-size:11px;padding-top:4px}.pay-status-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:8px}.ps-pending{background:#fef3c7;color:#d97706}.ps-paid{background:#dcfce7;color:#16a34a}.ps-delivery{background:#ede9fe;color:#7c3aed}@media print{button{display:none}}</style></head><body>');
   w.document.write(rcp.innerHTML);
-  w.document.write('<br><button onclick="window.prin
+  w.document.write('<br><button onclick="window.print()" style="width:100%;padding:10px;background:#b8860b;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px">🖨️ Imprimer</button></body></html>');
+  w.document.close();
+}
+
+/* ── Core integration ── */
+window.addEventListener('message',function(ev){
+  if(!ev.data)return;
+  if(ev.data.type==='hotel-config'&&ev.data.data&&ev.data.data.whatsapp)applyWA(ev.data.data.whatsapp);
+  /* Reload menu if admin changed products */
+  if(ev.data.type==='menu_updated'||ev.data.type==='products_updated')loadMenu();
+});
+
+/* ── Init ── */
+(function(){
+  /* Check for tracking hash */
+  (function(){
+    var h=window.location.hash;
+    if(h&&h.indexOf('#track=')===0){
+      var num=decodeURIComponent(h.slice(7));
+      if(num)setTimeout(function(){openTrack(num);},500);
+    }
+  })();
+  loadCart();
+  try{
