@@ -834,13 +834,11 @@ var ROLES = {
     modules:[] }
 };
 
-/* ── Admin fallback users (accès admin uniquement) ─────────────────── */
-// TEMP VERALUZ: identifiants admin provisoires — CHANGER AVANT PRODUCTION
-// TODO: migrer vers Supabase Auth ou hash bcrypt en PROMPT 009
-var DEFAULT_USERS = [
-  { username:'admin',   password:'admin123',   role:'superadmin', name:'Administrateur', active:true },
-  { username:'manager', password:'manager123', role:'manager',    name:'Manager',        active:true }
-];
+/* ── Admin fallback users — SUPPRIMÉ PROMPT 010 ─────────────────────── */
+/* PROMPT 010 : DEFAULT_USERS retirés — toute authentification admin
+   passe désormais exclusivement par l'Edge Function verify-admin-login (bcrypt).
+   La procédure de récupération propriétaire est documentée dans RAPPORT_PROMPT_010.md */
+var DEFAULT_USERS = []; /* vide — ne jamais remettre d'identifiants en clair ici */
 
 /* ── Employee cache ─────────────────────────────────────────────────── */
 var _empCache = [];
@@ -883,23 +881,17 @@ function getEmployeesFromSupabase(cb, onErr) {
 var currentUser = null;
 
 function getUsers() {
-  /* Always keep DEFAULT_USERS (admin) accessible even if AUTH module
-     overwrites veraluz_users_v1 with a different employee list */
-  var base = DEFAULT_USERS.slice(); // guaranteed admin entry
+  /* PROMPT 010 : DEFAULT_USERS supprimés — toute auth admin via Edge Function.
+     Cette fonction est conservée pour compatibilité avec le code legacy
+     mais ne retourne plus d'identifiants en clair. */
   try {
     var stored = localStorage.getItem('veraluz_users_v1');
     if (stored) {
       var parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        /* Merge: add stored entries that are NOT already in base */
-        parsed.forEach(function(u) {
-          var exists = base.some(function(b){ return b.username === u.username; });
-          if (!exists) base.push(u);
-        });
-      }
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch(e){}
-  return base;
+  return [];
 }
 
 /* PIN input state */
@@ -1038,11 +1030,20 @@ function doLoginPin() {
     _pinBuffer = ''; updatePinDisplay();
 
     if (!result.ok) {
-      var msg = (result.error === 'network')
+      var errCode = result.error || '';
+      var msg = (errCode === 'network')
         ? 'Service d\'authentification indisponible. Vérifiez la connexion.'
-        : (result.error === 'invalid_credentials' || result.error === 'invalid_json'
-           || result.error === 'missing_fields')
+        : (errCode === 'invalid_credentials' || errCode === 'invalid_json'
+           || errCode === 'missing_fields')
           ? 'NIP incorrect ou accès refusé.'
+          : (errCode === 'too_many_attempts')
+          ? 'Trop de tentatives — réessayez dans 15 min.'
+          : (errCode === 'pin_expired')
+          ? 'PIN temporaire expiré. Contactez votre responsable.'
+          : (errCode === 'pin_disabled')
+          ? 'Votre accès PIN est désactivé. Contactez votre responsable.'
+          : (errCode === 'employee_inactive')
+          ? 'Ce compte employé est inactif.'
           : (result.error || 'Erreur d\'authentification.');
       errEl.textContent = msg;
       errEl.classList.add('show');
@@ -1055,6 +1056,13 @@ function doLoginPin() {
     var coreRole = emp.role || 'staff';
     var allowedMods = emp.allowed_modules || getAllowedModules(coreRole);
     var expires = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
+
+    /* PROMPT 010 — si must_change_pin : afficher la vue de changement PIN avant connexion */
+    if (result.must_change_pin) {
+      _pinBuffer = ''; updatePinDisplay();
+      showChangePinView(empId, empName2, coreRole, allowedMods, expires);
+      return;
+    }
 
     /* PIN JAMAIS stocké — session 12h issue du serveur */
     var session = {
@@ -1182,22 +1190,13 @@ function doLogin() {
       return;
     }
 
-    /* Fallback local si réseau indisponible (PROMPT 009 — à supprimer en PROMPT 010) */
-    console.warn('[doLogin] Edge Function inaccessible — fallback DEFAULT_USERS activé');
-    var users = getUsers();
-    var user  = users.find(function(u){
-      return u.username === username && u.password === password && u.active !== false;
-    });
+    /* PROMPT 010 : fallback supprimé — aucun identifiant admin en clair
+       Réseau indisponible → l'administrateur doit rétablir la connexion.
+       Procédure de récupération propriétaire : voir RAPPORT_PROMPT_010.md */
     resetBtn();
-    if (!user) {
-      errEl.textContent = 'Identifiants incorrects (mode hors-ligne).';
-      errEl.classList.add('show');
-      var pw2 = document.getElementById('auth-password');
-      if (pw2) { pw2.value = ''; pw2.focus(); }
-      logAuthEvent('failed', username, '?');
-      return;
-    }
-    applyAdminSession(user, remember);
+    errEl.textContent = 'Service d\'authentification inaccessible. Vérifiez votre connexion et réessayez.';
+    errEl.classList.add('show');
+    logAuthEvent('failed-network', username, '?');
   });
 }
 
@@ -1218,9 +1217,13 @@ function navigateTo(id) { goTo(id); }
 var AUTH_MODE = 'edge';
 
 /* URL Edge Functions — clé anon safe côté client (service_role JAMAIS ici) */
-var EDGE_VERIFY_PIN_URL   = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
+var EDGE_VERIFY_PIN_URL    = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
 /* PROMPT 009 Mission 9 — Auth admin via Edge Function (hash bcrypt, jamais en clair) */
-var EDGE_VERIFY_ADMIN_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-admin-login';
+var EDGE_VERIFY_ADMIN_URL  = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-admin-login';
+/* PROMPT 010 — Nouvelles Edge Functions PIN lifecycle */
+var EDGE_CHANGE_PIN_URL    = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/change-employee-pin';
+var EDGE_RESET_PIN_URL     = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/reset-employee-pin';
+var EDGE_CHANGE_ADMIN_PW   = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/change-admin-password';
 
 /**
  * Mission 7 — Nettoyer un objet employé pour le stockage/rendu client
@@ -1289,6 +1292,112 @@ function verifyEmployeePin(employeeId, pin) {
   });
 }
 
+
+/* ================================================================
+   PROMPT 010 — Mission 8 : Vue changement PIN (must_change_pin)
+   ================================================================ */
+
+/* Données temporaires de pré-session pour le changement de PIN */
+var _pendingPinSession = null;
+
+/**
+ * showChangePinView() — affiché quand must_change_pin = true
+ * L'employé doit changer son PIN avant d'accéder à l'application.
+ */
+function showChangePinView(empId, empName, coreRole, allowedMods, expires) {
+  _pendingPinSession = { empId:empId, empName:empName, coreRole:coreRole, allowedMods:allowedMods, expires:expires };
+  var overlay = document.getElementById('auth-overlay');
+  if (!overlay) { console.error('[changePIN] auth-overlay introuvable'); return; }
+  var box = overlay.querySelector('.auth-box') || overlay;
+  box.innerHTML = '<div id="view-change-pin" style="padding:16px 0;">'
+    + '<div style="text-align:center;margin-bottom:16px;">'
+    + '<div style="font-size:28px;margin-bottom:6px;">🔐</div>'
+    + '<div style="font-weight:700;font-size:18px;color:var(--text1)">Changement de PIN requis</div>'
+    + '<div style="color:var(--text2);font-size:13px;margin-top:4px;">Bonjour ' + esc(empName) + ', vous devez définir un nouveau PIN à 6 chiffres pour continuer.</div>'
+    + '</div>'
+    + '<div id="cp-error" class="auth-error" style="display:none;margin-bottom:8px;"></div>'
+    + '<label class="auth-label">PIN temporaire actuel (4 ou 6 chiffres)</label>'
+    + '<input class="auth-input" id="cp-current" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="current-password">'
+    + '<label class="auth-label" style="margin-top:10px;">Nouveau PIN (6 chiffres)</label>'
+    + '<input class="auth-input" id="cp-new" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="new-password">'
+    + '<label class="auth-label" style="margin-top:10px;">Confirmer le nouveau PIN</label>'
+    + '<input class="auth-input" id="cp-confirm" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="new-password">'
+    + '<button class="auth-btn" style="margin-top:16px;width:100%;" onclick="doChangePin()">Enregistrer le nouveau PIN</button>'
+    + '</div>';
+}
+
+/**
+ * doChangePin() — soumet le changement de PIN via Edge Function
+ */
+function doChangePin() {
+  var ps  = _pendingPinSession;
+  if (!ps) { console.error('[changePIN] Session en attente introuvable'); return; }
+
+  var currentPin = (document.getElementById('cp-current').value || '').trim();
+  var newPin     = (document.getElementById('cp-new').value || '').trim();
+  var confirmPin = (document.getElementById('cp-confirm').value || '').trim();
+  var errEl      = document.getElementById('cp-error');
+
+  function showErr(msg) {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  }
+  errEl.style.display = 'none';
+
+  if (!currentPin || !newPin || !confirmPin) { showErr('Veuillez remplir tous les champs.'); return; }
+  if (!/^\d{4}$/.test(currentPin) && !/^\d{6}$/.test(currentPin)) { showErr('PIN actuel : 4 ou 6 chiffres requis.'); return; }
+  if (!/^\d{6}$/.test(newPin)) { showErr('Le nouveau PIN doit comporter exactement 6 chiffres.'); return; }
+  if (newPin !== confirmPin) { showErr('Les deux nouveaux PIN ne correspondent pas.'); return; }
+
+  var btn = document.querySelector('#view-change-pin .auth-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement…'; }
+
+  fetch(EDGE_CHANGE_PIN_URL, {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+    body: JSON.stringify({ employee_id: ps.empId, current_pin: currentPin, new_pin: newPin })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(result) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer le nouveau PIN'; }
+    if (!result.ok) {
+      var msg = (result.error === 'invalid_credentials') ? 'PIN actuel incorrect.'
+        : (result.error === 'new_pin_must_be_6_digits') ? 'Le nouveau PIN doit comporter exactement 6 chiffres.'
+        : (result.error === 'weak_pin') ? 'PIN trop simple. Choisissez une combinaison moins évidente.'
+        : (result.error === 'temporary_pin_expired') ? 'PIN temporaire expiré. Contactez votre responsable.'
+        : (result.error || 'Erreur lors du changement de PIN.');
+      showErr(msg); return;
+    }
+
+    /* PIN changé — compléter la connexion */
+    _pendingPinSession = null;
+    var session = {
+      username:        ps.empId,
+      name:            ps.empName,
+      role:            ps.coreRole,
+      employee_id:     ps.empId,
+      allowed_modules: ps.allowedMods,
+      primaryModule:   'employee_home',
+      loginAt:         Date.now(),
+      expires:         ps.expires
+    };
+    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    logAuthEvent('pin-changed-and-login', ps.empName, ps.coreRole);
+    currentUser = { username:ps.empId, name:ps.empName, role:ps.coreRole,
+                    employee_id:ps.empId, allowed_modules:ps.allowedMods };
+    hideAuthOverlay();
+    updateTopbarUser();
+    buildNav();
+    initGreeting();
+    loadDashboardData();
+    setTimeout(function() { goTo('employee_home'); }, 300);
+  })
+  .catch(function(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer le nouveau PIN'; }
+    console.error('[changePIN] Erreur réseau:', e);
+    showErr('Service indisponible. Vérifiez la connexion.');
+  });
+}
 
 /* ================================================================
    PROMPT 008A — Missions 4, 5, 7 : Rôles + Espace Employé
@@ -2087,134 +2196,4 @@ window.addEventListener('message', function(ev) {
     <div id="auth-admin-mode" style="display:none;">
       <div class="auth-field">
         <label>Identifiant admin</label>
-        <input type="text" id="auth-username" placeholder="admin"
-               autocomplete="username"
-               onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
-      </div>
-      <div class="auth-field">
-        <label>Mot de passe</label>
-        <input type="password" id="auth-password" placeholder="••••••••"
-               autocomplete="current-password"
-               onkeydown="if(event.key==='Enter')doLogin()">
-      </div>
-      <div class="auth-field" style="flex-direction:row;align-items:center;gap:8px;">
-        <input type="checkbox" id="auth-remember" style="width:auto;">
-        <label for="auth-remember" style="font-size:12px;color:var(--text2);">Se souvenir de moi (7 jours)</label>
-      </div>
-      <button class="auth-btn" onclick="doLogin()">🔐 Connexion admin</button>
-    </div>
-
-    <!-- ── Toggle mode ── -->
-    <div class="auth-mode-toggle">
-      <a id="auth-mode-lnk" onclick="toggleAdminMode()">🔐 Accès administrateur</a>
-    </div>
-  </div>
-</div>
-
-<!-- ── Panneau Pointage Rapide ──────────────────────────────── -->
-<style>
-#pointage-panel {
-  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;
-  display:flex;align-items:center;justify-content:center;padding:16px;
-}
-#pointage-panel.hidden{display:none;}
-.pp-box {
-  background:var(--bg2);border-radius:16px;width:100%;max-width:420px;
-  padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.5);
-}
-.pp-hdr {display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-.pp-hdr h3 {font-size:18px;font-weight:700;}
-.pp-close {background:transparent;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px;}
-.pp-time {font-size:36px;font-weight:800;color:var(--accent);text-align:center;margin:8px 0;}
-.pp-date {font-size:13px;color:var(--text2);text-align:center;margin-bottom:16px;}
-.pp-status {text-align:center;font-size:14px;margin-bottom:16px;min-height:20px;}
-.pp-btns {display:flex;gap:10px;margin-bottom:20px;}
-.pp-btn-in  {flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;
-  background:rgba(34,211,165,.15);color:var(--accent);font-weight:700;font-size:15px;}
-.pp-btn-out {flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;
-  background:rgba(244,63,94,.15);color:var(--err);font-weight:700;font-size:15px;}
-.pp-btn-in:hover  {background:rgba(34,211,165,.25);}
-.pp-btn-out:hover {background:rgba(244,63,94,.25);}
-.pp-section {font-size:11px;color:var(--text3);text-transform:uppercase;
-  letter-spacing:.7px;margin-bottom:8px;font-weight:600;}
-.att-history {max-height:220px;overflow-y:auto;}
-.att-row {display:flex;justify-content:space-between;align-items:center;
-  padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);}
-.att-row:last-child{border:none;}
-</style>
-<div id="pointage-panel" class="hidden">
-  <div class="pp-box">
-    <div class="pp-hdr">
-      <h3>⏱ Mon Pointage</h3>
-      <button class="pp-close" onclick="closePointagePanel()">✕</button>
-    </div>
-    <div class="pp-time" id="punch-clock">--:--</div>
-    <div class="pp-date" id="punch-date"></div>
-    <div class="pp-status" id="punch-status">Chargement...</div>
-    <div class="pp-btns">
-      <button class="pp-btn-in"  id="punch-btn-in"  onclick="doPunchIn()"  style="display:none">▶ Arrivée</button>
-      <button class="pp-btn-out" id="punch-btn-out" onclick="doPunchOut()" style="display:none">⏹ Départ</button>
-    </div>
-    <div class="pp-section">Présences récentes (14 jours)</div>
-    <div class="att-history" id="att-history">
-      <div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Chargement...</div>
-    </div>
-  </div>
-</div>
-
-<script>
-/* ── Pointage Panel (PROMPT 008A) ───────────────────────────── */
-setInterval(function(){
-  var el=document.getElementById('punch-clock');
-  if(!el)return;
-  var n=new Date();
-  el.textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
-},1000);
-
-function openPointagePanel(){
-  var pp=document.getElementById('pointage-panel');
-  if(!pp)return;
-  pp.classList.remove('hidden');
-  var dn=document.getElementById('punch-date');
-  if(dn) dn.textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  loadAttHistory();
-}
-function closePointagePanel(){
-  var pp=document.getElementById('pointage-panel');
-  if(pp) pp.classList.add('hidden');
-}
-
-function loadAttHistory(){
-  var hist=document.getElementById('att-history');
-  var stat=document.getElementById('punch-status');
-  var btnIn=document.getElementById('punch-btn-in');
-  var btnOut=document.getElementById('punch-btn-out');
-  if(!hist)return;
-  if(!currentUser||!currentUser.employee_id){
-    if(stat) stat.textContent='Connectez-vous comme employé pour utiliser le pointage.';
-    if(btnIn)  btnIn.style.display='none';
-    if(btnOut) btnOut.style.display='none';
-    hist.innerHTML='<div class="emp-empty">Non connecté comme employé.</div>';
-    return;
-  }
-  hist.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Chargement...</div>';
-  var empId=currentUser.employee_id;
-  var since=new Date(Date.now()-14*24*60*60*1000).toISOString().slice(0,10);
-  var today=new Date().toISOString().slice(0,10);
-
-  fetch(SUPA_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(empId)
-    +'&date=gte.'+since+'&select=*&order=date.desc&limit=20',{
-    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
-  })
-  .then(function(r){ return r.ok?r.json():null; })
-  .then(function(rows){
-    if(!Array.isArray(rows)||rows.length===0){
-      return fetch(SUPA_URL+'/rest/v1/veraluz_pointages?employee_id=eq.'+encodeURIComponent(empId)
-        +'&date=gte.'+since+'&select=*&order=date.desc&limit=20',{
-        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
-      }).then(function(r2){ return r2.ok?r2.json():[]; });
-    }
-    return rows;
-  })
-  .then(function(rows){
-    var todayRow=Array.isArr
+        <input type="text" id="auth-username
