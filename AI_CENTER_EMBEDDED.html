@@ -232,7 +232,13 @@ select.form-input option{background:var(--bg3);}
 ══════════════════════════════════════════════════════════════ */
 
 /* ── Config ──────────────────────────────────────────────────── */
-var VERALUZ_AI_MODE = 'mock'; /* 'mock' | 'edge' — Ne jamais passer en 'edge' sans Edge Function configurée */
+/* ── Mode IA ─────────────────────────────────────────────────────────────
+   'mock' : rapport généré localement depuis Supabase, aucune IA externe
+   'edge' : appel Edge Function veraluz-ai-runner (nécessite secrets Supabase)
+   ⚠  NE JAMAIS écrire une clé IA ici — les secrets sont côté serveur uniquement
+──────────────────────────────────────────────────────────────────────── */
+var VERALUZ_AI_MODE = 'mock'; /* Changer en 'edge' pour activer l'IA réelle */
+var VERALUZ_EF_URL  = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/veraluz-ai-runner';
 var SB = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
@@ -486,14 +492,15 @@ function runDirectorReport() {
   if (_loadingReport) return;
   _loadingReport = true;
   var btn = document.getElementById('btn-generate');
-  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span> Génération…'; }
+  var modeLabel = VERALUZ_AI_MODE === 'edge' ? 'IA Réelle' : 'MOCK';
+  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span> Génération '+modeLabel+'…'; }
   var reportArea = document.getElementById('report-area');
-  if (reportArea) reportArea.innerHTML = '<div class="empty"><div class="empty-icon"><span class="spin" style="font-size:32px;">⟳</span></div><div class="empty-title">Analyse en cours…</div><div class="empty-sub">Chargement des données Supabase · Mode MOCK</div></div>';
+  if (reportArea) reportArea.innerHTML = '<div class="empty"><div class="empty-icon"><span class="spin" style="font-size:32px;">⟳</span></div><div class="empty-title">Analyse en cours…</div><div class="empty-sub">Mode '+modeLabel+' · Chargement données Supabase</div></div>';
 
-  /* SÉCURITÉ : Mode mock — aucun appel OpenAI/Claude/Anthropic ici */
-  if (VERALUZ_AI_MODE !== 'mock') {
-    showToast('Mode edge non configuré.','warn');
-    _loadingReport=false; if(btn){btn.disabled=false;btn.innerHTML='🚀 Générer rapport';} return;
+  /* SÉCURITÉ : aucune clé IA ici — mode edge passe par Edge Function serveur */
+  if (VERALUZ_AI_MODE === 'edge') {
+    runDirectorReportEdge();
+    return;
   }
 
   /* Essai snapshot parent */
@@ -562,6 +569,87 @@ function runDirectorReport() {
     var b = document.getElementById('btn-generate');
     if (b) { b.disabled=false; b.innerHTML='🚀 Générer rapport'; }
   });
+}
+
+/* ── Mode Edge : appel Edge Function serveur ─────────────────── */
+function runDirectorReportEdge() {
+  /* Essai snapshot parent (Analytics) */
+  var parentSnap = null;
+  try { parentSnap = window.parent.VeraluzAnalyticsSnapshot; } catch(e){}
+
+  var payload = {
+    agent_key:    'daily_director',
+    run_type:     'daily_report',
+    snapshot:     parentSnap || {},
+    requested_by: _currentUser.username || 'ai_center_user'
+  };
+
+  fetch(VERALUZ_EF_URL, {
+    method:  'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': KEY, 'Authorization': 'Bearer '+KEY },
+    body:    JSON.stringify(payload)
+  })
+  .then(function(r) {
+    if (!r.ok && r.status !== 200) throw new Error('HTTP '+r.status);
+    return r.json();
+  })
+  .then(function(data) {
+    if (!data.ok) {
+      /* Edge Function a répondu mais IA non configurée → fallback mock */
+      var errMsg = data.error || 'Edge Function non disponible';
+      showToast('⚠ '+errMsg+' — Fallback mode MOCK', 'warn');
+      /* Fallback vers mock */
+      runDirectorReportMockFallback(errMsg);
+      return;
+    }
+    /* Succès IA réelle */
+    _reportData = data.report;
+    _reportData._edge = true;
+    _reportData._provider = data.provider || 'edge';
+    _reportData._run_id = data.run_id;
+
+    var ra = document.getElementById('report-area');
+    if (ra) ra.innerHTML = renderReportHTML(_reportData);
+    loadRuns(); loadRecs();
+    showToast('Rapport IA réel généré ('+data.provider+') ✓','ok');
+    updateModeBadge('edge', data.provider);
+  })
+  .catch(function(err) {
+    console.error('[AI Edge]', err);
+    showToast('Erreur Edge Function — Fallback mode MOCK', 'warn');
+    runDirectorReportMockFallback(String(err));
+  })
+  .finally(function() {
+    _loadingReport = false;
+    var b = document.getElementById('btn-generate');
+    if (b) { b.disabled=false; b.innerHTML='🚀 Générer rapport'; }
+  });
+}
+
+/* ── Fallback mock si Edge échoue ─────────────────────────────── */
+function runDirectorReportMockFallback(reason) {
+  _loadingReport = false;
+  var b = document.getElementById('btn-generate');
+  if (b) { b.disabled=false; b.innerHTML='🚀 Générer rapport'; }
+  /* Lancer le mode mock normal */
+  VERALUZ_AI_MODE = 'mock';
+  showToast('Basculé en mode MOCK (Edge indisponible)', 'warn');
+  runDirectorReport();
+  /* Rétablir edge pour prochaine tentative */
+  setTimeout(function(){ VERALUZ_AI_MODE = 'edge'; }, 5000);
+}
+
+/* ── Mettre à jour le badge mode ─────────────────────────────── */
+function updateModeBadge(mode, provider) {
+  var bdg = document.getElementById('mode-badge');
+  if (!bdg) return;
+  if (mode === 'edge') {
+    bdg.className = 'mode-badge mode-edge';
+    bdg.textContent = '🟢 EDGE IA' + (provider ? ' · '+provider.toUpperCase() : '');
+  } else {
+    bdg.className = 'mode-badge mode-mock';
+    bdg.textContent = '⚙ MOCK';
+  }
 }
 
 function buildMockReport(snap, reservations, payments, employees, housekeeping, foodOrders, units) {
@@ -644,7 +732,7 @@ function renderReportHTML(r) {
       '<div style="font-size:24px;">📋</div>',
       '<div style="flex:1"><div class="report-title">'+esc(r.title)+'</div>',
       '<div class="report-sub">Généré le '+fmtDate(r.generated_at)+' · Mode '+esc(r.mode||'mock').toUpperCase()+(r.using_analytics_snapshot?' · Snapshot Analytics':'')+'</div></div>',
-      '<span class="bdg bdg-draft">MOCK</span>',
+      (r._edge ? '<span class="bdg bdg-active" style="background:rgba(34,211,165,.15);color:var(--accent)">🟢 EDGE IA'+(r._provider?' · '+r._provider.toUpperCase():'')+'</span>' : '<span class="bdg bdg-draft">MOCK</span>'),
     '</div>',
 
     '<div class="report-section"><div class="report-section-title">📝 Résumé</div>',
@@ -899,14 +987,16 @@ function renderSettings() {
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;margin-bottom:14px;">',
     '<div style="font-size:12px;font-weight:700;margin-bottom:12px;">📊 Tableau de bord Sécurité IA</div>',
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;">',
-      secBadge('Mode IA actuel',      'MOCK',        'ok',  'Simulation locale — aucun appel IA externe'),
-      secBadge('Appel IA externe',    'DÉSACTIVÉ',   'ok',  'Aucune requête vers OpenAI/Claude/Anthropic'),
-      secBadge('Clé IA frontend',     'ABSENTE',     'ok',  'Aucune clé API dans le code HTML/JS'),
-      secBadge('Validation humaine',  'ACTIVE',      'ok',  'approval_required=TRUE sur tous les agents'),
-      secBadge('Actions auto critiques','DÉSACTIVÉES','ok',  'Aucune action métier sans validation'),
-      secBadge('RLS IA',              'DEV/PERMISSIF','warn','Policies anon permissives — mode développement'),
-      secBadge('Edge Function IA',    'PLACEHOLDER', 'warn','Retourne ok:false — aucune clé configurée'),
-      secBadge('Production ready',    'NON',         'err', 'Durcir RLS + configurer Edge Function avant prod'),
+      secBadge('Mode IA actuel',         VERALUZ_AI_MODE==='edge'?'EDGE IA':'MOCK', VERALUZ_AI_MODE==='edge'?'ok':'warn', VERALUZ_AI_MODE==='edge'?'Appel IA via Edge Function serveur':'Simulation locale — aucun appel IA externe'),
+      secBadge('Agent réel connecté',    VERALUZ_AI_MODE==='edge'?'daily_director':'AUCUN', VERALUZ_AI_MODE==='edge'?'ok':'warn', 'Seul daily_director est activé en mode edge — les 9 autres restent mock'),
+      secBadge('Appel IA externe',       VERALUZ_AI_MODE==='edge'?'ACTIVÉ (serveur)':'DÉSACTIVÉ', 'ok', 'Clé IA côté Supabase Secrets uniquement — jamais dans le frontend'),
+      secBadge('Clé IA frontend',        'ABSENTE',         'ok',  'Aucune clé API dans le code HTML/JS — règle absolue'),
+      secBadge('Validation humaine',     'ACTIVE',          'ok',  'requires_approval=TRUE forcé sur toutes les recommandations IA'),
+      secBadge('Actions auto critiques', 'DÉSACTIVÉES',     'ok',  'Aucune action métier automatique — Edge Function refuse'),
+      secBadge('Budget guard',           'ACTIF',           'ok',  'Max 1 appel/2min par utilisateur · Max 20/jour en DEV'),
+      secBadge('Sanitize snapshot',      'ACTIF',           'ok',  'pin_code/pin_hash/salaires supprimés avant envoi IA'),
+      secBadge('RLS IA',                 'DEV/PERMISSIF',   'warn','Policies anon update actives — à durcir avant prod'),
+      secBadge('Production ready',       'NON',             'err', 'Durcir RLS + tests en staging avant prod'),
     '</div>',
     '<div style="margin-top:12px;padding:10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.25);border-radius:7px;font-size:11px;color:var(--yellow);">',
       '⚠ <b>Mode développement :</b> règles IA permissives. Policies anon UPDATE sur agents/recommandations actives. À durcir avant toute mise en production avec une vraie clé IA.',
