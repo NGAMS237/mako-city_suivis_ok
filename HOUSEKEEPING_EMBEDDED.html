@@ -552,16 +552,23 @@ select.form-control option{background:var(--bg2)}
 /* ── CONFIG ── */
 var SB = (window.__SUPABASE_URL__||'https://dfdmasejsoibxrvubegu.supabase.co');
 var SK = (window.__SUPABASE_KEY__||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY');
-var STAFF = []; // populated dynamically from veraluz_employees (housekeeping team)
+var STAFF = []; // populated dynamically from veraluz_employees
 
 /* ── STATE ── */
 var _tasks = [], _units = [], _reservations = [], _employees = [], _activeTab = 'dash';
 var _empName = '', _selProblem = '';
 
 /* ── UTILITIES ── */
+/* PROMPT 007 — délégation VC.esc() + safeUrl() */
+var VC = window.VeraluzCore || {};
 function esc(s) {
+  if(VC&&typeof VC.esc==='function') return VC.esc(s);
   if(!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function safeUrl(url){
+  var s=String(url||'').trim();if(!s)return'#';
+  if(s.startsWith('http://')||s.startsWith('https://')||s.startsWith('mailto:')||s.startsWith('tel:'))return s;return'#';
 }
 function today() { return new Date().toISOString().split('T')[0]; }
 function fmtDate(d) {
@@ -639,7 +646,7 @@ function loadAll(cb) {
     }).catch(check);
 
   // Fetch active employees for assignments
-  sbFetch('veraluz_employees?select=id,full_name,role,team_id,status,base_salary,hourly_rate,contract_type,phone,email,hire_date&status=eq.actif&order=full_name.asc')
+  sbFetch('veraluz_employees?select=id,full_name,role,status,base_salary,hourly_rate,contract_type,phone,email,hire_date&status=eq.actif&order=full_name.asc')
     .then(function(r){return r.json();})
     .then(function(d){
       if(Array.isArray(d)){
@@ -1092,8 +1099,7 @@ function showNamePicker() {
   var ng=document.getElementById('nameGrid');
   if(ng){
     var hkRoles=['femme_chambre','technicien','agent_securite','maintenance','staff','manager'];
-    var hkEmps=_employees.filter(function(e){return hkRoles.indexOf(e.role)>=0;});
-    if(!hkEmps.length)hkEmps=_employees; // fallback: show all if no role match
+    var hkEmps=_employees.filter(function(e){return hkRoles.indexOf(e.role)>=0||true;}); // show all
     ng.innerHTML=hkEmps.map(function(e){
       var roleMap={femme_chambre:'🧹',technicien:'🔧',receptionniste:'🛎',agent_securite:'🔒',barman:'🍹',manager:'👔',cuisinier:'👨‍🍳',staff:'👤'};
       var icon=roleMap[e.role]||'👤';
@@ -1156,7 +1162,7 @@ function renderEmpProfile() {
     '<div style="width:44px;height:44px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0">'+esc(emp.full_name.charAt(0))+'</div>'+
     '<div style="flex:1;min-width:0">'+
       '<div style="font-size:15px;font-weight:800;color:var(--text)">'+esc(emp.full_name)+'</div>'+
-      '<div style="font-size:11px;color:var(--text2);margin-top:1px">'+esc((emp.poste||'Housekeeping'))+' · '+esc(contractMap[ct]||ct)+'</div>'+
+      '<div style="font-size:11px;color:var(--text2);margin-top:1px">'+esc(roleMap[emp.role]||emp.role)+' · '+esc(contractMap[ct]||ct)+'</div>'+
     '</div>'+
     '<div style="text-align:right;flex-shrink:0">'+
       '<div style="font-size:13px;font-weight:700;color:var(--success)">'+esc(salaryLabel)+'</div>'+
@@ -1522,20 +1528,4 @@ document.addEventListener('DOMContentLoaded',function(){
     refresh();
   });
 
-  // Poll localStorage every 5s for reservation changes (checkout, checkin, new booking)
-  setInterval(function(){
-    try{
-      var ts = parseInt(localStorage.getItem('vlz_rez_updated')||'0');
-      if(ts > _lastHkRezSync){
-        _lastHkRezSync = ts;
-        loadAll(function(){
-          syncWithReservations();
-          refresh();
-        });
-      }
-    }catch(e){}
-  }, 5000);
-});
-</script>
-</body>
-</html>
+  // Poll localStorage every 5s for reservation chang
