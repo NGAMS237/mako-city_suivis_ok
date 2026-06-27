@@ -14,6 +14,8 @@
   --warn:#f59e0b;--err:#f43f5e;--ok:#22d3a5;
   --sb-w:220px;--tb-h:54px;--bn-h:62px;
   --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+  /* PROMPT 008A — alias pour overlay auth */
+  --fg:var(--text);--fg2:var(--text2);--acc:var(--accent);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
@@ -276,6 +278,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
 .tb-logout-btn:hover { background:rgba(239,68,68,.22); }
 
+/* ── PROMPT 008A : Espace Employé ───────────────────────────── */
+#view-employee-home{padding:16px;padding-bottom:calc(var(--bn-h)+var(--sab)+16px);}
+@media(min-width:768px){#view-employee-home{padding:24px;padding-bottom:24px;}}
+.emp-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+.emp-card-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;font-weight:600;margin-bottom:12px;}
+.emp-profile-row{display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+.emp-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;}
+.emp-pname{font-size:18px;font-weight:700;margin-bottom:2px;}
+.emp-prole{font-size:12px;color:var(--accent);font-weight:600;}
+.emp-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.emp-meta-item{font-size:12px;color:var(--text2);background:var(--bg3);padding:4px 10px;border-radius:20px;}
+.att-today{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;}
+.att-chip{flex:1;min-width:110px;background:var(--bg3);border-radius:10px;padding:12px;text-align:center;}
+.att-chip-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.att-chip-val{font-size:20px;font-weight:700;color:var(--accent);}
+.task-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.task-item:last-child{border:none;}
+.task-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.task-dot.pending{background:var(--warn);}.task-dot.done{background:var(--ok);}.task-dot.urgent{background:var(--err);}
+.task-text{flex:1;font-size:13px;}.task-time{font-size:11px;color:var(--text3);}
+.emp-modules-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+@media(min-width:480px){.emp-modules-grid{grid-template-columns:repeat(3,1fr);}}
+.emp-mod-btn{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;cursor:pointer;color:var(--text);transition:background .15s;}
+.emp-mod-btn:hover{background:var(--bg4);}
+.emp-mod-icon{font-size:20px;margin-bottom:4px;}.emp-mod-lbl{font-size:11px;font-weight:600;}
+.emp-empty{font-size:12px;color:var(--text3);text-align:center;padding:12px;font-style:italic;}
+
 </style>
 </head>
 <body>
@@ -373,6 +402,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
       <div class="dash-section">Réservations récentes</div>
       <div class="recent-list" id="recent-list">
         <div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Chargement…</div></div>
+      </div>
+    </div>
+    <div id="view-employee-home" class="view">
+      <div id="emp-home-inner" style="max-width:700px;margin:0 auto;">
+        <div id="emp-profile-card" class="emp-card"><div class="emp-card-title">👤 Mon profil</div><div class="emp-empty">Chargement...</div></div>
+        <div id="emp-pointage-card" class="emp-card"><div class="emp-card-title">⏱ Pointage du jour</div><div class="emp-empty">Chargement...</div></div>
+        <div id="emp-tasks-card" class="emp-card"><div class="emp-card-title">📋 Mes tâches</div><div class="emp-empty">Chargement...</div></div>
+        <div id="emp-paie-card" class="emp-card"><div class="emp-card-title">💰 Ma paie</div><div class="emp-empty">Chargement...</div></div>
+        <div id="emp-modules-card" class="emp-card"><div class="emp-card-title">🧩 Mes modules</div><div id="emp-modules-grid" class="emp-modules-grid"></div></div>
+        <div id="emp-notif-card" class="emp-card"><div class="emp-card-title">🔔 Notifications</div><div class="emp-empty">Aucune notification pour le moment.</div></div>
       </div>
     </div>
     <div id="view-module" class="view">
@@ -495,6 +534,14 @@ function goTo(pageId) {
     showDashView();
     return;
   }
+  /* PROMPT 008A — Espace Employé */
+  if (pageId === 'employee_home') {
+    currentModule = null;
+    setTopbar('👤 Mon espace','Espace personnel employé');
+    showView('employee-home');
+    if (currentUser && currentUser.employee_id) { renderEmployeeHome(currentUser); }
+    return;
+  }
   if (!mod) return;
   currentModule = mod;
   setTopbar(mod.icon+' '+mod.label, mod.desc||'');
@@ -589,6 +636,21 @@ function buildNav(){
   var visibleModules = (currentUser && ROLES[currentUser.role])
     ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0; })
     : MODULES;
+
+  /* PROMPT 008A — Mon espace pour les employés */
+  if (currentUser && currentUser.employee_id) {
+    var sbE=document.createElement('button'); sbE.className='sb-btn'; sbE.id='nav-employee_home';
+    sbE.innerHTML='<span class="sb-icon">👤</span> Mon espace';
+    sbE.onclick=function(){ goTo('employee_home'); }; sbMods.appendChild(sbE);
+    var bnE=document.createElement('button'); bnE.className='bn-btn'; bnE.id='bn-employee_home';
+    bnE.innerHTML='<span class="bn-icon">👤</span><span class="bn-label">Mon espace</span>';
+    bnE.onclick=function(){ goTo('employee_home'); }; bnMods.appendChild(bnE);
+    var empCard=document.createElement('button'); empCard.className='mod-card';
+    empCard.innerHTML='<div class="mod-icon">👤</div><div class="mod-name">Mon espace</div>'
+      +'<div class="mod-desc">Profil · Pointage · Tâches</div><span class="mod-badge">Personnel</span>';
+    empCard.onclick=function(){ goTo('employee_home'); };
+    grid.insertBefore(empCard,grid.firstChild);
+  }
 
   visibleModules.forEach(function(m){
     var sb = document.createElement('button');
@@ -706,43 +768,70 @@ var SUPA_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
 /* ── Role mapping: Supabase role → Core role ──────────────────────── */
+/* PROMPT 008A Mission 4 — ROLE_MAP étendu */
 var ROLE_MAP = {
-  gerant:         'superadmin',
-  directeur:      'superadmin',
-  manager:        'manager',
-  superviseur:    'manager',
-  receptionniste: 'reception',
-  agent_accueil:  'reception',
-  comptable:      'comptable',
-  financier:      'comptable',
-  barman:         'restaurant',
-  cuisinier:      'restaurant',
-  serveur:        'restaurant',
-  femme_chambre:  'housekeeping',
-  agent_menage:   'housekeeping',
-  technicien:     'housekeeping',
-  agent_securite: 'housekeeping',
-  rh:             'rh',
-  admin:          'superadmin'
+  /* Admin */
+  gerant:'superadmin',directeur:'superadmin',admin:'superadmin',
+  administrateur:'superadmin',superadmin:'superadmin',
+  proprietaire:'superadmin',owner:'superadmin',
+  /* Manager */
+  manager:'manager',superviseur:'manager',chef_equipe:'manager',
+  /* Réception */
+  receptionniste:'reception',agent_accueil:'reception',reception:'reception',
+  receptioniste:'reception',
+  /* Comptabilité */
+  comptable:'accountant',financier:'accountant',finance:'accountant',
+  accountant:'accountant',
+  /* RH */
+  rh:'rh',ressources_humaines:'rh',hr:'rh',
+  /* Restaurant/Bar */
+  barman:'restaurant',serveur:'restaurant',restaurant:'restaurant',waiter:'restaurant',
+  /* Cuisine */
+  cuisinier:'kitchen',chef:'kitchen',kitchen:'kitchen',
+  aide_cuisine:'kitchen',cook:'kitchen',cuisine:'kitchen',
+  /* Housekeeping */
+  femme_chambre:'housekeeping',agent_menage:'housekeeping',
+  housekeeping:'housekeeping',menage:'housekeeping',
+  cleaner:'housekeeping',housekeeper:'housekeeping',
+  /* Maintenance */
+  technicien:'maintenance',maintenance:'maintenance',
+  plombier:'maintenance',electricien:'maintenance',
+  agent_securite:'maintenance',
+  /* Livraison */
+  livreur:'delivery',coursier:'delivery',driver:'delivery',
+  delivery:'delivery',chauffeur:'delivery',
+  /* Staff général */
+  staff:'staff',agent:'staff',employe:'staff'
 };
 
+/* PROMPT 008A Mission 5 — ROLES étendus */
 var ROLES = {
-  superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'rh',
+  superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
              'notifications','analytics','audit','settings','eventbus','auth','contacts','appro','integrations'] },
-  manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'rh',
+  manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
-             'notifications','analytics','auth','contacts','appro','integrations'] },
-  reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981', primaryModule:'reservations',
-    modules:['reservations','paiements','notifications','rh','contacts'] },
-  rh:          { label:'RH',               icon:'👥',  color:'#f59e0b', primaryModule:'rh',
+             'notifications','analytics','contacts','appro'] },
+  reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981', primaryModule:'employee_home',
+    modules:['reservations','paiements','notifications','contacts','housekeeping'] },
+  rh:          { label:'RH',               icon:'👥',  color:'#f59e0b', primaryModule:'employee_home',
     modules:['rh','notifications','analytics'] },
-  comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'finance',
-    modules:['finance','paiements','analytics','audit','notifications'] },
-  restaurant:  { label:'Restaurant',       icon:'🍽️',  color:'#f97316', primaryModule:'restaurant',
-    modules:['restaurant','notifications','rh'] },
-  housekeeping:{ label:'Housekeeping',     icon:'🧹',  color:'#84cc16', primaryModule:'housekeeping',
-    modules:['housekeeping','notifications','rh'] }
+  accountant:  { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'employee_home',
+    modules:['finance','paiements','analytics'] },
+  comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'employee_home',
+    modules:['finance','paiements','analytics'] },
+  restaurant:  { label:'Restaurant',       icon:'🍽️',  color:'#f97316', primaryModule:'employee_home',
+    modules:['restaurant'] },
+  kitchen:     { label:'Cuisine',          icon:'🍳',  color:'#ec4899', primaryModule:'employee_home',
+    modules:['restaurant'] },
+  housekeeping:{ label:'Housekeeping',     icon:'🧹',  color:'#84cc16', primaryModule:'employee_home',
+    modules:['housekeeping'] },
+  maintenance: { label:'Maintenance',      icon:'🔧',  color:'#6366f1', primaryModule:'employee_home',
+    modules:['housekeeping'] },
+  delivery:    { label:'Livreur',          icon:'🛵',  color:'#f59e0b', primaryModule:'employee_home',
+    modules:[] },
+  staff:       { label:'Staff',            icon:'👤',  color:'#64748b', primaryModule:'employee_home',
+    modules:[] }
 };
 
 /* ── Admin fallback users (accès admin uniquement) ─────────────────── */
@@ -754,32 +843,36 @@ var DEFAULT_USERS = [
 /* ── Employee cache ─────────────────────────────────────────────────── */
 var _empCache = [];
 
-function getEmployeesFromSupabase(cb) {
+/* PROMPT 008A — chargement employés avec gestion d'erreur distincte */
+function getEmployeesFromSupabase(cb, onErr) {
   var cached = localStorage.getItem('vlz_emp_login_cache');
   if (cached) {
     try {
       var data = JSON.parse(cached);
-      // Cache valide 5 min ET doit contenir au moins 1 employé
-      if (data.ts && (Date.now() - data.ts) < 5 * 60 * 1000 &&
+      if (data.ts && (Date.now()-data.ts) < 5*60*1000 &&
           Array.isArray(data.employees) && data.employees.length > 0) {
-        _empCache = data.employees;
-        if (cb) cb(_empCache);
-        return;
+        _empCache = data.employees; if (cb) cb(_empCache); return;
       }
     } catch(e) {}
   }
-  fetch(SUPA_URL + '/rest/v1/veraluz_employees?select=id,full_name,role,pin_code,status&status=eq.actif&order=full_name.asc', {
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+  fetch(SUPA_URL+'/rest/v1/veraluz_employees?select=id,full_name,role,pin_code,status,team_id,phone,email,hire_date&status=eq.actif&order=full_name.asc', {
+    headers: { apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY }
   })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    _empCache = Array.isArray(data) ? data : [];
-    localStorage.setItem('vlz_emp_login_cache', JSON.stringify({ ts: Date.now(), employees: _empCache }));
+  .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  .then(function(data){
+    if (!Array.isArray(data)) {
+      var msg = data && data.message ? data.message : 'Réponse Supabase invalide';
+      if (onErr) onErr('Erreur Supabase : '+msg); else if (cb) cb([]); return;
+    }
+    _empCache = data;
+    if (_empCache.length > 0)
+      localStorage.setItem('vlz_emp_login_cache', JSON.stringify({ts:Date.now(),employees:_empCache}));
     if (cb) cb(_empCache);
   })
-  .catch(function() {
-    _empCache = [];
-    if (cb) cb([]);
+  .catch(function(e){
+    console.warn('[Auth] Erreur réseau employés:',e);
+    if (onErr) onErr('Erreur réseau : impossible de charger les employés.');
+    else if (cb) cb([]);
   });
 }
 
@@ -828,33 +921,48 @@ function updatePinDisplay() {
   }
 }
 
+/* PROMPT 008A — showAuthOverlay avec messages d'erreur distincts */
 function showAuthOverlay() {
   _pinBuffer = '';
   updatePinDisplay();
   var ov = document.getElementById('auth-overlay');
   if (ov) ov.classList.remove('hidden');
-  // Afficher un état de chargement pendant la requête Supabase
+  var errEl = document.getElementById('auth-error');
+  if (errEl) errEl.classList.remove('show');
   var sel = document.getElementById('auth-emp-select');
   if (sel) sel.innerHTML = '<option value="">⏳ Chargement des employés...</option>';
-  // Charger la liste des employés actifs depuis Supabase
-  getEmployeesFromSupabase(function(emps) {
-    var sel2 = document.getElementById('auth-emp-select');
-    if (!sel2) return;
+
+  function onOk(emps) {
+    var s = document.getElementById('auth-emp-select'); if (!s) return;
     if (!emps || emps.length === 0) {
-      sel2.innerHTML = '<option value="">⚠ Aucun employé trouvé</option>';
+      s.innerHTML = '<option value="">⚠ Aucun employé actif — vérifiez le module RH</option>';
       return;
     }
-    sel2.innerHTML = '<option value="">— Sélectionnez votre nom —</option>';
+    s.innerHTML = '<option value="">— Sélectionnez votre nom —</option>';
     emps.forEach(function(e) {
       var opt = document.createElement('option');
       opt.value = e.id;
-      opt.setAttribute('data-pin',  e.pin_code  || '1234');
-      opt.setAttribute('data-role', e.role      || 'femme_chambre');
-      opt.setAttribute('data-name', e.full_name || '');
-      opt.textContent = e.full_name || e.id;
-      sel2.appendChild(opt);
+      opt.setAttribute('data-pin',  e.pin_code  || '0000');
+      opt.setAttribute('data-role', e.role      || 'staff');
+      /* Normaliser le nom : full_name → name → prenom+nom → ID court */
+      var nm = e.full_name || e.name ||
+               ((e.prenom||e.first_name||'')+' '+(e.nom||e.last_name||'')).trim() ||
+               'Employe #'+String(e.id).slice(-6);
+      opt.setAttribute('data-name',  nm);
+      opt.setAttribute('data-email', e.email    || '');
+      opt.setAttribute('data-team',  e.team_id  || '');
+      opt.textContent = nm;
+      s.appendChild(opt);
     });
-  });
+  }
+
+  function onNetErr(msg) {
+    var s = document.getElementById('auth-emp-select');
+    if (s) s.innerHTML = '<option value="">⚠ Erreur réseau — vérifiez Supabase / connexion</option>';
+    if (errEl) { errEl.textContent = msg || 'Erreur réseau : impossible de charger les employés.'; errEl.classList.add('show'); }
+  }
+
+  getEmployeesFromSupabase(onOk, onNetErr);
 }
 
 function checkAuth() {
@@ -866,16 +974,24 @@ function checkAuth() {
       localStorage.removeItem('veraluz_auth_v1');
       showAuthOverlay(); return;
     }
-    currentUser = { username: session.username, name: session.name, role: session.role,
-                    employee_id: session.employee_id || null };
+    var rc = ROLES[session.role] || {};
+    currentUser = {
+      username:        session.username,
+      name:            session.name,
+      role:            session.role,
+      employee_id:     session.employee_id || null,
+      allowed_modules: session.allowed_modules || rc.modules || []
+    };
     if (!currentUser.name || !currentUser.role) { showAuthOverlay(); return; }
     hideAuthOverlay();
     updateTopbarUser();
     buildNav();
     initGreeting();
     loadDashboardData();
-    // Auto-navigate to primary module for employee roles
-    if (session.primaryModule) {
+    /* PROMPT 008A — Espace Employé d'abord pour les employés */
+    if (currentUser.employee_id) {
+      setTimeout(function() { goTo('employee_home'); }, 400);
+    } else if (session.primaryModule && session.primaryModule !== 'employee_home') {
       setTimeout(function() { navigateTo(session.primaryModule); }, 500);
     }
   } catch(e) {
@@ -908,28 +1024,35 @@ function doLoginPin() {
     return;
   }
 
-  // Map Supabase role to Core role
-  var coreRole = ROLE_MAP[empRole] || 'housekeeping';
-  var roleConf = ROLES[coreRole] || ROLES['housekeeping'];
-  var primaryModule = roleConf.primaryModule || 'housekeeping';
+  /* PROMPT 008A Mission 6 — normalisation rôle + session sécurisée 12h */
+  var coreRole = ROLE_MAP[empRole] || normalizeRole({role:empRole}) || 'staff';
+  var roleConf = ROLES[coreRole] || ROLES['staff'] || {primaryModule:'employee_home',modules:[]};
+  var allowedMods = (roleConf.modules || []).slice();
 
-  var expires = Date.now() + 8 * 60 * 60 * 1000; // 8h session
+  /* PIN JAMAIS stocké — session 12h */
+  var expires = Date.now() + 12 * 60 * 60 * 1000;
   var session = {
-    username: empId, name: empName, role: coreRole,
-    employee_id: empId, primaryModule: primaryModule,
-    loginAt: Date.now(), expires: expires
+    username:        empId,
+    name:            empName,
+    role:            coreRole,
+    employee_id:     empId,
+    allowed_modules: allowedMods,
+    primaryModule:   'employee_home',
+    loginAt:         Date.now(),
+    expires:         expires
   };
   localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
   logAuthEvent('pin-login', empName, coreRole);
 
-  currentUser = { username: empId, name: empName, role: coreRole, employee_id: empId };
+  currentUser = { username:empId, name:empName, role:coreRole,
+                  employee_id:empId, allowed_modules:allowedMods };
   hideAuthOverlay();
   updateTopbarUser();
   buildNav();
   initGreeting();
   loadDashboardData();
-  // Navigate to their primary module
-  setTimeout(function() { navigateTo(primaryModule); }, 400);
+  /* PROMPT 008A — Espace Employé d'abord */
+  setTimeout(function() { goTo('employee_home'); }, 300);
 }
 
 /* ── Admin Login (email + password) ──────────────────────────────── */
@@ -960,14 +1083,22 @@ function doLogin() {
   }
 
   var roleConf = ROLES[user.role] || ROLES['superadmin'];
-  var expires = remember ? Date.now() + 7*24*60*60*1000 : Date.now() + 8*60*60*1000;
-  var session = { username: user.username, role: user.role, name: user.name,
-                  primaryModule: roleConf.primaryModule || null,
-                  loginAt: Date.now(), expires: expires };
+  var expires = remember ? Date.now()+7*24*60*60*1000 : Date.now()+8*60*60*1000;
+  /* PROMPT 008A — session admin avec allowed_modules */
+  var session = {
+    username:        user.username,
+    role:            user.role,
+    name:            user.name,
+    allowed_modules: (roleConf.modules||[]).slice(),
+    primaryModule:   roleConf.primaryModule || null,
+    loginAt:         Date.now(),
+    expires:         expires
+  };
   localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
   logAuthEvent('admin-login', user.username, user.role);
 
-  currentUser = { username: user.username, name: user.name, role: user.role };
+  currentUser = { username:user.username, name:user.name, role:user.role,
+                  allowed_modules:(roleConf.modules||[]).slice() };
   hideAuthOverlay();
   updateTopbarUser();
   buildNav();
@@ -976,6 +1107,201 @@ function doLogin() {
 }
 
 function navigateTo(id) { goTo(id); }
+
+/* ================================================================
+   PROMPT 008A — Missions 4, 5, 7 : Rôles + Espace Employé
+   ================================================================ */
+
+/* Alias pour compatibilité */
+function loadModule(id)  { goTo(id); }
+function renderSidebar() { buildNav(); }
+
+/* Mission 4 — normalisation rôle Supabase → rôle Core */
+function normalizeRole(employee) {
+  var raw = String(
+    (employee && (employee.role || employee.poste || employee.position)) || ''
+  ).toLowerCase().trim().replace(/ /g,'_').replace(/-/g,'_');
+  return ROLE_MAP[raw] || 'staff';
+}
+
+/* Mission 5 — modules autorisés par rôle */
+function getAllowedModules(role) {
+  var r = ROLES[role];
+  return r && r.modules ? r.modules.slice() : [];
+}
+
+/* Mission 7 — Rendu Espace Employé principal */
+function renderEmployeeHome(user) {
+  if (!user) return;
+  var rd = ROLES[user.role] || {};
+  var initials = (user.name||'E').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+
+  /* ── Profil ── */
+  var pc = document.getElementById('emp-profile-card');
+  if (pc) {
+    pc.innerHTML = '<div class="emp-card-title">\u{1F464} Mon profil</div>'
+      +'<div class="emp-profile-row">'
+      +'<div class="emp-avatar">'+esc(initials)+'</div>'
+      +'<div><div class="emp-pname">'+esc(user.name||'Employe')+'</div>'
+      +'<div class="emp-prole">'+esc(rd.label||user.role||'Staff')+'</div></div>'
+      +'</div>'
+      +'<div id="emp-profile-extra"><span style="color:var(--text3);font-size:12px">Chargement profil...</span></div>';
+  }
+
+  /* ── Modules disponibles ── */
+  var mg = document.getElementById('emp-modules-grid');
+  if (mg) {
+    var mods = user.allowed_modules || getAllowedModules(user.role);
+    if (!mods.length) {
+      mg.innerHTML = '<div class="emp-empty">Aucun module pour ce role.</div>';
+    } else {
+      mg.innerHTML = '';
+      mods.forEach(function(mid) {
+        var mod = MODULES.find(function(m){ return m.id === mid; });
+        if (!mod) return;
+        var btn = document.createElement('button');
+        btn.className = 'emp-mod-btn';
+        btn.innerHTML = '<div class="emp-mod-icon">'+esc(mod.icon)+'</div>'
+          +'<div class="emp-mod-lbl">'+esc(mod.label)+'</div>';
+        btn.onclick = function(){ goTo(mid); };
+        mg.appendChild(btn);
+      });
+    }
+  }
+  /* Charger les données personnelles */
+  if (user.employee_id) loadEmployeePersonalData(user.employee_id);
+}
+
+/* Mission 7 — Chargement données personnelles (employee_id uniquement) */
+/* SECURITE : Ne jamais charger les donnees de tous les employes      */
+/* NOTE : securite complete necessitera RLS par employee_id Supabase  */
+function loadEmployeePersonalData(employeeId) {
+  if (!employeeId) return;
+  var today = new Date().toISOString().slice(0,10);
+
+  /* 1. Profil complet */
+  fetch(SUPA_URL+'/rest/v1/veraluz_employees?id=eq.'+encodeURIComponent(employeeId)
+    +'&select=id,full_name,role,phone,email,hire_date,status,team_id&limit=1', {
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+  })
+  .then(function(r){ return r.ok?r.json():[]; })
+  .then(function(rows){
+    var emp = Array.isArray(rows)?rows[0]:null;
+    var extra = document.getElementById('emp-profile-extra');
+    if (!extra) return;
+    if (!emp) { extra.innerHTML='<div class="emp-empty">Profil non trouve.</div>'; return; }
+    var items=[];
+    if(emp.phone)     items.push('\u{1F4DE} '+esc(emp.phone));
+    if(emp.email)     items.push('\u{2709}\uFE0F '+esc(emp.email));
+    if(emp.hire_date) items.push('\u{1F4C5} Embauche le '+esc(emp.hire_date));
+    if(emp.team_id)   items.push('\u{1F3F7}\uFE0F Equipe '+esc(emp.team_id));
+    extra.innerHTML = items.length
+      ? '<div class="emp-meta">'+items.map(function(i){return '<span class="emp-meta-item">'+i+'</span>';}).join('')+'</div>'
+      : '<div class="emp-empty">Informations complementaires non disponibles.</div>';
+  })
+  .catch(function(){
+    var extra=document.getElementById('emp-profile-extra');
+    if(extra) extra.innerHTML='<div class="emp-empty">Donnees indisponibles.</div>';
+  });
+
+  /* 2. Pointage du jour */
+  var attCard = document.getElementById('emp-pointage-card');
+  if(attCard) attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage du jour</div><div class="emp-empty">Chargement...</div>';
+  fetch(SUPA_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(employeeId)
+    +'&date=eq.'+today+'&select=*&limit=5',{
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+  })
+  .then(function(r){ return r.ok?r.json():null; })
+  .then(function(rows){
+    /* Fallback veraluz_pointages si vide */
+    if(!Array.isArray(rows)||rows.length===0){
+      return fetch(SUPA_URL+'/rest/v1/veraluz_pointages?employee_id=eq.'+encodeURIComponent(employeeId)
+        +'&date=eq.'+today+'&select=*&limit=5',{
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+      }).then(function(r2){ return r2.ok?r2.json():[]; });
+    }
+    return rows;
+  })
+  .then(function(rows){
+    if(!attCard) return;
+    if(!Array.isArray(rows)||rows.length===0){
+      attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage du jour</div>'
+        +'<div class="emp-empty">Aucun pointage enregistre aujourd\'hui.</div>'; return;
+    }
+    var r=rows[0];
+    var ent=esc(String(r.check_in||r.heure_entree||r.time_in||r.entry_time||'—').slice(0,5));
+    var sor=esc(String(r.check_out||r.heure_sortie||r.time_out||r.exit_time||'—').slice(0,5));
+    attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage du jour</div>'
+      +'<div class="att-today">'
+      +'<div class="att-chip"><div class="att-chip-lbl">Arrivee</div><div class="att-chip-val">'+ent+'</div></div>'
+      +'<div class="att-chip"><div class="att-chip-lbl">Depart</div><div class="att-chip-val">'+sor+'</div></div>'
+      +'</div>';
+  })
+  .catch(function(){
+    if(attCard) attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage</div>'
+      +'<div class="emp-empty">Donnees indisponibles.</div>';
+  });
+
+  /* 3. Taches assignees — filtre strict employee_id uniquement */
+  var tasksCard=document.getElementById('emp-tasks-card');
+  if(tasksCard) tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches</div><div class="emp-empty">Chargement...</div>';
+  fetch(SUPA_URL+'/rest/v1/veraluz_hr_tasks?assigned_to=eq.'+encodeURIComponent(employeeId)
+    +'&select=id,title,description,status,due_date,priority&limit=10&order=due_date.asc',{
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+  })
+  .then(function(r){ return r.ok?r.json():[]; })
+  .then(function(rows){
+    if(!tasksCard) return;
+    if(!Array.isArray(rows)||rows.length===0){
+      tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches</div>'
+        +'<div class="emp-empty">Aucune tache assignee.</div>'; return;
+    }
+    var html=rows.slice(0,8).map(function(t){
+      var st=(t.status||'').toLowerCase();
+      var dc=st==='done'||st==='completed'?'done':st==='urgent'||t.priority==='high'?'urgent':'pending';
+      return '<div class="task-item"><div class="task-dot '+dc+'"></div>'
+        +'<div class="task-text">'+esc(t.title||t.description||'Tache')+'</div>'
+        +'<div class="task-time">'+esc(String(t.due_date||'').slice(0,10))+'</div></div>';
+    }).join('');
+    tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches ('+rows.length+')</div>'+html;
+  })
+  .catch(function(){
+    if(tasksCard) tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches</div>'
+      +'<div class="emp-empty">Donnees indisponibles.</div>';
+  });
+
+  /* 4. Paie personnelle — filtre employee_id uniquement */
+  /* SECURITE : ne jamais charger toute la paie — filtrer par employee_id */
+  var paieCard=document.getElementById('emp-paie-card');
+  if(paieCard) paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie</div><div class="emp-empty">Chargement...</div>';
+  fetch(SUPA_URL+'/rest/v1/veraluz_payroll?employee_id=eq.'+encodeURIComponent(employeeId)
+    +'&select=id,period,net_salary,status,payment_date&order=period.desc&limit=3',{
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+  })
+  .then(function(r){ return r.ok?r.json():[]; })
+  .then(function(rows){
+    if(!paieCard) return;
+    if(!Array.isArray(rows)||rows.length===0){
+      paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie</div>'
+        +'<div class="emp-empty">Aucun bulletin disponible pour le moment.</div>'; return;
+    }
+    var html=rows.map(function(p){
+      var net=p.net_salary?Number(p.net_salary).toLocaleString('fr-FR')+' XAF':'—';
+      return '<div style="display:flex;justify-content:space-between;padding:7px 0;'
+        +'border-bottom:1px solid var(--border);font-size:13px;">'
+        +'<span>'+esc(String(p.period||'—'))+'</span>'
+        +'<span style="font-weight:700;color:var(--accent);">'+esc(net)+'</span></div>';
+    }).join('');
+    paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie (3 derniers)</div>'+html
+      +'<div style="font-size:10px;color:var(--text3);margin-top:6px;">'
+      +'\u26A0 Securite complete : RLS Supabase par employee_id recommandee.</div>';
+  })
+  .catch(function(){
+    if(paieCard) paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie</div>'
+      +'<div class="emp-empty">Donnees indisponibles.</div>';
+  });
+}
+
 
 function toggleAdminMode() {
   var emp = document.getElementById('auth-emp-mode');
@@ -1060,8 +1386,9 @@ function sendAuthContext(iframe) {
         role:        currentUser.role,
         roleLabel:   rd.label || currentUser.role,
         roleIcon:    rd.icon  || '👤',
-        modules:     rd.modules || [],
-        employee_id: currentUser.employee_id || null
+        modules:         rd.modules || [],
+        allowed_modules: currentUser.allowed_modules || rd.modules || [],
+        employee_id:     currentUser.employee_id || null
       }
     }, '*');
   } catch(e){}
@@ -1632,5 +1959,145 @@ window.addEventListener('message', function(ev) {
   padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);}
 .att-row:last-child{border:none;}
 </style>
+<div id="pointage-panel" class="hidden">
+  <div class="pp-box">
+    <div class="pp-hdr">
+      <h3>⏱ Mon Pointage</h3>
+      <button class="pp-close" onclick="closePointagePanel()">✕</button>
+    </div>
+    <div class="pp-time" id="punch-clock">--:--</div>
+    <div class="pp-date" id="punch-date"></div>
+    <div class="pp-status" id="punch-status">Chargement...</div>
+    <div class="pp-btns">
+      <button class="pp-btn-in"  id="punch-btn-in"  onclick="doPunchIn()"  style="display:none">▶ Arrivée</button>
+      <button class="pp-btn-out" id="punch-btn-out" onclick="doPunchOut()" style="display:none">⏹ Départ</button>
+    </div>
+    <div class="pp-section">Présences récentes (14 jours)</div>
+    <div class="att-history" id="att-history">
+      <div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Chargement...</div>
+    </div>
+  </div>
+</div>
 
-<div id="p
+<script>
+/* ── Pointage Panel (PROMPT 008A) ───────────────────────────── */
+setInterval(function(){
+  var el=document.getElementById('punch-clock');
+  if(!el)return;
+  var n=new Date();
+  el.textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
+},1000);
+
+function openPointagePanel(){
+  var pp=document.getElementById('pointage-panel');
+  if(!pp)return;
+  pp.classList.remove('hidden');
+  var dn=document.getElementById('punch-date');
+  if(dn) dn.textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  loadAttHistory();
+}
+function closePointagePanel(){
+  var pp=document.getElementById('pointage-panel');
+  if(pp) pp.classList.add('hidden');
+}
+
+function loadAttHistory(){
+  var hist=document.getElementById('att-history');
+  var stat=document.getElementById('punch-status');
+  var btnIn=document.getElementById('punch-btn-in');
+  var btnOut=document.getElementById('punch-btn-out');
+  if(!hist)return;
+  if(!currentUser||!currentUser.employee_id){
+    if(stat) stat.textContent='Connectez-vous comme employé pour utiliser le pointage.';
+    if(btnIn)  btnIn.style.display='none';
+    if(btnOut) btnOut.style.display='none';
+    hist.innerHTML='<div class="emp-empty">Non connecté comme employé.</div>';
+    return;
+  }
+  hist.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Chargement...</div>';
+  var empId=currentUser.employee_id;
+  var since=new Date(Date.now()-14*24*60*60*1000).toISOString().slice(0,10);
+  var today=new Date().toISOString().slice(0,10);
+
+  fetch(SUPA_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(empId)
+    +'&date=gte.'+since+'&select=*&order=date.desc&limit=20',{
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+  })
+  .then(function(r){ return r.ok?r.json():null; })
+  .then(function(rows){
+    if(!Array.isArray(rows)||rows.length===0){
+      return fetch(SUPA_URL+'/rest/v1/veraluz_pointages?employee_id=eq.'+encodeURIComponent(empId)
+        +'&date=gte.'+since+'&select=*&order=date.desc&limit=20',{
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+      }).then(function(r2){ return r2.ok?r2.json():[]; });
+    }
+    return rows;
+  })
+  .then(function(rows){
+    var todayRow=Array.isArray(rows)?rows.find(function(r){return(r.date||'').slice(0,10)===today;}):null;
+    if(stat){
+      if(!todayRow) stat.textContent="Pas de pointage aujourd'hui.";
+      else {
+        var ent=todayRow.check_in||todayRow.heure_entree||todayRow.time_in||'?';
+        var sor=todayRow.check_out||todayRow.heure_sortie||todayRow.time_out;
+        stat.textContent='✅ Arrivée : '+esc(String(ent).slice(0,5))+(sor?' · Départ : '+esc(String(sor).slice(0,5)):'');
+      }
+    }
+    if(btnIn)  btnIn.style.display=(!todayRow||!todayRow.check_in)?'flex':'none';
+    if(btnOut) btnOut.style.display=(todayRow&&todayRow.check_in&&!todayRow.check_out)?'flex':'none';
+    if(!Array.isArray(rows)||rows.length===0){
+      hist.innerHTML='<div class="emp-empty">Aucune présence enregistrée.</div>'; return;
+    }
+    hist.innerHTML=rows.slice(0,14).map(function(r){
+      var d=esc(String(r.date||'').slice(0,10));
+      var ent=esc(String(r.check_in||r.heure_entree||r.time_in||'—').slice(0,5));
+      var sor=esc(String(r.check_out||r.heure_sortie||r.time_out||'—').slice(0,5));
+      return '<div class="att-row"><span>'+d+'</span><span>▶ '+ent+' / ⏹ '+sor+'</span></div>';
+    }).join('');
+  })
+  .catch(function(){
+    if(hist) hist.innerHTML='<div class="emp-empty">Erreur réseau — pointages indisponibles.</div>';
+    if(stat) stat.textContent='Erreur réseau.';
+  });
+}
+
+function doPunchIn(){
+  if(!currentUser||!currentUser.employee_id) return;
+  var now=new Date();
+  var today=now.toISOString().slice(0,10);
+  var timeStr=now.toISOString().slice(11,19);
+  fetch(SUPA_URL+'/rest/v1/veraluz_attendance',{
+    method:'POST',
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,
+             'Content-Type':'application/json',Prefer:'return=representation'},
+    body:JSON.stringify({employee_id:currentUser.employee_id,date:today,check_in:timeStr})
+  })
+  .then(function(r){ return r.ok||r.status===201; })
+  .then(function(ok){
+    if(ok){ showCoreToast('✅ Arrivée enregistrée','ok'); loadAttHistory(); }
+    else   showCoreToast('⚠ Erreur enregistrement pointage','err');
+  })
+  .catch(function(){ showCoreToast('⚠ Erreur réseau pointage','err'); });
+}
+
+function doPunchOut(){
+  if(!currentUser||!currentUser.employee_id) return;
+  var now=new Date();
+  var today=now.toISOString().slice(0,10);
+  var timeStr=now.toISOString().slice(11,19);
+  fetch(SUPA_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(currentUser.employee_id)+'&date=eq.'+today,{
+    method:'PATCH',
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({check_out:timeStr})
+  })
+  .then(function(r){ return r.ok; })
+  .then(function(ok){
+    if(ok){ showCoreToast('⏹ Départ enregistré','ok'); loadAttHistory(); }
+    else   showCoreToast('⚠ Erreur enregistrement départ','err');
+  })
+  .catch(function(){ showCoreToast('⚠ Erreur réseau pointage','err'); });
+}
+</script>
+
+</body>
+</html>
