@@ -416,15 +416,39 @@ function normalizeEmployee(row) {
    Garantit qu'une commande ancienne (status='attente') reste visible. */
 function normalizeOrderStatus(status) {
   var map = {
-    'attente':'pending',       'pending':'pending',
-    'confirme':'pending',      'confirmed':'pending',
-    'preparing':'preparing',   'preparation':'preparing',  'en_preparation':'preparing',
-    'ready':'ready',           'pret':'ready',
-    'delivering':'delivering', 'en_livraison':'delivering','out_for_delivery':'delivering',
-    'delivered':'delivered',   'livre':'delivered',        'recu':'delivered', 'paye':'delivered',
-    'cancelled':'cancelled',   'annule':'cancelled',       'canceled':'cancelled'
+    /* pending */
+    'attente':         'pending',          'pending':          'pending',
+    /* confirmed — NE PAS mapper vers pending */
+    'confirme':        'confirmed',        'confirmé':         'confirmed',        'confirmed':  'confirmed',
+    /* preparing */
+    'preparing':       'preparing',        'preparation':      'preparing',
+    'préparation':     'preparing',        'en_preparation':   'preparing',
+    /* ready */
+    'pret':            'ready',            'prêt':             'ready',            'ready':      'ready',
+    /* out_for_delivery — statut canonique pour "en livraison" */
+    'en_livraison':    'out_for_delivery', 'out_for_delivery': 'out_for_delivery',
+    'delivering':      'out_for_delivery', /* legacy interne → canonique */
+    /* delivered */
+    'delivered':       'delivered',        'livre':            'delivered',        'livré':      'delivered',
+    /* LEGACY READ ONLY — ne jamais écrire ces valeurs dans status operationnel */
+    'recu':            'delivered',        /* reçu = livré */
+    'paye':            'delivered',        'payé':             'delivered',        'paid':       'delivered',
+    /* cancelled */
+    'cancelled':       'cancelled',        'annule':           'cancelled',
+    'annulé':          'cancelled',        'canceled':         'cancelled'
   };
   return map[String(status || '').toLowerCase()] || 'pending';
+}
+/* Détecte si un employé est livreur (équipe OU rôle).
+   Utilisé pour filtrer depuis veraluz_employees + team join. */
+function isDeliveryEmployee(emp) {
+  var team = String((emp.team && emp.team.name) || emp.team_name || '').toLowerCase();
+  var role = String(emp.role || emp.poste || emp.position || '').toLowerCase();
+  return (
+    team.includes('livr')    || team.includes('delivery') ||
+    role.includes('livreur') || role.includes('delivery') ||
+    role.includes('driver')  || role.includes('coursier')
+  );
 }
 
 /* ══════════════════════════════════════════
@@ -434,15 +458,15 @@ var STATUSES=[
   {id:'pending',    lbl:'En attente',    cls:'s-pending',   ico:'⏳'},
   {id:'preparing',  lbl:'En préparation',cls:'s-preparing', ico:'🍳'},
   {id:'ready',      lbl:'Prêt à partir', cls:'s-ready',     ico:'✅'},
-  {id:'delivering', lbl:'En livraison',  cls:'s-delivering',ico:'🛵'},
-  {id:'delivered',  lbl:'Livré',         cls:'s-delivered',  ico:'🏁'}
+  {id:'out_for_delivery', lbl:'En livraison',  cls:'s-delivering',ico:'🛵'},
+  {id:'delivered',        lbl:'Livré',         cls:'s-delivered',  ico:'🏁'}
 ];
 var STEPS=[
-  {id:'pending',   lbl:'Reçue'},
-  {id:'preparing', lbl:'Prép.'},
-  {id:'ready',     lbl:'Prêt'},
-  {id:'delivering',lbl:'Route'},
-  {id:'delivered', lbl:'Livré'}
+  {id:'pending',          lbl:'Reçue'},
+  {id:'preparing',        lbl:'Prép.'},
+  {id:'ready',            lbl:'Prêt'},
+  {id:'out_for_delivery', lbl:'Route'},
+  {id:'delivered',        lbl:'Livré'}
 ];
 function stepIdx(sid){return STEPS.findIndex(function(s){return s.id===sid;});}
 
@@ -469,11 +493,8 @@ function loadLivreurs(){
   /* P0 FIX: utilise veraluz_employees (table officielle) + join equipe */
   sbFetch('veraluz_employees?select=id,full_name,role,pin_code,status,phone,email,hire_date,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')
     .then(function(rows){
-      /* Filtre les employés dont l'équipe contient 'livr' ou 'delivery' */
-      var livrows = rows.filter(function(r){
-        var tname = ((r.team && r.team.name) || '').toLowerCase();
-        return tname.includes('livr') || tname.includes('delivery');
-      });
+      /* Filtre via isDeliveryEmployee() : équipe OU rôle */
+      var livrows = rows.filter(isDeliveryEmployee);
       LIVREURS = livrows.map(normalizeEmployee);
       sel.innerHTML='<option value="">— Sélectionnez —</option>';
       LIVREURS.forEach(function(lv){
@@ -595,14 +616,14 @@ function loadOrders(){
 
 function filteredOrders(){
   if(_orderTab==='pickup')     return _orders.filter(function(o){return o.status==='ready';});
-  if(_orderTab==='delivering') return _orders.filter(function(o){return o.status==='delivering';});
+  if(_orderTab==='delivering') return _orders.filter(function(o){return o.status==='out_for_delivery';});
   if(_orderTab==='done')       return _orders.filter(function(o){return o.status==='delivered';});
   return [];
 }
 
 function updateStats(){
   document.getElementById('sTotal').textContent=_orders.length;
-  document.getElementById('sActive').textContent=_orders.filter(function(o){return o.status==='delivering';}).length;
+  document.getElementById('sActive').textContent=_orders.filter(function(o){return o.status==='out_for_delivery';}).length;
   document.getElementById('sDone').textContent=_orders.filter(function(o){return o.status==='delivered';}).length;
 }
 
@@ -645,7 +666,7 @@ function buildOrderCard(o){
   var actionHtml='';
   if(o.status==='ready'){
     actionHtml='<button class="act-btn act-primary" onclick="openStatusMod(\''+o.id+'\')">🛵 Prendre en charge</button>';
-  } else if(o.status==='delivering'){
+  } else if(o.status==='out_for_delivery'){
     actionHtml='<button class="act-btn act-green" onclick="openPhotoMod(\''+o.id+'\')">✅ Confirmer livraison</button>';
   }
   // Photo proof for delivered orders
@@ -841,25 +862,4 @@ function renderPointageToday(){
   var totalMs=0,arriveeTs=null;
   rows.forEach(function(r){
     if(r.type==='arrivee'){arriveeTs=new Date(r.timestamp_pt);}
-    else if(r.type==='depart'&&arriveeTs){totalMs+=new Date(r.timestamp_pt)-arriveeTs;arriveeTs=null;}
-  });
-  if(arriveeTs&&isIn) totalMs+=Date.now()-arriveeTs;
-  var totalMin=Math.floor(totalMs/60000),hrs=Math.floor(totalMin/60),mins=totalMin%60;
-  var sumEl=document.getElementById('punch-summary');
-  if(rows.length>0){sumEl.style.display='';document.getElementById('punch-hrs').textContent=hrs+'h '+mins+'min';}
-  else{sumEl.style.display='none';}
-  var hist=document.getElementById('punch-hist-list');
-  if(!rows.length){hist.innerHTML='<div class="empty"><p>Aucun pointage aujourd\'hui.</p></div>';return;}
-  hist.innerHTML=rows.map(function(r){
-    var isA=r.type==='arrivee';
-    var ts=new Date(r.timestamp_pt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    return '<div class="punch-entry">'
-      +'<div class="punch-entry-ico '+(isA?'in':'out')+'">'+(isA?'✅':'🚪')+'</div>'
-      +'<div class="punch-entry-body"><div class="punch-entry-type">'+(isA?'Arrivée':'Départ')+'</div>'
-      +'<div class="punch-entry-time">'+ts+'</div></div></div>';
-  }).join('');
-}
-
-/* ══════════════════════════════════════════
-   PROFIL
-══════════════
+    else if(r.type==='depart'&&arr
