@@ -464,6 +464,8 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
 ══════════════════════════════════════════ */
 var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+/* PROMPT 009 — Edge Function PIN (clé service_role JAMAIS ici — Edge Function uniquement) */
+var EDGE_VERIFY_PIN_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
 /* ── Veraluz Core — référence globale + fallback ── */
 var VC = window.VeraluzCore || {};
 
@@ -503,12 +505,17 @@ var LS_SESSION  = 'veraluz_livreur_session';       /* PROMPT 006: session 12h sa
 ══════════════════════════════════════════ */
 var normalizeEmployee = VC.normalizeEmployee || function(row) {
   /* Fallback minimal — veraluz-core.js absent */
+  /* PROMPT 009: pin_code JAMAIS dans l'objet employé côté client */
   var p = (row.full_name || '').trim().split(' ');
-  return Object.assign({
+  var obj = Object.assign({
     prenom: p[0] || '', nom: p.slice(1).join(' ') || '',
-    pin_code: row.pin_code || '', poste: row.role || '',
+    poste: row.role || '',
     date_embauche: row.hire_date || ''
   }, row);
+  /* Purger tout champ sensible si présent par erreur */
+  delete obj.pin_code; delete obj.pin_hash; delete obj.base_salary;
+  delete obj.hourly_rate; delete obj.contract_type; delete obj.notes;
+  return obj;
 };
 var normalizeOrderStatus = VC.normalizeOrderStatus || function(s) {
   /* Fallback minimal — passe le statut tel quel */
@@ -560,9 +567,9 @@ function loadLivreurs(){
   var sel=document.getElementById('pin-livreur-sel');
   var lbl=document.getElementById('pin-loading');
   lbl.textContent='Chargement…';
-  /* P0 FIX: utilise veraluz_employees (table officielle) + join equipe */
+  /* PROMPT 009: vue publique sans pin_code — PIN vérifié par Edge Function uniquement */
   /* PROMPT 006: return Promise pour que DOMContentLoaded puisse attendre */
-  return sbFetch('veraluz_employees?select=id,full_name,role,pin_code,status,phone,email,hire_date,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')
+  return sbFetch('veraluz_employees_public?select=id,full_name,role,status,team_id,team_name,phone,email,hire_date&order=full_name.asc')
     .then(function(rows){
       /* Filtre via isDeliveryEmployee() : équipe OU rôle */
       var livrows = rows.filter(isDeliveryEmployee);
@@ -609,24 +616,88 @@ function onPinKey(k){
   if(_pinBuffer.length===4) validatePin();
 }
 
+/* PROMPT 009 — Appel Edge Function pour vérification PIN côté serveur
+   RÈGLE : Ne jamais comparer le PIN côté client. Ne jamais stocker le PIN. */
+function verifyLivreurPin(employeeId, pin) {
+  return fetch(EDGE_VERIFY_PIN_URL, {
+    method: 'POST',
+    mode: 'cors',
+    credentials: 'omit',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': KEY,
+      'Authorization': 'Bearer ' + KEY
+    },
+    body: JSON.stringify({ employee_id: employeeId, pin: pin })
+  })
+  .then(function(r) {
+    /* Accepter 200, 401, 429 — les autres sont des erreurs réseau */
+    if (r.status === 200 || r.status === 401 || r.status === 429) {
+      return r.json();
+    }
+    throw new Error('HTTP_' + r.status);
+  })
+  .catch(function(e) {
+    console.error('[verify-pin-livreur] Erreur réseau:', e.message);
+    return { ok: false, error: 'network' };
+  });
+}
+
 function validatePin(){
   var sel=document.getElementById('pin-livreur-sel');
   var err=document.getElementById('pin-err');
+  var lod=document.getElementById('pin-loading');
   var lid=sel.value;
   if(!lid){err.textContent='Sélectionnez votre nom d\'abord.';_pinBuffer='';renderPinDots();return;}
   var lv=LIVREURS.find(function(l){return String(l.id)===String(lid);});
   if(!lv){err.textContent='Livreur introuvable.';_pinBuffer='';renderPinDots();return;}
-  if(String(_pinBuffer)===String(lv.pin_code)){
-    LIVREUR_ACTIF=lv;
-    saveSession(lv);  /* PROMPT 006: session 12h — PIN non persisté */
+  if(_pinBuffer.length<4){err.textContent='Entrez 4 chiffres.';return;}
+
+  /* Bloquer le pad pendant la vérification */
+  err.textContent='';
+  lod.textContent='⏳ Vérification en cours…';
+  var pad=document.getElementById('pin-pad');
+  if(pad) pad.style.pointerEvents='none';
+
+  /* PROMPT 009 — Vérification PIN exclusivement côté serveur */
+  verifyLivreurPin(lid, _pinBuffer)
+  .then(function(result){
+    if(pad) pad.style.pointerEvents='';
+    lod.textContent='';
+    _pinBuffer='';
+    renderPinDots();
+
+    if(!result.ok){
+      var msg;
+      switch(result.error){
+        case 'too_many_attempts': msg='Trop de tentatives — réessayez dans 15 min.'; break;
+        case 'network':           msg='Service indisponible — vérifiez la connexion.'; break;
+        default:                  msg='Code PIN incorrect. Réessayez.';
+      }
+      err.textContent=msg;
+      return;
+    }
+
+    /* Succès : enrichir objet local avec données serveur (sans PIN) */
+    var emp=result.employee;
+    var DELIVERY_ROLES=['delivery','livreur','staff','manager','superadmin'];
+    var serverRole=String(emp.role||'').toLowerCase();
+    if(DELIVERY_ROLES.indexOf(serverRole)===-1 && !isDeliveryEmployee(lv)){
+      err.textContent='Accès livreur refusé — contactez le manager.';
+      return;
+    }
+
+    LIVREUR_ACTIF=Object.assign({},lv,{
+      allowed_modules: emp.allowed_modules||[],
+      session_expiry:  emp.session_expiry||null,
+      role:            serverRole||lv.role||'delivery'
+    });
+    /* PROMPT 006: session 12h — PIN jamais persisté */
+    saveSession(LIVREUR_ACTIF);
     document.getElementById('pin-screen').classList.add('hidden');
     document.getElementById('main-app').style.display='';
     initApp();
-  } else {
-    err.textContent='Code PIN incorrect. Réessayez.';
-    _pinBuffer='';
-    renderPinDots();
-  }
+  });
 }
 
 /* ══════════════════════════════════════════
@@ -1438,55 +1509,4 @@ function logout(){
   clearSession();  /* PROMPT 006: supprimer session (jamais le PIN) */
   LIVREUR_ACTIF=null;_orders=[];_pointages=[];
   _pinBuffer='';_currentOrderId=null;_photoB64=null;_lastSync=null;
-  if(_interval){clearInterval(_interval);_interval=null;}
-  if(_punchInterval){clearInterval(_punchInterval);_punchInterval=null;}
-  document.getElementById('main-app').style.display='none';
-  document.getElementById('pin-screen').classList.remove('hidden');
-  document.getElementById('pin-livreur-sel').value='';
-  document.getElementById('pin-err').textContent='';
-  renderPinDots();
-  updateNetworkBadge();
-}
-
-/* ══════════════════════════════════════════
-   TODO PWA VERALUZ: ajouter manifest.json
-   TODO PWA VERALUZ: ajouter service worker pour cache offline
-   TODO PWA VERALUZ: préparer installation sur téléphone
-   TODO PWA VERALUZ: utiliser Background Sync API si supporté
-══════════════════════════════════════════ */
-
-/* ══════════════════════════════════════════
-   PROMPT 006 — SÉCURISATION PIN FUTURE (NOTE TECHNIQUE)
-   Architecture actuelle : PIN vérifié côté client depuis données Supabase (anon key).
-   Ce mode convient à un usage terrain interne avec confiance implicite.
-   Pour sécuriser réellement les PINs dans une future version :
-     - Option 1 : Supabase Auth (email/password ou magic link)
-     - Option 2 : Supabase Edge Function côté serveur (PIN haché bcrypt)
-     - Option 3 : RPC Supabase sécurisée avec Row Level Security
-     - Option 4 : Hash PIN côté client insuffisant seul (clé anon expose les hashes)
-   Recommandation PROMPT 007+ : migrer vers Supabase Auth ou Edge Function.
-   Ne pas promettre qu'un simple hash côté client sécurise totalement un PIN 4-6 chiffres.
-══════════════════════════════════════════ */
-
-/* ══════════════════════════════════════════
-   BOOT
-══════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded',function(){
-  buildPinPad();
-  updateNetworkBadge();  /* PROMPT 005: badge réseau avant login */
-  loadLivreurs().then(function(){
-    /* PROMPT 006: tenter restauration session 12h après chargement des livreurs */
-    if(checkSession()){
-      document.getElementById('pin-screen').classList.add('hidden');
-      document.getElementById('main-app').style.display='';
-      initApp();
-    } else {
-      renderPinDots();
-    }
-  }).catch(function(){
-    renderPinDots();
-  });
-});
-</script>
-</body>
-</html>
+  if(_int
