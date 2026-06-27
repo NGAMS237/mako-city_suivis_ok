@@ -1225,6 +1225,252 @@ var EDGE_CHANGE_PIN_URL    = 'https://dfdmasejsoibxrvubegu.supabase.co/functions
 var EDGE_RESET_PIN_URL     = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/reset-employee-pin';
 var EDGE_CHANGE_ADMIN_PW   = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/change-admin-password';
 
+/* ================================================================
+   PROMPT 010B — MODE DEV UNLOCK TEMPORAIRE
+   TEMP DEV ONLY — À SUPPRIMER AVANT PRODUCTION
+   Ce mode permet au propriétaire de récupérer l'accès pendant le développement.
+   TODO SECURITY: supprimer DEV_UNLOCK_ENABLED, DEV_UNLOCK_EXPIRES_AT
+                  et handleDevUnlock() avant production.
+   ================================================================ */
+var DEV_UNLOCK_ENABLED    = true;
+var DEV_UNLOCK_EXPIRES_AT = '2026-06-28T23:59:59Z';
+var DEV_UNLOCK_TOKEN      = 'veraluz_dev_recovery'; /* token URL — pas un secret de prod */
+
+/**
+ * handleDevUnlock() — Vérifie le paramètre URL ?dev_unlock=veraluz_dev_recovery
+ * et crée une session propriétaire temporaire (max 2h) si les conditions sont remplies.
+ * TEMP DEV ONLY — Ne jamais laisser actif en production.
+ *
+ * Comment supprimer ce mode DEV :
+ *   1. Mettre DEV_UNLOCK_ENABLED = false (ou supprimer les 3 vars ci-dessus)
+ *   2. Supprimer cette fonction handleDevUnlock()
+ *   3. Supprimer l'appel handleDevUnlock() dans DOMContentLoaded
+ *   4. Supprimer showDevBanner() et removeDevBanner()
+ *   5. node --check + déployer sur GitHub
+ */
+function handleDevUnlock() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  if (!DEV_UNLOCK_ENABLED) return false;
+
+  /* Vérifier expiration */
+  var now = new Date();
+  var expires = new Date(DEV_UNLOCK_EXPIRES_AT);
+  if (now >= expires) {
+    /* Expiration atteinte — mode DEV refusé */
+    return false;
+  }
+
+  /* Vérifier paramètre URL */
+  var urlParams = new URLSearchParams(window.location.search);
+  var devParam  = urlParams.get('dev_unlock');
+  if (!devParam || devParam !== DEV_UNLOCK_TOKEN) return false;
+
+  /* Conditions valides — créer session DEV propriétaire */
+  console.warn('[VERALUZ DEV] Mode DEV unlock actif — à supprimer avant production');
+  console.warn('[VERALUZ DEV] Session expirée à :', new Date(Date.now() + 2*60*60*1000).toLocaleString('fr-FR'));
+
+  var devSession = {
+    username:        'dev_owner',
+    name:            'DEV OWNER',
+    role:            'superadmin',
+    employee_id:     null,
+    allowed_modules: [
+      'dashboard','employee_home','reservations','payments','housekeeping',
+      'restaurant','finance','rh','contacts','notifications','analytics',
+      'audit','settings','eventbus','auth','appro','integrations'
+    ],
+    primaryModule: 'auth',
+    loginAt:       Date.now(),
+    expires:       Date.now() + 2 * 60 * 60 * 1000, /* max 2h */
+    dev_unlock:    true
+  };
+
+  localStorage.setItem('veraluz_auth_v1', JSON.stringify(devSession));
+  currentUser = {
+    username:        devSession.username,
+    name:            devSession.name,
+    role:            devSession.role,
+    employee_id:     null,
+    allowed_modules: devSession.allowed_modules,
+    dev_unlock:      true
+  };
+
+  hideAuthOverlay();
+  updateTopbarUser();
+  buildNav();
+  initGreeting();
+  loadDashboardData();
+  showDevBanner();
+  setTimeout(function() { goTo('auth'); }, 400);
+
+  return true;
+}
+
+/**
+ * showDevBanner() — Affiche le bandeau rouge MODE DEV TEMPORAIRE
+ * TEMP DEV ONLY — supprimé avec le reste du bloc DEV
+ */
+function showDevBanner() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  if (document.getElementById('dev-banner')) return;
+  var banner = document.createElement('div');
+  banner.id = 'dev-banner';
+  banner.style.cssText = [
+    'position:fixed','top:0','left:0','right:0','z-index:99999',
+    'background:linear-gradient(90deg,#dc2626,#ea580c)',
+    'color:#fff','font-size:13px','font-weight:700',
+    'text-align:center','padding:8px 12px',
+    'display:flex','align-items:center','justify-content:space-between',
+    'gap:8px','flex-wrap:wrap','box-shadow:0 2px 8px rgba(0,0,0,.4)'
+  ].join(';');
+  banner.innerHTML = ''
+    + '<span>⚠️ MODE DEV TEMPORAIRE ACTIF — À SUPPRIMER AVANT PRODUCTION</span>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+    + '<button onclick="goTo(\'auth\')" style="background:#fff2;border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;">🔐 Auth</button>'
+    + '<button onclick="openDevChangePwModal()" style="background:#fff2;border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;">🔑 Changer mdp admin</button>'
+    + '<button onclick="openDevResetPinModal()" style="background:#fff2;border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;">📌 Reset PIN employé</button>'
+    + '<button onclick="quitDevMode()" style="background:#ef4444;border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:800;">✕ Quitter mode DEV</button>'
+    + '</div>';
+  /* Décaler le topbar pour laisser la place au bandeau */
+  document.body.insertBefore(banner, document.body.firstChild);
+  var bh = banner.offsetHeight || 40;
+  var main = document.getElementById('main');
+  var sb   = document.getElementById('sidebar');
+  if (main) main.style.paddingTop = bh + 'px';
+  if (sb)   sb.style.paddingTop   = bh + 'px';
+}
+
+function removeDevBanner() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  var banner = document.getElementById('dev-banner');
+  if (banner) banner.remove();
+  var main = document.getElementById('main');
+  var sb   = document.getElementById('sidebar');
+  if (main) main.style.paddingTop = '';
+  if (sb)   sb.style.paddingTop   = '';
+}
+
+/**
+ * quitDevMode() — Déconnecte la session DEV et revient au login normal
+ */
+function quitDevMode() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  removeDevBanner();
+  logout();
+}
+
+/**
+ * openDevChangePwModal() — Raccourci DEV pour changer le mot de passe admin
+ * Réutilise l'Edge Function change-admin-password (aucun secret frontend)
+ */
+function openDevChangePwModal() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  var html = '<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'
+    + 'background:var(--bg2);border:2px solid #dc2626;border-radius:12px;padding:24px;'
+    + 'z-index:99998;min-width:280px;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.5);">'
+    + '<div style="font-weight:700;font-size:16px;margin-bottom:4px;">🔑 Changer mot de passe admin</div>'
+    + '<div style="color:var(--text2);font-size:12px;margin-bottom:14px;">Identifiant admin (ex: admin ou manager)</div>'
+    + '<input id="dcp-user" class="fi" placeholder="Identifiant" style="margin-bottom:8px;">'
+    + '<input id="dcp-old" class="fi" type="password" placeholder="Ancien mot de passe actuel" style="margin-bottom:8px;">'
+    + '<input id="dcp-new" class="fi" type="password" placeholder="Nouveau mot de passe (8+, mix)" style="margin-bottom:8px;">'
+    + '<div id="dcp-err" style="color:#ef4444;font-size:12px;margin-bottom:8px;display:none;"></div>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
+    + '<button onclick="document.getElementById(\'dev-cpm\').remove()" style="background:var(--bg3);border:none;color:var(--text1);padding:6px 12px;border-radius:6px;cursor:pointer;">Annuler</button>'
+    + '<button onclick="devDoChangePw()" style="background:#dc2626;border:none;color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;">Changer</button>'
+    + '</div></div>';
+  var wrap = document.createElement('div');
+  wrap.id = 'dev-cpm';
+  wrap.style.cssText = 'position:fixed;inset:0;background:#0008;z-index:99997;';
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap);
+}
+
+function devDoChangePw() {
+  var user   = (document.getElementById('dcp-user')||{}).value||'';
+  var oldPw  = (document.getElementById('dcp-old')||{}).value||'';
+  var newPw  = (document.getElementById('dcp-new')||{}).value||'';
+  var errEl  = document.getElementById('dcp-err');
+  errEl.style.display='none';
+  if (!user || !oldPw || !newPw) { errEl.textContent='Tous les champs sont requis.'; errEl.style.display='block'; return; }
+  fetch(EDGE_CHANGE_ADMIN_PW, {
+    method:'POST', mode:'cors', credentials:'omit',
+    headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
+    body: JSON.stringify({ username: user, current_password: oldPw, new_password: newPw })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    if (res.ok) {
+      document.getElementById('dev-cpm').remove();
+      showCoreToast('✅ Mot de passe changé avec succès !', 'ok');
+    } else {
+      var msg = res.error === 'invalid_credentials' ? 'Ancien mot de passe incorrect.'
+        : res.error === 'password_too_weak' ? 'Mot de passe trop faible (8+ car., majuscule, chiffre).'
+        : (res.message || res.error || 'Erreur lors du changement.');
+      errEl.textContent = msg; errEl.style.display='block';
+    }
+  })
+  .catch(function(){ errEl.textContent='Erreur réseau.'; errEl.style.display='block'; });
+}
+
+/**
+ * openDevResetPinModal() — Raccourci DEV pour réinitialiser le PIN d'un employé
+ */
+function openDevResetPinModal() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  var empOpts = (_empCache && _empCache.length > 0)
+    ? _empCache.map(function(e){
+        return '<option value="'+esc(e.id)+'">'+esc(e.full_name||e.name)+'</option>';
+      }).join('')
+    : '<option value="">Chargement…</option>';
+  var html = '<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'
+    + 'background:var(--bg2);border:2px solid #dc2626;border-radius:12px;padding:24px;'
+    + 'z-index:99998;min-width:280px;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.5);">'
+    + '<div style="font-weight:700;font-size:16px;margin-bottom:14px;">📌 Reset PIN employé</div>'
+    + '<select id="drp-emp" class="fi" style="margin-bottom:8px;"><option value="">-- Choisir employé --</option>'+empOpts+'</select>'
+    + '<div id="drp-result" style="display:none;background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:8px;text-align:center;">'
+    + '<div style="font-size:11px;color:var(--text2)">PIN temporaire (24h)</div>'
+    + '<div id="drp-pin" style="font-size:28px;font-weight:900;letter-spacing:6px;color:var(--acc1);font-family:monospace"></div>'
+    + '<div style="font-size:11px;color:#ef4444;margin-top:4px;font-weight:600">Notez ce PIN — affiché une seule fois</div>'
+    + '</div>'
+    + '<div id="drp-err" style="color:#ef4444;font-size:12px;margin-bottom:8px;display:none;"></div>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
+    + '<button onclick="document.getElementById(\'dev-rpm\').remove()" style="background:var(--bg3);border:none;color:var(--text1);padding:6px 12px;border-radius:6px;cursor:pointer;">Fermer</button>'
+    + '<button id="drp-btn" onclick="devDoResetPin()" style="background:#dc2626;border:none;color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;">Générer PIN</button>'
+    + '</div></div>';
+  var wrap = document.createElement('div');
+  wrap.id = 'dev-rpm';
+  wrap.style.cssText = 'position:fixed;inset:0;background:#0008;z-index:99997;';
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap);
+}
+
+function devDoResetPin() {
+  var empId = (document.getElementById('drp-emp')||{}).value||'';
+  var errEl = document.getElementById('drp-err');
+  var btn   = document.getElementById('drp-btn');
+  errEl.style.display='none';
+  if (!empId) { errEl.textContent='Sélectionner un employé.'; errEl.style.display='block'; return; }
+  btn.disabled=true; btn.textContent='⏳…';
+  fetch(EDGE_RESET_PIN_URL, {
+    method:'POST', mode:'cors', credentials:'omit',
+    headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
+    body: JSON.stringify({ employee_id: empId, requested_by: 'dev_owner', requested_by_role: 'superadmin', reason: 'dev_recovery' })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    btn.disabled=false; btn.textContent='Générer PIN';
+    if (res.ok) {
+      document.getElementById('drp-pin').textContent = res.temporary_pin;
+      document.getElementById('drp-result').style.display='block';
+    } else {
+      errEl.textContent = res.error || 'Erreur reset PIN'; errEl.style.display='block';
+    }
+  })
+  .catch(function(){ btn.disabled=false; btn.textContent='Générer PIN'; errEl.textContent='Erreur réseau.'; errEl.style.display='block'; });
+}
+
+/* ── FIN BLOC DEV UNLOCK — TODO SECURITY: supprimer avant production ── */
+
 /**
  * Mission 7 — Nettoyer un objet employé pour le stockage/rendu client
  * Supprime systématiquement tous les champs sensibles
@@ -1687,6 +1933,8 @@ function sendAuthContext(iframe) {
 
 document.addEventListener('DOMContentLoaded', function(){
   purgeLegacyPinCache(); /* PROMPT 008B — purge cache PIN legacy */
+  /* PROMPT 010B — Mode DEV unlock (TEMP DEV ONLY — à supprimer avant production) */
+  if (handleDevUnlock()) return; /* Si mode DEV actif, court-circuit checkAuth() normal */
   checkAuth();
   /* ─── Restore logo from localStorage on boot ─── */
   (function() {
@@ -2112,88 +2360,4 @@ var EventBus = {
     }
 
     /* ── Booking Engine → nouvelle réservation ── */
-    if (source === 'booking-engine' && type === 'new_booking') {
-      /* Écrire un timestamp pour que REZ sache qu'une réservation est arrivée */
-      try{ localStorage.setItem('vlz_rez_updated', String(Date.now())); }catch(e){}
-      /* Notifier l'iframe active si c'est REZ (single iframe model) */
-      var activeFrame = document.getElementById('module-frame');
-      if (activeFrame && activeFrame.contentWindow) {
-        try {
-          activeFrame.contentWindow.postMessage({
-            veraluzEvent: true,
-            source: 'veraluz-core',
-            type: 'new_booking',
-            data: data
-          }, '*');
-        } catch(e) {}
-      }
-      showCoreToast('🛏 Nouvelle réservation reçue !', 'ok');
-      return;
-    }
-
-  this.routeToIframe(source, type, data);
-    }
-  }
-};
-
-/* ── Global message listener ─────────────────────────────── */
-window.addEventListener('message', function(ev) {
-  if (!ev.data || !ev.data.source) return;
-  /* Ignore messages originating from the Core itself */
-  if (ev.data.source === 'veraluz-core') return;
-  try {
-    EventBus.handle(ev.data);
-  } catch(e) {
-    EventBus.stats.errors++;
-    console.warn('[EventBus] Error handling event:', e);
-  }
-});
-
-</script>
-
-<!-- ── Auth Overlay ──────────────────────────────────────────── -->
-<div id="auth-overlay">
-  <div class="auth-box">
-    <div class="auth-logo">
-      <span class="al-icon">🏖️</span>
-      <div class="al-title">Veraluz OS</div>
-      <div class="al-sub">Residence · Kribi · Cameroun</div>
-    </div>
-    <div class="auth-error" id="auth-error"></div>
-
-    <!-- ── Mode employé (par défaut) ── -->
-    <div id="auth-emp-mode">
-      <div class="auth-emp-pick">
-        <label>Qui êtes-vous ?</label>
-        <select class="auth-emp-select" id="auth-emp-select">
-          <option value="">⏳ Chargement des employés...</option>
-        </select>
-      </div>
-      <span class="auth-pin-lbl">Votre NIP (4 chiffres)</span>
-      <div class="auth-pin-display">
-        <div class="auth-pin-dot" id="pin-dot-0"></div>
-        <div class="auth-pin-dot" id="pin-dot-1"></div>
-        <div class="auth-pin-dot" id="pin-dot-2"></div>
-        <div class="auth-pin-dot" id="pin-dot-3"></div>
-      </div>
-      <div class="auth-pin-pad">
-        <button class="auth-pin-btn" onclick="pinPress('1')">1</button>
-        <button class="auth-pin-btn" onclick="pinPress('2')">2</button>
-        <button class="auth-pin-btn" onclick="pinPress('3')">3</button>
-        <button class="auth-pin-btn" onclick="pinPress('4')">4</button>
-        <button class="auth-pin-btn" onclick="pinPress('5')">5</button>
-        <button class="auth-pin-btn" onclick="pinPress('6')">6</button>
-        <button class="auth-pin-btn" onclick="pinPress('7')">7</button>
-        <button class="auth-pin-btn" onclick="pinPress('8')">8</button>
-        <button class="auth-pin-btn" onclick="pinPress('9')">9</button>
-        <button class="auth-pin-btn del" onclick="pinDel()">⌫</button>
-        <button class="auth-pin-btn zero" onclick="pinPress('0')">0</button>
-      </div>
-      <button class="auth-btn" onclick="doLoginPin()">✅ Se connecter</button>
-    </div>
-
-    <!-- ── Mode admin (secondaire) ── -->
-    <div id="auth-admin-mode" style="display:none;">
-      <div class="auth-field">
-        <label>Identifiant admin</label>
-        <input type="text" id="auth-username
+    if (source =
