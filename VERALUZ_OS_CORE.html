@@ -835,6 +835,8 @@ var ROLES = {
 };
 
 /* ── Admin fallback users (accès admin uniquement) ─────────────────── */
+// TEMP VERALUZ: identifiants admin provisoires — CHANGER AVANT PRODUCTION
+// TODO: migrer vers Supabase Auth ou hash bcrypt en PROMPT 009
 var DEFAULT_USERS = [
   { username:'admin',   password:'admin123',   role:'superadmin', name:'Administrateur', active:true },
   { username:'manager', password:'manager123', role:'manager',    name:'Manager',        active:true }
@@ -855,7 +857,8 @@ function getEmployeesFromSupabase(cb, onErr) {
       }
     } catch(e) {}
   }
-  fetch(SUPA_URL+'/rest/v1/veraluz_employees?select=id,full_name,role,pin_code,status,team_id,phone,email,hire_date&status=eq.actif&order=full_name.asc', {
+  /* PROMPT 008B — pin_code retiré du select client : vérification serveur uniquement */
+  fetch(SUPA_URL+'/rest/v1/veraluz_employees?select=id,full_name,role,status,team_id,phone,email,hire_date&status=eq.actif&order=full_name.asc', {
     headers: { apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY }
   })
   .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
@@ -864,7 +867,8 @@ function getEmployeesFromSupabase(cb, onErr) {
       var msg = data && data.message ? data.message : 'Réponse Supabase invalide';
       if (onErr) onErr('Erreur Supabase : '+msg); else if (cb) cb([]); return;
     }
-    _empCache = data;
+    /* PROMPT 008B — sanitizer avant cache : pin_code jamais stocké */
+    _empCache = data.map(sanitizeEmployeeForClient);
     if (_empCache.length > 0)
       localStorage.setItem('vlz_emp_login_cache', JSON.stringify({ts:Date.now(),employees:_empCache}));
     if (cb) cb(_empCache);
@@ -942,7 +946,7 @@ function showAuthOverlay() {
     emps.forEach(function(e) {
       var opt = document.createElement('option');
       opt.value = e.id;
-      opt.setAttribute('data-pin',  e.pin_code  || '0000');
+      /* PROMPT 008B — data-pin supprimé : PIN jamais dans le DOM */
       opt.setAttribute('data-role', e.role      || 'staff');
       /* Normaliser le nom : full_name → name → prenom+nom → ID court */
       var nm = e.full_name || e.name ||
@@ -1014,45 +1018,68 @@ function doLoginPin() {
   var empId   = sel.value;
   var selOpt  = sel.options[sel.selectedIndex];
   var empName = selOpt.getAttribute('data-name') || selOpt.textContent;
-  var empRole = selOpt.getAttribute('data-role') || 'femme_chambre';
-  var empPin  = selOpt.getAttribute('data-pin')  || '1234';
+  /* PROMPT 008B — empRole lu uniquement pour affichage avant validation serveur */
+  /* data-pin supprimé — comparaison PIN JAMAIS côté client */
 
-  if (_pinBuffer !== empPin) {
-    errEl.textContent = 'NIP incorrect. Réessayez.';
+  if (_pinBuffer.length < 4) {
+    errEl.textContent = 'Veuillez entrer un NIP à 4 chiffres.';
     errEl.classList.add('show');
-    _pinBuffer = ''; updatePinDisplay();
     return;
   }
 
-  /* PROMPT 008A Mission 6 — normalisation rôle + session sécurisée 12h */
-  var coreRole = ROLE_MAP[empRole] || normalizeRole({role:empRole}) || 'staff';
-  var roleConf = ROLES[coreRole] || ROLES['staff'] || {primaryModule:'employee_home',modules:[]};
-  var allowedMods = (roleConf.modules || []).slice();
+  /* Désactiver le bouton pendant la vérification */
+  var btnLogin = document.querySelector('.auth-btn');
+  if (btnLogin) { btnLogin.disabled = true; btnLogin.textContent = '⏳ Vérification...'; }
 
-  /* PIN JAMAIS stocké — session 12h */
-  var expires = Date.now() + 12 * 60 * 60 * 1000;
-  var session = {
-    username:        empId,
-    name:            empName,
-    role:            coreRole,
-    employee_id:     empId,
-    allowed_modules: allowedMods,
-    primaryModule:   'employee_home',
-    loginAt:         Date.now(),
-    expires:         expires
-  };
-  localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
-  logAuthEvent('pin-login', empName, coreRole);
+  /* PROMPT 008B Mission 6 — vérification PIN côté serveur (Edge Function) */
+  verifyEmployeePin(empId, _pinBuffer)
+  .then(function(result) {
+    if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = '\u2705 Se connecter'; }
+    _pinBuffer = ''; updatePinDisplay();
 
-  currentUser = { username:empId, name:empName, role:coreRole,
-                  employee_id:empId, allowed_modules:allowedMods };
-  hideAuthOverlay();
-  updateTopbarUser();
-  buildNav();
-  initGreeting();
-  loadDashboardData();
-  /* PROMPT 008A — Espace Employé d'abord */
-  setTimeout(function() { goTo('employee_home'); }, 300);
+    if (!result.ok) {
+      var msg = (result.error === 'network')
+        ? 'Service d\'authentification indisponible. Vérifiez la connexion.'
+        : (result.error === 'invalid_credentials' || result.error === 'invalid_json'
+           || result.error === 'missing_fields')
+          ? 'NIP incorrect ou accès refusé.'
+          : (result.error || 'Erreur d\'authentification.');
+      errEl.textContent = msg;
+      errEl.classList.add('show');
+      return;
+    }
+
+    /* Succès — construire session depuis réponse serveur (sans données sensibles) */
+    var emp = result.employee;
+    var empName2 = emp.full_name || emp.employee_name || empName || 'Employé';
+    var coreRole = emp.role || 'staff';
+    var allowedMods = emp.allowed_modules || getAllowedModules(coreRole);
+    var expires = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
+
+    /* PIN JAMAIS stocké — session 12h issue du serveur */
+    var session = {
+      username:        empId,
+      name:            empName2,
+      role:            coreRole,
+      employee_id:     empId,
+      allowed_modules: allowedMods,
+      primaryModule:   'employee_home',
+      loginAt:         Date.now(),
+      expires:         expires
+    };
+    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    logAuthEvent('pin-login', empName2, coreRole);
+
+    currentUser = { username:empId, name:empName2, role:coreRole,
+                    employee_id:empId, allowed_modules:allowedMods };
+    hideAuthOverlay();
+    updateTopbarUser();
+    buildNav();
+    initGreeting();
+    loadDashboardData();
+    /* Espace Employé en premier */
+    setTimeout(function() { goTo('employee_home'); }, 300);
+  });
 }
 
 /* ── Admin Login (email + password) ──────────────────────────────── */
@@ -1107,6 +1134,91 @@ function doLogin() {
 }
 
 function navigateTo(id) { goTo(id); }
+
+/* ================================================================
+   PROMPT 008B — Sécurisation PIN : plus de PIN côté client
+   ================================================================ */
+
+/**
+ * AUTH_MODE — contrôle le mode d'authentification employé
+ * 'edge'            : vérification via Edge Function Supabase (RECOMMANDÉ)
+ * 'legacy_disabled' : accès bloqué si Edge Function indisponible
+ *
+ * IMPORTANT : ne jamais mettre 'legacy' actif — le PIN ne doit
+ * jamais être comparé côté client.
+ */
+var AUTH_MODE = 'edge';
+
+/* URL Edge Function — clé anon safe côté client (lecture seule) */
+var EDGE_VERIFY_PIN_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
+
+/**
+ * Mission 7 — Nettoyer un objet employé pour le stockage/rendu client
+ * Supprime systématiquement tous les champs sensibles
+ */
+function sanitizeEmployeeForClient(emp) {
+  if (!emp || typeof emp !== 'object') return emp;
+  var FORBIDDEN = ['pin','pin_code','pin_hash','password','salaire','salary',
+                   'contrat','contract','contract_data','documents','rh_notes'];
+  var safe = Object.assign({}, emp);
+  FORBIDDEN.forEach(function(k){ delete safe[k]; });
+  return safe;
+}
+
+/**
+ * Mission 7 — Purger le cache si il contient des champs PIN legacy
+ * Appelé au boot pour nettoyer les caches antérieurs au PROMPT 008B
+ */
+function purgeLegacyPinCache() {
+  try {
+    var raw = localStorage.getItem('vlz_emp_login_cache');
+    if (!raw) return;
+    var data = JSON.parse(raw);
+    if (!Array.isArray(data.employees)) { localStorage.removeItem('vlz_emp_login_cache'); return; }
+    /* Vérifier si un employé contient un champ PIN */
+    var hasPinData = data.employees.some(function(e) {
+      return e && (e.pin || e.pin_code || e.pin_hash);
+    });
+    if (hasPinData) {
+      localStorage.removeItem('vlz_emp_login_cache');
+      console.info('[Auth] Cache employés purgé : contenait des données PIN legacy');
+    }
+  } catch(e) { localStorage.removeItem('vlz_emp_login_cache'); }
+}
+
+/**
+ * Mission 6 — Vérification PIN via Edge Function serveur
+ * Ne compare JAMAIS le PIN côté client
+ *
+ * @param {string} employeeId  - ID Supabase de l'employé
+ * @param {string} pin         - PIN saisi (4 chiffres)
+ * @returns {Promise<{ok:boolean, employee?:object, error?:string}>}
+ */
+function verifyEmployeePin(employeeId, pin) {
+  if (AUTH_MODE === 'legacy_disabled') {
+    return Promise.resolve({
+      ok: false,
+      error: 'Authentification sécurisée indisponible. Contactez l\'administrateur.'
+    });
+  }
+  return fetch(EDGE_VERIFY_PIN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPA_KEY   /* clé anon — safe côté client */
+    },
+    body: JSON.stringify({ employee_id: employeeId, pin: pin })
+  })
+  .then(function(r) {
+    if (!r.ok && r.status !== 401) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .catch(function(e) {
+    console.error('[verify-pin] Erreur réseau:', e);
+    return { ok: false, error: 'network' };
+  });
+}
+
 
 /* ================================================================
    PROMPT 008A — Missions 4, 5, 7 : Rôles + Espace Employé
@@ -1395,6 +1507,7 @@ function sendAuthContext(iframe) {
 }
 
 document.addEventListener('DOMContentLoaded', function(){
+  purgeLegacyPinCache(); /* PROMPT 008B — purge cache PIN legacy */
   checkAuth();
   /* ─── Restore logo from localStorage on boot ─── */
   (function() {
