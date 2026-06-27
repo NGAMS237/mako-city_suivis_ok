@@ -922,7 +922,12 @@ var isDeliveryEmployee = VC.isDeliveryEmployee || function(emp) {
 };
 
 /* VERALUZ CORE v0.3.0 — esc déléguée (neutralise & < > " ' `) */
-var esc = VC.esc || function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+var esc = VC.esc || function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
+/* PROMPT 007 — safeUrl() pour liens dynamiques */
+function safeUrl(url){
+  var s=String(url||'').trim();if(!s)return'#';
+  if(s.startsWith('http://')||s.startsWith('https://')||s.startsWith('mailto:')||s.startsWith('tel:')||s.startsWith('data:image/'))return s;return'#';
+}
 /* VERALUZ CORE v0.3.0 — fmt déléguée à VC.fmtMoney (format FCFA) */
 var fmt = VC.fmtMoney || function(n){ return Number(n||0).toLocaleString('fr-FR')+' FCFA'; };
 /* TODO VERALUZ CORE: gid() conservé local — UUID v4 utilisé pour les IDs DB.
@@ -3163,14 +3168,4 @@ function saveAppCfg(){
     <div class="mdb" id="rcv-body" style="max-height:60vh;overflow-y:auto;"></div>
     <div style="display:flex;gap:10px;padding:10px 16px;background:var(--bg2);border-top:1px solid var(--brd);font-size:13px;">
       <span>Commandé: <b id="rcv-tot-ordered">0</b></span>
-      <span style="margin-left:auto;">Reçu: <b id="rcv-tot-received" style="color:var(--accent);">0</b></span>
-    </div>
-    <div class="mdf">
-      <button class="btn bg" onclick="closeMd('md-recv')" style="flex:1">Annuler</button>
-      <button class="btn bp" onclick="saveReceipt()" style="flex:2">&#128190; Confirmer réception</button>
-    </div>
-  </div>
-</div>
-
-<!-- Room Charge Guest Selector Modal -->
-<div cla
+      <span style="margin-left:auto;">Reçu: <b id="rcv-tot-received" style="color:var(--accent);">
