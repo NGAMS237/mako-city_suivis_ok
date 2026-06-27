@@ -909,18 +909,44 @@ function normalizeEmployee(row) {
     email:     row.email || ''
   };
 }
-/* Compatibilité ascendante statuts food — anciens statuts français → canoniques */
+/* Compatibilité ascendante statuts food — anciens statuts français → statuts canoniques.
+   NE concerne QUE les food orders (veraluz_food_orders).
+   Les restaurant orders (veraluz_restaurant_orders) ont leur propre système de statuts. */
 function normalizeOrderStatus(status) {
   var map = {
-    'attente':'pending',       'pending':'pending',
-    'confirme':'pending',      'confirmed':'pending',
-    'preparing':'preparing',   'preparation':'preparing',  'en_preparation':'preparing',
-    'ready':'ready',           'pret':'ready',
-    'delivering':'delivering', 'en_livraison':'delivering','out_for_delivery':'delivering',
-    'delivered':'delivered',   'livre':'delivered',        'recu':'delivered', 'paye':'delivered',
-    'cancelled':'cancelled',   'annule':'cancelled',       'canceled':'cancelled'
+    /* pending */
+    'attente':         'pending',          'pending':          'pending',
+    /* confirmed — NE PAS mapper vers pending */
+    'confirme':        'confirmed',        'confirmé':         'confirmed',        'confirmed':  'confirmed',
+    /* preparing */
+    'preparing':       'preparing',        'preparation':      'preparing',
+    'préparation':     'preparing',        'en_preparation':   'preparing',
+    /* ready */
+    'pret':            'ready',            'prêt':             'ready',            'ready':      'ready',
+    /* out_for_delivery — statut canonique (remplace l'ancien "delivering") */
+    'en_livraison':    'out_for_delivery', 'out_for_delivery': 'out_for_delivery',
+    'delivering':      'out_for_delivery', /* legacy interne → canonique */
+    /* delivered */
+    'delivered':       'delivered',        'livre':            'delivered',        'livré':      'delivered',
+    /* LEGACY READ ONLY — ne jamais écrire ces valeurs comme status operationnel */
+    'recu':            'delivered',        /* reçu = livré */
+    'paye':            'delivered',        'payé':             'delivered',        'paid':       'delivered',
+    /* cancelled */
+    'cancelled':       'cancelled',        'annule':           'cancelled',
+    'annulé':          'cancelled',        'canceled':         'cancelled'
   };
   return map[String(status || '').toLowerCase()] || 'pending';
+}
+/* Détecte si un employé est livreur (équipe OU rôle).
+   Requiert le join team:veraluz_teams dans la requête veraluz_employees. */
+function isDeliveryEmployee(emp) {
+  var team = String((emp.team && emp.team.name) || emp.team_name || '').toLowerCase();
+  var role = String(emp.role || emp.poste || emp.position || '').toLowerCase();
+  return (
+    team.includes('livr')    || team.includes('delivery') ||
+    role.includes('livreur') || role.includes('delivery') ||
+    role.includes('driver')  || role.includes('coursier')
+  );
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -1133,11 +1159,13 @@ function loadAll(){
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
     RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];APP_PROMOS=r[9]||[];
-    /* Filtre livreurs par nom d'équipe + normalise colonnes */
-    LIVREURS=(r[10]||[]).filter(function(row){
-      var tname=((row.team&&row.team.name)||'').toLowerCase();
-      return tname.includes('livr')||tname.includes('delivery');
-    }).map(normalizeEmployee);
+    /* Filtre livreurs via isDeliveryEmployee() : équipe OU rôle */
+    LIVREURS=(r[10]||[]).filter(isDeliveryEmployee).map(normalizeEmployee);
+    /* P0 FIX: normalise les statuts food à la source — tout le code aval utilise o.status directement */
+    FOOD_ORDERS=(FOOD_ORDERS||[]).map(function(o){
+      var ns=normalizeOrderStatus(o.status);
+      return ns!==o.status?Object.assign({},o,{status:ns}):o;
+    });
     buildSecFilt();renderTables();buildMenu();updateBdg();
     loadMvts();loadSOs();
     if(curTab==='resa')renderResa();
@@ -1152,7 +1180,8 @@ function loadSOs(){GET('/rest/v1/veraluz_restaurant_supplier_orders?select=*&ord
 function updateBdg(){
   document.getElementById('bdg-tbl').textContent=TABLES.filter(function(t){return t.status==='occupee';}).length;
   var kdsRest=ORDERS.filter(function(o){return o.status==='ouvert'||o.status==='en_preparation';}).length;
-  var kdsFood=(FOOD_ORDERS||[]).filter(function(o){return o.status==='pending'||o.status==='preparing';}).length;
+  /* Statuts food déjà normalisés au chargement — confirmed = en attente cuisine */
+  var kdsFood=(FOOD_ORDERS||[]).filter(function(o){return o.status==='pending'||o.status==='confirmed'||o.status==='preparing';}).length;
   document.getElementById('bdg-kds').textContent=kdsRest+kdsFood;
   var lo=STOCK.filter(function(s){return(s.quantity||0)<=(s.min_threshold||5);}).length;
   var bel=document.getElementById('bdg-stk');bel.textContent=lo;bel.style.display=lo?'':'none';
@@ -1528,14 +1557,13 @@ function buildKdsUnified(){
       created_at:o.created_at,payStatus:null,phone:'',zone:''
     });
   });
-  /* Food web app orders — P0 FIX: normalise statuts pour compatibilité ascendante */
+  /* Food web app orders — statuts déjà normalisés au chargement dans loadAll() */
   var skipFood=['delivered','cancelled'];
   FOOD_ORDERS.forEach(function(o){
-    var ns=normalizeOrderStatus(o.status);
-    if(skipFood.indexOf(ns)>-1)return;
+    if(skipFood.indexOf(o.status)>-1)return;
     var dt=o.delivery_type||'pickup';
     var src=dt==='delivery'?'livraison':dt==='room'?'room':dt==='lounge'?'lounge':'place';
-    var kst=ns==='pending'?'new':ns==='preparing'?'prep':ns==='ready'?'ready':ns==='delivering'?'handed':'new';
+    var kst=o.status==='pending'?'new':o.status==='confirmed'?'new':o.status==='preparing'?'prep':o.status==='ready'?'ready':o.status==='out_for_delivery'?'handed':'new';
     var items=[];
     try{items=typeof o.items==='string'?JSON.parse(o.items):(o.items||[]);}catch(e){}
     unified.push({
@@ -1646,7 +1674,7 @@ function kdsCard(o){
       acts='<button class="btn bp bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-st="ready" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Pr&#234;te</button>';
     else if(o._kst==='ready'){
       var livLabel=o.assigned_to?'&#128667; '+esc(o.assigned_to):'&#128100; Livreur';
-      acts='<button class="btn bp bs" style="flex:2;font-size:11px" data-id="'+o._id+'" data-st="delivering" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#8599; Remis livreur</button>';
+      acts='<button class="btn bp bs" style="flex:2;font-size:11px" data-id="'+o._id+'" data-st="out_for_delivery" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#8599; Remis livreur</button>';
       if(o._src==='livraison')
         acts+='<button class="btn '+(o.assigned_to?'bw':'bg')+' bs" style="flex:1;font-size:10px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-id="'+o._id+'" onclick="kdsAssignLivreur(this.dataset.id)">'+livLabel+'</button>';
     }else if(o._kst==='handed')
@@ -3149,35 +3177,4 @@ function saveAppCfg(){
 
 </script>
 
-<!-- Receipt Verification Modal -->
-<div class="ov" id="md-recv">
-  <div class="md" style="max-width:520px;">
-    <div class="mdh"><span class="mdt">&#9745; Vérification de réception</span><button class="mdc" onclick="closeMd('md-recv')">&#10005;</button></div>
-    <div class="mdb" id="rcv-body" style="max-height:60vh;overflow-y:auto;"></div>
-    <div style="display:flex;gap:10px;padding:10px 16px;background:var(--bg2);border-top:1px solid var(--brd);font-size:13px;">
-      <span>Commandé: <b id="rcv-tot-ordered">0</b></span>
-      <span style="margin-left:auto;">Reçu: <b id="rcv-tot-received" style="color:var(--accent);">0</b></span>
-    </div>
-    <div class="mdf">
-      <button class="btn bg" onclick="closeMd('md-recv')" style="flex:1">Annuler</button>
-      <button class="btn bp" onclick="saveReceipt()" style="flex:2">&#128190; Confirmer réception</button>
-    </div>
-  </div>
-</div>
-
-<!-- Room Charge Guest Selector Modal -->
-<div class="ov" id="md-room-charge">
-  <div class="md" style="max-width:400px;">
-    <div class="mdh"><span class="mdt">&#127974; Facturer à la chambre</span><button class="mdc" onclick="closeMd('md-room-charge')">&#10005;</button></div>
-    <div class="mdb">
-      <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Sélectionnez le client hôtel :</div>
-      <div id="room-charge-guests"></div>
-      <div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:8px;">
-        <div style="font-size:13px;font-weight:700;text-align:center;">Total: <span id="rc-total">0 FCFA</span></div>
-      </div>
-    </div>
-    <div class="mdf">
-      <button class="btn bg" onclick="closeMd('md-room-charge')" style="flex:1">Annuler</button>
-      <button class="btn bp" onclick="confirmRoomCharge()" style="flex:2" id="rc-confirm-btn">Facturer</button>
-    </div>
-  <
+<!-- Receipt V
