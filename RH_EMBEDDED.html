@@ -132,12 +132,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 #toast.on{opacity:1;}
 .empty{text-align:center;padding:40px 20px;color:var(--text3);}
 .empty-ico{font-size:36px;margin-bottom:8px;}
-
-/* ── Pay list ── */
-.pay-month-nav{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:12px;}
-
-/* indiv pay */
-#indiv-calc>div:last-child{border-bottom:none!important;}
 </style>
 </head>
 <body>
@@ -247,122 +241,34 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
     <!-- PAIE WORKFLOW -->
     <div class="pane" id="pane-pay">
-
-      <!-- ═══ TABS MODE ═══ -->
-      <div style="display:flex;gap:6px;margin-bottom:12px;">
-        <button id="pay-mode-indiv" class="btn btn-primary" style="flex:1;font-size:12px;" onclick="setPayMode('individuel')">👤 Individuel</button>
-        <button id="pay-mode-coll"  class="btn btn-sec"     style="flex:1;font-size:12px;" onclick="setPayMode('collectif')">👥 Collectif</button>
-      </div>
-
-      <!-- ═══ MODE INDIVIDUEL ═══ -->
-      <div id="pay-individuel">
-        <div class="card" style="margin-bottom:12px;padding:14px 16px;">
-          <div style="font-size:13px;font-weight:800;color:var(--acc1);margin-bottom:12px;">📋 Fiche de paie individuelle</div>
-
-          <!-- Sélecteurs mois + employé -->
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-            <div style="flex:0 0 140px;">
-              <label class="fl" style="font-size:11px;">Mois</label>
-              <input type="month" id="indiv-month" class="fi" style="padding:7px 10px;margin-bottom:0;" onchange="onIndivChange()">
-            </div>
-            <div style="flex:1;min-width:160px;">
-              <label class="fl" style="font-size:11px;">Employé</label>
-              <select id="indiv-emp" class="fi" style="margin-bottom:0;" onchange="onIndivEmpSelect()">
-                <option value="">— Sélectionner —</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Fiche (cachée par défaut) -->
-          <div id="indiv-fiche" style="display:none;">
-
-            <!-- Infos employé -->
-            <div id="indiv-emp-info" style="display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:8px;padding:10px 12px;margin-bottom:12px;"></div>
-
-            <!-- Champs éditables -->
-            <div class="fg" style="margin-bottom:10px;">
-              <div>
-                <label class="fl" style="font-size:11px;">Salaire de base (FCFA)</label>
-                <input type="number" id="indiv-base" class="fi" style="margin-bottom:0;background:var(--bg2);color:var(--text3);" readonly>
-              </div>
-              <div>
-                <label class="fl" style="font-size:11px;">🎁 Primes / Bonus</label>
-                <input type="number" id="indiv-bonus" class="fi" style="margin-bottom:0;" placeholder="0" oninput="updateIndivCalc()">
-              </div>
-            </div>
-            <div class="fg" style="margin-bottom:10px;">
-              <div>
-                <label class="fl" style="font-size:11px;">➖ Retenues / Pénalités</label>
-                <input type="number" id="indiv-deduct" class="fi" style="margin-bottom:0;" placeholder="0" oninput="updateIndivCalc()">
-              </div>
-              <div>
-                <label class="fl" style="font-size:11px;">💸 Avances à déduire</label>
-                <input type="number" id="indiv-adv" class="fi" style="margin-bottom:0;background:var(--bg2);color:var(--text3);" readonly title="Calculé depuis les avances en attente">
-              </div>
-            </div>
-            <div style="margin-bottom:12px;">
-              <label class="fl" style="font-size:11px;">📝 Note interne</label>
-              <input type="text" id="indiv-note" class="fi" style="margin-bottom:0;" placeholder="Optionnel…">
-            </div>
-
-            <!-- Calcul live -->
-            <div id="indiv-calc" style="background:var(--bg2);border-radius:10px;border:1px solid var(--border);padding:12px;margin-bottom:12px;font-size:12px;"></div>
-
-            <!-- Actions -->
-            <div class="btn-row" style="margin-bottom:0;">
-              <button class="btn btn-primary" style="flex:2;" onclick="approveIndivPayroll()">✅ Approuver cette fiche</button>
-              <button class="btn btn-sec" id="indiv-pdf-btn" style="flex:1;display:none;" onclick="printIndivPayslip()">📋 Bulletin PDF</button>
-              <button class="btn btn-sec" style="flex:1;" onclick="clearIndivFiche()">✕ Effacer</button>
-            </div>
-
-            <!-- Statut fiche existante -->
-            <div id="indiv-existing" style="display:none;margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);"></div>
-          </div>
+      <div class="pay-step">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span class="step-num">1</span>
+          <span style="font-size:14px;font-weight:700;">Cycle de paie</span>
         </div>
-        <!-- Historique des fiches de paie pour cet employé -->
-        <div id="indiv-history" style="margin-top:8px;"></div>
-      </div>
-
-      <!-- ═══ MODE COLLECTIF ═══ -->
-      <div id="pay-collectif" style="display:none;">
-        <div class="pay-step" style="margin-bottom:10px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-            <span class="step-num">1</span>
-            <span style="font-size:14px;font-weight:700;">Cycle collectif</span>
-          </div>
-          <div class="card-row" style="margin-bottom:10px;">
-            <div class="kpi"><div class="kpi-v" id="pay-mass">—</div><div class="kpi-l">Masse salariale</div></div>
-            <div class="kpi warn"><div class="kpi-v" id="pay-pending">—</div><div class="kpi-l">⏳ En attente</div></div>
-            <div class="kpi ok"><div class="kpi-v" id="pay-paid">—</div><div class="kpi-l">✅ Payées</div></div>
-          </div>
-          <div class="btn-row">
-            <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" />
-            <button class="btn btn-primary" onclick="calcPayroll()">📊 Calculer tout</button>
-            <button class="btn btn-sec" onclick="exportPayCSV()">📥 Export CSV</button>
-          </div>
+        <div class="card-row">
+          <div class="kpi"><div class="kpi-v" id="pay-mass">&#8212;</div><div class="kpi-l">Masse salariale</div></div>
+          <div class="kpi warn"><div class="kpi-v" id="pay-pending">&#8212;</div><div class="kpi-l">En attente</div></div>
+          <div class="kpi ok"><div class="kpi-v" id="pay-paid">&#8212;</div><div class="kpi-l">Pay&#233;es</div></div>
         </div>
-        <div id="payroll-preview" style="display:none;" class="pay-step" style="margin-bottom:10px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-            <span class="step-num">2</span>
-            <span style="font-size:14px;font-weight:700;">Vérifier &amp; Approuver tout</span>
-          </div>
-          <div id="payroll-table-wrap" style="overflow-x:auto;"></div>
-          <div class="btn-row" style="margin-top:12px;">
-            <button class="btn btn-primary" onclick="approveAllPayroll()">✅ Approuver tout</button>
-            <button class="btn btn-sec" onclick="document.getElementById('payroll-preview').style.display='none'">Annuler</button>
-          </div>
+        <div class="btn-row">
+          <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" /><button class="btn btn-primary" onclick="calcPayroll()">&#128200; Calculer la paie du mois</button>
+          <button class="btn btn-sec"     onclick="openAddPay()">&#43; Fiche manuelle</button>
+          <button class="btn btn-sec"     onclick="exportPayCSV()">&#128438; Export banque</button>
         </div>
       </div>
-
-      <!-- ═══ NAVIGATEUR DE MOIS ═══ -->
-      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:12px;">
-        <button class="btn btn-sec" style="padding:4px 12px;font-size:16px;min-width:36px;" onclick="shiftPayMonth(-1)">◀</button>
-        <span id="pay-month-label" style="font-size:14px;font-weight:800;color:var(--text);"></span>
-        <button class="btn btn-sec" style="padding:4px 12px;font-size:16px;min-width:36px;" onclick="shiftPayMonth(1)">▶</button>
+      <div id="payroll-preview" style="display:none;" class="pay-step">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span class="step-num">2</span>
+          <span style="font-size:14px;font-weight:700;">V&#233;rifier &amp; Approuver</span>
+        </div>
+        <div id="payroll-table-wrap"></div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn btn-primary" onclick="approveAllPayroll()">&#9989; Approuver tout</button>
+          <button class="btn btn-sec"     onclick="document.getElementById('payroll-preview').style.display='none'">Annuler</button>
+        </div>
       </div>
-
-      <!-- ═══ LISTE PAR ÉQUIPE ═══ -->
-      <div id="pay-list"><div class="empty"><div class="empty-ico">💶</div>Chargement…</div></div>
+      <div id="pay-list"><div class="empty"><div class="empty-ico">&#128176;</div>Chargement&#8230;</div></div>
     </div>
 
     <!-- AVANCES -->
@@ -512,85 +418,53 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <!-- PERSONAL VIEW -->
 <div id="emp-personal">
-  <!-- Header -->
   <div class="ep-hdr">
     <div id="ep-avatar" style="width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#fff;flex-shrink:0;"></div>
     <div style="flex:1;">
       <div id="ep-name" style="font-size:15px;font-weight:800;"></div>
       <div id="ep-role" style="font-size:11px;color:var(--text3);"></div>
     </div>
-    <button class="btn btn-sec btn-sm" onclick="logoutEmp()">&#128682; Quitter</button>
+    <button class="btn btn-sec btn-sm" onclick="showClockScreen()">&#9200; Pointage</button>
+    <button class="btn btn-sec btn-sm" onclick="logoutEmp()">&#128682;</button>
   </div>
-
-  <!-- Tabs -->
   <div class="ep-tabs">
-    <button class="ep-tab on"  onclick="goEpTab('ep-pointages',this)">&#9200; Pointage</button>
-    <button class="ep-tab"     onclick="goEpTab('ep-profil',this)">&#128100; Mon Profil</button>
-    <button class="ep-tab"     onclick="goEpTab('ep-taches',this)">&#9989; Mes T&#226;ches</button>
-    <button class="ep-tab"     onclick="goEpTab('ep-paie',this)">&#128176; Paie</button>
-    <button class="ep-tab"     onclick="goEpTab('ep-planning',this)">&#128197; Planning</button>
+    <button class="ep-tab on" onclick="goEpTab('ep-profil',this)">&#128100; Profil</button>
+    <button class="ep-tab"    onclick="goEpTab('ep-salaire',this)">&#128176; Salaire</button>
+    <button class="ep-tab"    onclick="goEpTab('ep-paie',this)">&#128196; Fiches de paie</button>
+    <button class="ep-tab"    onclick="goEpTab('ep-taches',this)">&#9989; Mes t&#226;ches</button>
+    <button class="ep-tab"    onclick="goEpTab('ep-planning',this)">&#128197; Planning</button>
+    <button class="ep-tab"    onclick="goEpTab('ep-pointages',this)">&#9200; Pointages</button>
+    <button class="ep-tab"    onclick="goEpTab('ep-pin',this)">&#128274; Mon PIN</button>
   </div>
-
-  <!-- Panes -->
   <div class="ep-body">
-
-    <!-- ═══ POINTAGE & HEURES ═══ -->
-    <div class="ep-pane on" id="ep-pointages">
-      <!-- Clock card -->
-      <div class="card" style="margin-bottom:12px;padding:14px 16px;">
-        <div style="font-size:12px;font-weight:800;color:var(--acc1);margin-bottom:10px;">&#9200; Aujourd&#8217;hui</div>
-        <div id="ep-clock-status" style="font-size:13px;color:var(--text3);margin-bottom:12px;text-align:center;padding:10px;background:var(--bg2);border-radius:8px;"></div>
-        <div style="display:flex;gap:8px;">
-          <button id="ep-btn-arrive" class="btn btn-primary" style="flex:1;font-size:13px;" onclick="epPunchIn()">&#128994; Arrivée</button>
-          <button id="ep-btn-depart" class="btn btn-sec"     style="flex:1;font-size:13px;" onclick="epPunchOut()" disabled>&#128308; Départ</button>
-        </div>
-      </div>
-      <!-- Weekly stats -->
-      <div class="card" style="margin-bottom:12px;padding:14px 16px;">
-        <div style="font-size:12px;font-weight:800;color:var(--acc1);margin-bottom:10px;">&#128197; Semaine en cours</div>
-        <div id="ep-week-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:11px;"></div>
-        <div id="ep-week-total" style="text-align:right;font-size:12px;color:var(--text3);margin-top:8px;"></div>
-      </div>
-      <!-- Monthly & history -->
-      <div class="card" style="padding:14px 16px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <span style="font-size:12px;font-weight:800;color:var(--acc1);">&#128218; Historique des présences</span>
-          <span id="ep-month-hours" style="font-size:11px;color:var(--text3);"></span>
-        </div>
-        <div id="ep-pointages-body"></div>
-      </div>
-    </div>
-
-    <!-- ═══ PROFIL RH PRIVÉ ═══ -->
-    <div class="ep-pane" id="ep-profil">
+    <div class="ep-pane on" id="ep-profil">
       <div id="ep-profil-body"></div>
-      <!-- Changer PIN -->
-      <div class="card" style="margin-top:12px;">
-        <div class="sec-title" style="margin-bottom:12px;">&#128274; Changer mon code PIN</div>
-        <label class="fl" style="font-size:11px;">Nouveau PIN (4 chiffres)</label>
-        <input class="fi" id="new-pin1" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
-        <label class="fl" style="font-size:11px;">Confirmer le PIN</label>
-        <input class="fi" id="new-pin2" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
-        <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="changePin()">Enregistrer le PIN</button>
-      </div>
     </div>
-
-    <!-- ═══ MES TÂCHES ═══ -->
+    <div class="ep-pane" id="ep-salaire">
+      <div id="ep-salaire-body"></div>
+    </div>
+    <div class="ep-pane" id="ep-paie">
+      <div id="ep-paie-body"></div>
+    </div>
     <div class="ep-pane" id="ep-taches">
       <div id="ep-taches-body"></div>
     </div>
-
-    <!-- ═══ PAIE (salaire + fiches) ═══ -->
-    <div class="ep-pane" id="ep-paie">
-      <div id="ep-salaire-body" style="margin-bottom:12px;"></div>
-      <div id="ep-paie-body"></div>
-    </div>
-
-    <!-- ═══ PLANNING ═══ -->
     <div class="ep-pane" id="ep-planning">
       <div id="ep-planning-body"></div>
     </div>
-
+    <div class="ep-pane" id="ep-pointages">
+      <div id="ep-pointages-body"></div>
+    </div>
+    <div class="ep-pane" id="ep-pin">
+      <div class="card">
+        <div class="sec-title" style="margin-bottom:12px;">&#128274; Changer mon PIN</div>
+        <label class="fl">Nouveau PIN (4 chiffres)</label>
+        <input class="fi" id="new-pin1" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
+        <label class="fl">Confirmer le PIN</label>
+        <input class="fi" id="new-pin2" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
+        <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="changePin()">Enregistrer le nouveau PIN</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -881,14 +755,25 @@ function POST(t,d){return fetch(SUPA_URL+'/rest/v1/'+t,{method:'POST',headers:_h
 function PATCH(t,id,d){return fetch(SUPA_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:_hdr({'Content-Type':'application/json','Prefer':'return=representation'}),body:JSON.stringify(d)}).then(_chk);}
 function DELETE(t,id){return fetch(SUPA_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}});}
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
-function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/* PROMPT 007 — délégation VC.esc() + safeUrl() */
+var VC = window.VeraluzCore || {};
+function esc(s){
+  if(VC&&typeof VC.esc==='function') return VC.esc(s);
+  if(!s)return'';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function safeUrl(url){
+  var s=String(url||'').trim();
+  if(!s)return'#';
+  if(s.startsWith('http://')||s.startsWith('https://')||s.startsWith('mailto:')||s.startsWith('tel:')||s.startsWith('data:image/'))return s;
+  return'#';
+}
 function fmt(n){return Number(n||0).toLocaleString('fr-FR');}
 function fdate(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('fr-FR');}catch(e){return d;}}
 function fdt(d){if(!d)return'—';try{var dt=new Date(d);return dt.toLocaleDateString('fr-FR')+' '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}catch(e){return d;}}
 function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='on'+(type==='err'?' danger':'');setTimeout(function(){t.className='';},3000);}
 
 /* ═══════════════ STATE ═══════════════ */
-var _payMonth=new Date().toISOString().slice(0,7);
 var EMPS=[],TEAMS=[],CONTRACTS=[],SCHEDS=[],ATTS=[],PAYROLLS=[],ADVANCES=[],DOCS=[],TASKS=[],HIST=[],BONUSES=[],SETTINGS={};
 var empFilter='all',cFilter='all',attFilter='all',payFilter='all',advFilter='all',docFilter='all',taskFilter='all',histFilter='all';
 var schedWeekOffset=0;
@@ -913,7 +798,7 @@ function goTab(p){
   else if(p==='contrats'){loadContracts();}
   else if(p==='sched'){renderSched();}
   else if(p==='att'){loadAtt();}
-  else if(p==='pay'){_payMonth=_payMonth||new Date().toISOString().slice(0,7);var cm=document.getElementById('calc-month');if(cm)cm.value=_payMonth;setPayMode('individuel');loadPay();}
+  else if(p==='pay'){loadPay();}
   else if(p==='adv'){loadAdv();}
   else if(p==='docs'){loadDocs();}
   else if(p==='tasks'){loadTasks();}
@@ -1519,427 +1404,6 @@ function loadPay(){
   document.getElementById('pay-paid').textContent=fmt(paid)+' F';
   renderPay();
 }
-/* ══════════════════════════════════════════
-   PAIE INDIVIDUELLE
-══════════════════════════════════════════ */
-var _payMode='individuel';
-var _indivEmpId=null, _indivExistingId=null;
-
-function setPayMode(mode){
-  _payMode=mode;
-  document.getElementById('pay-individuel').style.display=mode==='individuel'?'':'none';
-  document.getElementById('pay-collectif').style.display=mode==='collectif'?'':'none';
-  document.getElementById('pay-mode-indiv').className='btn '+(mode==='individuel'?'btn-primary':'btn-sec');
-  document.getElementById('pay-mode-coll').className='btn '+(mode==='collectif'?'btn-primary':'btn-sec');
-  if(mode==='individuel') populateIndivEmpSel();
-  if(mode==='collectif') loadPay();
-}
-
-function populateIndivEmpSel(){
-  var sel=document.getElementById('indiv-emp');
-  if(!sel)return;
-  var mo=document.getElementById('indiv-month');
-  if(mo&&!mo.value) mo.value=_payMonth;
-  var active=EMPS.filter(function(e){return e.status==='actif';});
-  sel.innerHTML='<option value="">— Sélectionner un employé —</option>'
-    +active.map(function(e){
-      var def=EQUIPE_DEFS.find(function(d){return d.key===getEmpTeamKey(e);})||{ico:'👤'};
-      return '<option value="'+esc(e.id)+'">'+def.ico+' '+esc(e.full_name)+(e.role?' ('+esc(e.role)+')':'')+'</option>';
-    }).join('');
-}
-
-function onIndivChange(){
-  var mo=document.getElementById('indiv-month');
-  if(mo) _payMonth=mo.value||_payMonth;
-  updatePayMonthLabel();
-  if(_indivEmpId) loadIndivFiche(_indivEmpId);
-}
-
-function onIndivEmpSelect(){
-  var sel=document.getElementById('indiv-emp');
-  _indivEmpId=sel?sel.value:'';
-  if(!_indivEmpId){document.getElementById('indiv-fiche').style.display='none';return;}
-  loadIndivFiche(_indivEmpId);
-}
-
-function loadIndivFiche(eid){
-  var emp=EMPS.find(function(e){return e.id===eid;});
-  if(!emp){document.getElementById('indiv-fiche').style.display='none';return;}
-  var month=document.getElementById('indiv-month').value||_payMonth;
-  _payMonth=month;
-  updatePayMonthLabel();
-
-  /* Employee info banner */
-  var def=EQUIPE_DEFS.find(function(d){return d.key===getEmpTeamKey(emp);})||{ico:'👤',color:'#22d3a5',lbl:'Staff'};
-  var ini=emp.full_name.charAt(0).toUpperCase();
-  document.getElementById('indiv-emp-info').innerHTML=
-    '<div style="width:36px;height:36px;border-radius:50%;background:'+def.color+';display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;">'+esc(ini)+'</div>'
-    +'<div style="flex:1;">'
-    +'<div style="font-size:14px;font-weight:800;color:var(--text);">'+esc(emp.full_name)+'</div>'
-    +'<div style="font-size:11px;color:var(--text3);">'+def.ico+' '+def.lbl+(emp.role?' · '+esc(emp.role):'')+(emp.momo_number?' · 📱 '+esc(emp.momo_number):'')+'</div>'
-    +'</div>'
-    +'<div style="text-align:right;">'
-    +'<div style="font-size:13px;font-weight:700;color:var(--acc1);">'+fmt(emp.base_salary||0)+' FCFA</div>'
-    +'<div style="font-size:10px;color:var(--text3);">salaire de base</div>'
-    +'</div>';
-
-  /* Base salary */
-  document.getElementById('indiv-base').value=emp.base_salary||0;
-
-  /* Bonuses for this month */
-  var bonuses=BONUSES.filter(function(b){return b.employee_id===eid&&b.month===month;});
-  var totalBonus=bonuses.filter(function(b){return b.type==='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
-  var totalDeduct=bonuses.filter(function(b){return b.type!=='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
-  document.getElementById('indiv-bonus').value=totalBonus||'';
-  document.getElementById('indiv-deduct').value=totalDeduct||'';
-
-  /* Pending advances */
-  var adv=ADVANCES.filter(function(a){return a.employee_id===eid&&a.status==='en_attente';}).reduce(function(s,a){return s+(a.amount||0);},0);
-  document.getElementById('indiv-adv').value=adv||'';
-
-  /* Check existing payroll record */
-  var existing=PAYROLLS.find(function(p){return p.employee_id===eid&&payM(p)===month;});
-  _indivExistingId=existing?existing.id:null;
-  var existEl=document.getElementById('indiv-existing');
-  var pdfBtn=document.getElementById('indiv-pdf-btn');
-  if(existing){
-    var stMap={en_attente:'⏳ En attente',approuve:'👍 Approuvé',paye:'✅ Payé'};
-    existEl.style.display='block';
-    existEl.innerHTML='ℹ️ Fiche existante pour '+month+' — Statut : <strong>'+(stMap[existing.status]||existing.status)+'</strong> — Net enregistré : <strong>'+fmt(netOf(existing))+' FCFA</strong><br><span style="opacity:.7;">Approuver remplacera cette fiche.</span>';
-    if(pdfBtn) pdfBtn.style.display='';
-    /* Pre-fill with existing values */
-    document.getElementById('indiv-bonus').value=existing.bonus||'';
-    document.getElementById('indiv-deduct').value=existing.deductions||'';
-    document.getElementById('indiv-note').value=existing.notes||'';
-  } else {
-    existEl.style.display='none';
-    if(pdfBtn) pdfBtn.style.display='none';
-    document.getElementById('indiv-note').value='';
-  }
-
-  document.getElementById('indiv-fiche').style.display='';
-  updateIndivCalc();
-  renderIndivHistory();
-}
-
-function updateIndivCalc(){
-  var base=parseFloat(document.getElementById('indiv-base').value)||0;
-  var bonus=parseFloat(document.getElementById('indiv-bonus').value)||0;
-  var deduct=parseFloat(document.getElementById('indiv-deduct').value)||0;
-  var adv=parseFloat(document.getElementById('indiv-adv').value)||0;
-  var t=calcTaxes(base,bonus,SETTINGS);
-  var net=Math.max(0, t.gross - deduct - adv - (t.apply_cnps?t.cnps_emp:0) - (t.apply_irpp?t.irpp:0));
-  var sC=t.apply_cnps, sI=t.apply_irpp;
-  var rows=[
-    {lbl:'Salaire brut',val:fmt(t.gross),color:'var(--text)',bold:false},
-    {lbl:'+ Primes',val:bonus>0?'+'+fmt(bonus):'—',color:bonus>0?'var(--ok)':'var(--text3)',bold:false},
-    {lbl:'− Retenues',val:deduct>0?'−'+fmt(deduct):'—',color:deduct>0?'var(--danger)':'var(--text3)',bold:false},
-    {lbl:'− Avances',val:adv>0?'−'+fmt(adv):'—',color:adv>0?'#f97316':'var(--text3)',bold:false},
-  ];
-  if(sC) rows.push({lbl:'− CNPS salarié ('+parseFloat(SETTINGS.cnps_rate_employee||4.2).toFixed(1)+'%)',val:'−'+fmt(t.cnps_emp),color:'var(--danger)',bold:false});
-  if(sC) rows.push({lbl:'  CNPS patronal',val:fmt(t.cnps_empr),color:'var(--text3)',bold:false,italic:true});
-  if(sI) rows.push({lbl:'− IRPP',val:'−'+fmt(t.irpp),color:'var(--danger)',bold:false});
-  rows.push({lbl:'NET À PAYER',val:fmt(net)+' FCFA',color:'var(--acc1)',bold:true});
-
-  document.getElementById('indiv-calc').innerHTML=
-    rows.map(function(r){
-      return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);'+(r.bold?'margin-top:4px;border-top:2px solid var(--acc1);border-bottom:none;':'')+(r.italic?'opacity:.6;':'')+'">'
-        +'<span style="color:var(--text3);font-size:11px;'+(r.bold?'font-weight:800;font-size:13px;color:'+r.color+';':'')+'">'+r.lbl+'</span>'
-        +'<span style="font-weight:'+(r.bold?'800':'600')+';color:'+r.color+';font-size:'+(r.bold?'14':'12')+'px;">'+r.val+'</span>'
-        +'</div>';
-    }).join('');
-}
-
-function approveIndivPayroll(){
-  var eid=_indivEmpId;
-  if(!eid){toast('Sélectionnez un employé','err');return;}
-  var emp=EMPS.find(function(e){return e.id===eid;});
-  var month=document.getElementById('indiv-month').value||_payMonth;
-  var base=parseFloat(document.getElementById('indiv-base').value)||0;
-  var bonus=parseFloat(document.getElementById('indiv-bonus').value)||0;
-  var deduct=parseFloat(document.getElementById('indiv-deduct').value)||0;
-  var adv=parseFloat(document.getElementById('indiv-adv').value)||0;
-  var note=document.getElementById('indiv-note').value.trim();
-  var t=calcTaxes(base,bonus,SETTINGS);
-  var net=Math.max(0, t.gross - deduct - adv - (t.apply_cnps?t.cnps_emp:0) - (t.apply_irpp?t.irpp:0));
-  var mparts=month.split('-');
-  var d={
-    employee_id:eid,
-    period_year:parseInt(mparts[0]),period_month:parseInt(mparts[1]),
-    gross_salary:t.gross,base_salary:base,bonus:bonus,
-    deductions:deduct+adv,
-    cnps_employee:t.cnps_emp,cnps_employer:t.cnps_empr,irpp:t.irpp,
-    apply_cnps:t.apply_cnps,apply_irpp:t.apply_irpp,
-    taxable_income:t.taxable,
-    notes:note||null,
-    status:'approuve'
-  };
-  /* deductions includes cnps+irpp so generated net_salary column is correct */
-  d.deductions = deduct + adv + (t.apply_cnps?t.cnps_emp:0) + (t.apply_irpp?t.irpp:0);
-  var btn=document.querySelector('#pay-individuel .btn-primary');
-  if(btn){btn.disabled=true;btn.textContent='Enregistrement…';}
-  var p;
-  if(_indivExistingId){
-    p=PATCH('veraluz_payroll',_indivExistingId,d).then(function(){
-      var idx=PAYROLLS.findIndex(function(x){return x.id===_indivExistingId;});
-      if(idx>=0)Object.assign(PAYROLLS[idx],d,{id:_indivExistingId});
-      _indivExistingId=_indivExistingId;
-    });
-  } else {
-    d.id=gid();
-    p=POST('veraluz_payroll',d).then(function(r){
-      var rec=r&&r[0]?r[0]:d;
-      PAYROLLS.unshift(rec);
-      _indivExistingId=rec.id;
-    });
-  }
-  p.then(function(){
-    if(btn){btn.disabled=false;btn.textContent='✅ Approuver cette fiche';}
-    toast('✅ Fiche de '+emp.full_name+' approuvée — '+month,'ok');
-    /* Show PDF button */
-    document.getElementById('indiv-pdf-btn').style.display='';
-    /* Refresh existing notice */
-    var existEl=document.getElementById('indiv-existing');
-    existEl.style.display='block';
-    existEl.innerHTML='✅ Fiche approuvée pour '+month+' — Net : <strong>'+fmt(net)+' FCFA</strong>';
-    /* Refresh list */
-    loadPay();
-    renderPay();
-    renderIndivHistory();
-  }).catch(function(e){
-    if(btn){btn.disabled=false;btn.textContent='✅ Approuver cette fiche';}
-    toast('Erreur: '+(e.message||e),'err');
-  });
-}
-
-function renderIndivHistory(){
-  var el=document.getElementById('indiv-history');
-  if(!el)return;
-  if(!_indivEmpId){el.innerHTML='';return;}
-  var emp=EMPS.find(function(e){return e.id===_indivEmpId;})||{};
-  var rows=PAYROLLS.filter(function(p){return p.employee_id===_indivEmpId;})
-    .sort(function(a,b){
-      var ma=a.period_year*100+(a.period_month||0);
-      var mb=b.period_year*100+(b.period_month||0);
-      return mb-ma;
-    });
-  if(!rows.length){el.innerHTML='';return;}
-  var stMap={en_attente:'⏳',approuve:'👍',paye:'✅ Payé'};
-  var stCol={en_attente:'#f59e0b',approuve:'#22d3a5',paye:'#10b981'};
-  var html='<div class="card" style="padding:14px 16px;">'
-    +'<div style="font-size:12px;font-weight:800;color:var(--text3);margin-bottom:10px;">📋 Fiches générées — '+esc(emp.full_name||'')+'</div>'
-    +'<div style="display:flex;flex-direction:column;gap:6px;">';
-  rows.forEach(function(p){
-    var net=netOf(p);
-    var mo=(p.period_month||0).toString().padStart(2,'0');
-    var label=(p.period_year||'?')+'-'+mo;
-    var st=stMap[p.status]||p.status;
-    var col=stCol[p.status]||'#888';
-    html+='<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg2);border-radius:8px;border-left:3px solid '+col+';">'
-      +'<div style="flex:1;">'
-      +'<div style="font-size:12px;font-weight:700;color:var(--text);">'+esc(label)+'</div>'
-      +'<div style="font-size:11px;color:var(--text3);">Brut : '+fmt(p.gross_salary||0)+' · Net : <strong>'+fmt(net)+'</strong> FCFA</div>'
-      +'</div>'
-      +'<span style="font-size:11px;color:'+col+';font-weight:700;">'+esc(st)+'</span>'
-      +(p.status!=='paye'
-        ?'<button data-pid="'+esc(p.id)+'" onclick="deletePayrollRecord(this.dataset.pid)" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">🗑</button>'
-        :'')
-      +'</div>';
-  });
-  html+='</div></div>';
-  el.innerHTML=html;
-}
-
-function deletePayrollRecord(pid){
-  if(!confirm('Supprimer cette fiche de paie ?'))return;
-  var url=SB_URL+'/rest/v1/veraluz_payroll?id=eq.'+pid;
-  fetch(url,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=minimal'}})
-    .then(function(){
-      var idx=PAYROLLS.findIndex(function(x){return x.id===pid;});
-      if(idx>=0)PAYROLLS.splice(idx,1);
-      /* Reset existing id if deleted */
-      if(_indivExistingId===pid){
-        _indivExistingId=null;
-        document.getElementById('indiv-existing').style.display='none';
-        document.getElementById('indiv-pdf-btn').style.display='none';
-      }
-      renderIndivHistory();
-      loadPay();
-      toast('Fiche supprimée','ok');
-    }).catch(function(e){toast('Erreur suppression: '+(e.message||e),'err');});
-}
-
-function printIndivPayslip(){
-  if(!_indivExistingId)return;
-  printPayslip(_indivExistingId);
-}
-
-function clearIndivFiche(){
-  _indivEmpId=null;_indivExistingId=null;
-  var sel=document.getElementById('indiv-emp');if(sel)sel.value='';
-  document.getElementById('indiv-fiche').style.display='none';
-}
-
-function shiftPayMonth(delta){
-  var d=new Date(_payMonth+'-01');
-  d.setMonth(d.getMonth()+delta);
-  _payMonth=d.toISOString().slice(0,7);
-  updatePayMonthLabel();
-  renderPay();
-}
-function updatePayMonthLabel(){
-  var el=document.getElementById('pay-month-label');
-  if(!el)return;
-  var d=new Date(_payMonth+'-15');
-  el.textContent=d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}).replace(/^./,function(c){return c.toUpperCase();});
-  // Also sync calc-month
-  var cm=document.getElementById('calc-month');
-  if(cm)cm.value=_payMonth;
-}
-function payTeam(teamKey,month){
-  var list=PAYROLLS.filter(function(p){
-    var emp=EMPS.find(function(e){return e.id===p.employee_id;});
-    return emp&&getEmpTeamKey(emp)===teamKey&&payM(p)===month&&p.status!=='paye';
-  });
-  if(!list.length){toast('Tous déjà payés','ok');return;}
-  Promise.all(list.map(function(p){
-    return PATCH('veraluz_payroll',p.id,{status:'paye'}).then(function(){p.status='paye';});
-  })).then(function(){renderPay();loadPay();toast('✅ '+list.length+' paiement(s) validé(s)','ok');});
-}
-function renderPay(){
-  updatePayMonthLabel();
-  var month=_payMonth;
-  var list=PAYROLLS.filter(function(p){return payM(p)===month;});
-  var el=document.getElementById('pay-list');
-  if(!list.length){
-    el.innerHTML='<div class="empty"><div class="empty-ico">💶</div>Aucune fiche pour '+month+'</div>';
-    return;
-  }
-  /* Group by team */
-  var groups={};
-  list.forEach(function(p){
-    var emp=EMPS.find(function(e){return e.id===p.employee_id;});
-    var tk=emp?getEmpTeamKey(emp):'autre';
-    if(!groups[tk])groups[tk]={def:null,items:[]};
-    groups[tk].def=EQUIPE_DEFS.find(function(d){return d.key===tk;})||{key:tk,lbl:'Autre',ico:'👤',color:'#999'};
-    groups[tk].items.push({p:p,emp:emp});
-  });
-  var statusMap={en_attente:{lbl:'En attente',cls:'warn',ico:'⏳'},approuve:{lbl:'Approuvé',cls:'acc',ico:'👍'},paye:{lbl:'Payé',cls:'ok',ico:'✅'}};
-  var html='';
-  EQUIPE_DEFS.forEach(function(def){
-    var grp=groups[def.key];
-    if(!grp)return;
-    var totalNet=grp.items.reduce(function(s,x){return s+netOf(x.p);},0);
-    var countPaid=grp.items.filter(function(x){return x.p.status==='paye';}).length;
-    var countPending=grp.items.length-countPaid;
-    html+='<div style="margin-bottom:18px;">';
-    /* Team header */
-    html+='<div style="display:flex;align-items:center;justify-content:space-between;background:'+def.color+'15;border:1px solid '+def.color+'33;border-radius:10px 10px 0 0;padding:10px 14px;">';
-    html+='<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.1rem;">'+def.ico+'</span>'
-      +'<span style="font-size:13px;font-weight:800;color:var(--text);">'+def.lbl+'</span>'
-      +'<span style="font-size:11px;color:var(--text3);">('+grp.items.length+')</span></div>';
-    html+='<div style="display:flex;align-items:center;gap:8px;">';
-    html+='<span style="font-size:12px;font-weight:700;color:'+def.color+';">'+fmt(totalNet)+' F</span>';
-    if(countPending>0){
-      html+='<button class="btn btn-primary" style="font-size:11px;padding:4px 10px;" '
-        +'data-tk="'+esc(def.key)+'" data-mo="'+esc(month)+'" '
-        +'onclick="payTeam(this.dataset.tk,this.dataset.mo)">✅ Payer tout</button>';
-    }
-    html+='</div></div>';
-    /* Employee cards */
-    html+='<div style="border:1px solid '+def.color+'22;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;">';
-    grp.items.forEach(function(x,i){
-      var p=x.p; var emp=x.emp;
-      var st=statusMap[p.status]||{lbl:p.status,cls:'warn',ico:'•'};
-      var gross=p.gross_salary||((p.base_salary||0)+(p.bonus||0));
-      var cnpsE=p.cnps_employee||0;
-      var net=netOf(p);
-      var momo=emp?emp.momo_number||'':'';
-      html+='<div style="padding:12px 14px;'+(i>0?'border-top:1px solid var(--border);':'')+'">';
-      /* Row 1: name + status */
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
-      html+='<div style="display:flex;align-items:center;gap:8px;">';
-      var ini=(emp?emp.full_name:'?').charAt(0).toUpperCase();
-      html+='<div style="width:30px;height:30px;border-radius:50%;background:'+def.color+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">'+esc(ini)+'</div>';
-      html+='<div><div style="font-size:13px;font-weight:700;color:var(--text);">'+esc(emp?emp.full_name:'—')+'</div>'
-        +'<div style="font-size:11px;color:var(--text3);">'+esc(emp?emp.role:'')+''+(momo?'&nbsp;· &nbsp;📱 '+esc(momo):'')+'</div></div>';
-      html+='</div>';
-      html+='<span class="bdg '+st.cls+'" style="font-size:11px;">'+st.ico+' '+st.lbl+'</span>';
-      html+='</div>';
-      /* Row 2: salary breakdown */
-      html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">';
-      html+='<div style="flex:1;min-width:70px;background:var(--bg2);border-radius:6px;padding:5px 8px;text-align:center;">'
-        +'<div style="font-size:10px;color:var(--text3);">Brut</div>'
-        +'<div style="font-size:12px;font-weight:700;">'+fmt(gross)+'</div></div>';
-      if(cnpsE>0){
-        html+='<div style="flex:1;min-width:70px;background:#fee2e2;border-radius:6px;padding:5px 8px;text-align:center;">'
-          +'<div style="font-size:10px;color:#b91c1c;">CNPS sal.</div>'
-          +'<div style="font-size:12px;font-weight:700;color:#b91c1c;">-'+fmt(cnpsE)+'</div></div>';
-      }
-      if(p.deductions&&p.deductions>0){
-        html+='<div style="flex:1;min-width:70px;background:#fee2e2;border-radius:6px;padding:5px 8px;text-align:center;">'
-          +'<div style="font-size:10px;color:#b91c1c;">Retenues</div>'
-          +'<div style="font-size:12px;font-weight:700;color:#b91c1c;">-'+fmt(p.deductions)+'</div></div>';
-      }
-      html+='<div style="flex:1;min-width:80px;background:var(--acc1)18;border:1px solid var(--acc1)44;border-radius:6px;padding:5px 8px;text-align:center;">'
-        +'<div style="font-size:10px;color:var(--acc1);">NET à payer</div>'
-        +'<div style="font-size:13px;font-weight:800;color:var(--acc1);">'+fmt(net)+'</div></div>';
-      html+='</div>';
-      /* Row 3: actions */
-      html+='<div class="btn-row" style="margin-bottom:0;">';
-      html+='<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">📋 Bulletin</button>';
-      html+='<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="sendPayslipEmail(this.dataset.pid)">✉️ Email</button>';
-      if(p.status!=='paye'){
-        html+='<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">✅ Marquer payé</button>';
-      }
-      html+='</div>';
-      html+='</div>';
-    });
-    html+='</div>';
-    html+='</div>';
-  });
-  /* Uncategorized teams */
-  Object.keys(groups).forEach(function(tk){
-    if(EQUIPE_DEFS.find(function(d){return d.key===tk;}))return;
-    var grp=groups[tk];
-    // render simply
-    grp.items.forEach(function(x){
-      var p=x.p; var emp=x.emp;
-      var st=statusMap[p.status]||{lbl:p.status,cls:'warn',ico:'•'};
-      html+='<div class="card" style="margin-bottom:8px;padding:12px 14px;">'
-        +'<div style="display:flex;justify-content:space-between;"><span style="font-weight:700;">'+esc(emp?emp.full_name:'—')+'</span>'
-        +'<span class="bdg '+st.cls+'">'+st.ico+' '+st.lbl+'</span></div>'
-        +'<div style="font-size:16px;font-weight:800;color:var(--acc1);margin:4px 0;">'+fmt(netOf(p))+' FCFA</div>'
-        +'<div class="btn-row" style="margin-bottom:0;">'
-        +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">📋 Bulletin</button>'
-        +(p.status!=='paye'?'<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">✅ Payer</button>':'')
-        +'</div></div>';
-    });
-  });
-  el.innerHTML=html||'<div class="empty"><div class="empty-ico">💶</div>Aucune fiche pour '+month+'</div>';
-}
-function loadPay(){
-  var month=_payMonth;
-  var list=PAYROLLS.filter(function(p){return payM(p)===month;});
-  var total=list.reduce(function(s,p){return s+(netOf(p));},0);
-  var pending=list.filter(function(p){return p.status==='en_attente'||p.status==='approuve';}).reduce(function(s,p){return s+(netOf(p));},0);
-  var paid=list.filter(function(p){return p.status==='paye';}).reduce(function(s,p){return s+(netOf(p));},0);
-  document.getElementById('pay-mass').textContent=fmt(total)+' F';
-  document.getElementById('pay-pending').textContent=fmt(pending)+' F';
-  document.getElementById('pay-paid').textContent=fmt(paid)+' F';
-  renderPay();
-}
-
-function netOf(p){return p.net_salary||p.net_amount||0;}
-function loadPay(){
-  var total=PAYROLLS.reduce(function(s,p){return s+(netOf(p));},0);
-  var pending=PAYROLLS.filter(function(p){return p.status==='en_attente';}).reduce(function(s,p){return s+(netOf(p));},0);
-  var paid=PAYROLLS.filter(function(p){return p.status==='paye';}).reduce(function(s,p){return s+(netOf(p));},0);
-  document.getElementById('pay-mass').textContent=fmt(total)+' F';
-  document.getElementById('pay-pending').textContent=fmt(pending)+' F';
-  document.getElementById('pay-paid').textContent=fmt(paid)+' F';
-  renderPay();
-}
 function renderPay(){
   var list=PAYROLLS;
   var el=document.getElementById('pay-list');
@@ -2031,10 +1495,10 @@ function approveAllPayroll(){
     var existing=PAYROLLS.find(function(x){return x.employee_id===p.emp.id&&payM(x)===month;});
     var d={employee_id:p.emp.id,period_year:pyr,period_month:pmo,
       gross_salary:p.gross||p.base,base_salary:p.base,bonus:p.bonus,
-      deductions:(p.deduct||0)+(p.adv||0)+(p.apply_cnps?p.cnps_emp||0:0)+(p.apply_irpp?p.irpp||0:0),
+      deductions:(p.deduct||0)+(p.adv||0),
       cnps_employee:p.cnps_emp||0,cnps_employer:p.cnps_empr||0,irpp:p.irpp||0,
       apply_cnps:p.apply_cnps,apply_irpp:p.apply_irpp,
-      taxable_income:p.taxable||0,status:'approuve'};
+      taxable_income:p.taxable||0,net_salary:p.net,status:'approuve'};
     if(existing){return PATCH('veraluz_payroll',existing.id,d);}
     else{d.id=gid();return POST('veraluz_payroll',d).then(function(r){PAYROLLS.unshift(r[0]||d);});}
   });
@@ -2062,11 +1526,10 @@ function savePay(){
   var net=t.gross-deduct-(t.apply_cnps?t.cnps_emp:0)-(t.apply_irpp?t.irpp:0);
   var d={id:gid(),employee_id:document.getElementById('pay-emp').value,
     period_year:pyr,period_month:pmo,
-    gross_salary:t.gross,base_salary:base,bonus:bonus,
-    deductions:deduct+(t.apply_cnps?t.cnps_emp:0)+(t.apply_irpp?t.irpp:0),
+    gross_salary:t.gross,base_salary:base,bonus:bonus,deductions:deduct,
     cnps_employee:t.cnps_emp,cnps_employer:t.cnps_empr,irpp:t.irpp,
     apply_cnps:t.apply_cnps,apply_irpp:t.apply_irpp,taxable_income:t.taxable,
-    status:document.getElementById('pay-status').value,
+    net_salary:Math.max(0,net),status:document.getElementById('pay-status').value,
     notes:document.getElementById('pay-notes').value.trim()||null};
   if(!d.employee_id){toast('Employ&#233; requis','err');return;}
   POST('veraluz_payroll',d).then(function(r){PAYROLLS.unshift(r[0]||d);closeMd('md-add-pay');loadPay();toast('Fiche ajout&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
@@ -2436,315 +1899,74 @@ function goEpTab(pane,btn){
   if(btn)btn.classList.add('on');
   document.querySelectorAll('.ep-pane').forEach(function(p){p.classList.remove('on');});
   var p=document.getElementById(pane);if(p)p.classList.add('on');
-  if(pane==='ep-profil')   renderEpProfil();
-  else if(pane==='ep-taches')   renderEpTaches();
-  else if(pane==='ep-paie'){renderEpSalaire();renderEpPaie();}
-  else if(pane==='ep-planning')  renderEpPlanning();
-  else if(pane==='ep-pointages') renderEpPointages();
+  if(pane==='ep-profil')renderEpProfil();
+  else if(pane==='ep-salaire')renderEpSalaire();
+  else if(pane==='ep-paie')renderEpPaie();
+  else if(pane==='ep-taches')renderEpTaches();
+  else if(pane==='ep-planning')renderEpPlanning();
+  else if(pane==='ep-pointages')renderEpPointages();
 }
-
-function showPersonalView(){
-  if(!LOGGED_EMP)return;
-  document.getElementById('clock-screen').classList.remove('on');
-  document.getElementById('emp-personal').classList.add('on');
-  var color=avatarColor(LOGGED_EMP.full_name);
-  var initials=avatarInitials(LOGGED_EMP.full_name);
-  var av=document.getElementById('ep-avatar');av.style.background=color;av.textContent=initials;
-  document.getElementById('ep-name').textContent=LOGGED_EMP.full_name;
-  document.getElementById('ep-role').textContent=LOGGED_EMP.role||'';
-  goEpTab('ep-pointages',document.querySelector('.ep-tab'));
-}
-
-/* ── Pointage in-tab ── */
-function epPunchIn(){
-  if(!LOGGED_EMP)return;
-  var today=new Date().toISOString().slice(0,10);
-  var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  var d={id:gid(),employee_id:LOGGED_EMP.id,date:today,status:'present',check_in:now};
-  POST('veraluz_attendance',d).then(function(r){
-    ATTS.unshift(r[0]||d);
-    renderEpPointages();
-    toast('✅ Arrivée enregistrée à '+now,'ok');
-  }).catch(function(e){toast('Erreur: '+e,'err');});
-}
-function epPunchOut(){
-  if(!LOGGED_EMP)return;
-  var today=new Date().toISOString().slice(0,10);
-  var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  var att=ATTS.find(function(a){return a.employee_id===LOGGED_EMP.id&&a.date===today;});
-  if(!att){toast('Pas d\'arrivée enregistrée','err');return;}
-  PATCH('veraluz_attendance',att.id,{check_out:now,time_out:now}).then(function(){
-    att.check_out=now;att.time_out=now;
-    renderEpPointages();
-    toast('✅ Départ enregistré à '+now,'ok');
-  }).catch(function(e){toast('Erreur: '+e,'err');});
-}
-
-/* ── Helpers ── */
-function attDurMin(a){
-  var ci=a.check_in||a.time_in; var co=a.check_out||a.time_out;
-  if(!ci||!co)return 0;
-  try{var dm=Math.round((new Date('1970-01-01T'+co)-new Date('1970-01-01T'+ci))/60000);return dm>0?dm:0;}catch(e){return 0;}
-}
-function fmtDur(min){if(!min)return '—';return Math.floor(min/60)+'h'+(min%60?(min%60<10?'0':'')+min%60+'':'');}
-function fmtDayDate(iso){
-  if(!iso)return '';
-  var d=new Date(iso+'T12:00:00');
-  return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}).replace(/^./,function(c){return c.toUpperCase();});
-}
-function isoWeekStart(d){
-  var day=d.getDay()||7; var ms=new Date(d);ms.setDate(ms.getDate()-day+1);ms.setHours(0,0,0,0);return ms;
-}
-
-/* ── Render Pointages ── */
-function renderEpPointages(){
-  var eid=LOGGED_EMP.id;
-  var today=new Date().toISOString().slice(0,10);
-  var myAtts=ATTS.filter(function(a){return a.employee_id===eid;}).sort(function(a,b){return b.date.localeCompare(a.date);});
-
-  /* Today status */
-  var todayAtt=myAtts.find(function(a){return a.date===today;});
-  var statusEl=document.getElementById('ep-clock-status');
-  var btnIn=document.getElementById('ep-btn-arrive');
-  var btnOut=document.getElementById('ep-btn-depart');
-  if(!todayAtt){
-    if(statusEl)statusEl.textContent='Pas encore pointé aujourd\'hui';
-    if(btnIn){btnIn.disabled=false;btnIn.className='btn btn-primary';}
-    if(btnOut){btnOut.disabled=true;btnOut.className='btn btn-sec';}
-  } else if(todayAtt.check_in&&!(todayAtt.check_out||todayAtt.time_out)){
-    if(statusEl)statusEl.innerHTML='🟢 Arrivée : <strong>'+(todayAtt.check_in||todayAtt.time_in)+'</strong> — En service';
-    if(btnIn){btnIn.disabled=true;btnIn.className='btn btn-sec';}
-    if(btnOut){btnOut.disabled=false;btnOut.className='btn btn-primary';}
-  } else {
-    var dur=fmtDur(attDurMin(todayAtt));
-    if(statusEl)statusEl.innerHTML='✅ Journée terminée — Arrivée <strong>'+(todayAtt.check_in||todayAtt.time_in)+'</strong> · Départ <strong>'+(todayAtt.check_out||todayAtt.time_out)+'</strong> · <strong>'+dur+'</strong>';
-    if(btnIn){btnIn.disabled=true;btnIn.className='btn btn-sec';}
-    if(btnOut){btnOut.disabled=true;btnOut.className='btn btn-sec';}
-  }
-
-  /* Weekly grid */
-  var weekGrid=document.getElementById('ep-week-grid');
-  var weekTotal=document.getElementById('ep-week-total');
-  if(weekGrid){
-    var now=new Date();
-    var monStart=isoWeekStart(now);
-    var days=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-    var totalMins=0;
-    weekGrid.innerHTML=days.map(function(lbl,i){
-      var dt=new Date(monStart);dt.setDate(dt.getDate()+i);
-      var iso=dt.toISOString().slice(0,10);
-      var att=myAtts.find(function(a){return a.date===iso;});
-      var min=att?attDurMin(att):0;
-      totalMins+=min;
-      var isToday=iso===today;
-      var hasPunch=att&&(att.check_in||att.time_in);
-      var bg=isToday?'var(--acc1)20':hasPunch?'var(--ok)15':'var(--bg2)';
-      var col=isToday?'var(--acc1)':hasPunch?'var(--ok)':'var(--text3)';
-      return '<div style="background:'+bg+';border-radius:6px;padding:5px 2px;">'
-        +'<div style="font-size:10px;color:var(--text3);">'+lbl+'</div>'
-        +'<div style="font-size:11px;font-weight:700;color:'+col+';">'+(min?fmtDur(min):'—')+'</div>'
-        +'</div>';
-    }).join('');
-    if(weekTotal)weekTotal.textContent='Total semaine : '+fmtDur(totalMins);
-  }
-
-  /* Monthly total */
-  var curMonth=new Date().toISOString().slice(0,7);
-  var mthAtts=myAtts.filter(function(a){return a.date&&a.date.slice(0,7)===curMonth;});
-  var mthMins=mthAtts.reduce(function(s,a){return s+attDurMin(a);},0);
-  var mthEl=document.getElementById('ep-month-hours');
-  if(mthEl)mthEl.textContent='Ce mois : '+fmtDur(mthMins)+' ('+mthAtts.length+' jour'+(mthAtts.length>1?'s':'')+')';
-
-  /* History */
-  var el=document.getElementById('ep-pointages-body');
-  if(!myAtts.length){el.innerHTML='<div class="empty"><div class="empty-ico">🕐</div>Aucun pointage enregistré</div>';return;}
-
-  /* Group by week */
-  var groups={};
-  myAtts.forEach(function(a){
-    var dt=new Date((a.date||'2000-01-01')+'T12:00:00');
-    var ws=isoWeekStart(dt);
-    var key=ws.toISOString().slice(0,10);
-    if(!groups[key]){groups[key]={label:'',items:[],totalMins:0,ws:ws};}
-    var wsEnd=new Date(ws);wsEnd.setDate(wsEnd.getDate()+6);
-    groups[key].label='Sem. du '+ws.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' au '+wsEnd.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
-    groups[key].items.push(a);
-    groups[key].totalMins+=attDurMin(a);
-  });
-
-  var html='';
-  Object.keys(groups).sort(function(a,b){return b.localeCompare(a);}).forEach(function(key){
-    var g=groups[key];
-    html+='<div style="margin-bottom:14px;">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);">'
-      +'<span>📅 '+g.label+'</span>'
-      +'<span style="color:var(--acc1);">'+fmtDur(g.totalMins)+'</span>'
-      +'</div>';
-    g.items.forEach(function(a){
-      var dur=fmtDur(attDurMin(a));
-      var ci=a.check_in||a.time_in||'—'; var co=a.check_out||a.time_out||'—';
-      var stMap={present:{cls:'ok',lbl:'Présent'},retard:{cls:'warn',lbl:'Retard'},absent:{cls:'danger',lbl:'Absent'}};
-      var st=stMap[a.status]||{cls:'warn',lbl:a.status||'?'};
-      var isToday=a.date===today;
-      html+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)22;">';
-      html+='<div style="flex:0 0 90px;">'
-        +'<div style="font-size:12px;font-weight:700;color:var(--text)'+(isToday?';color:var(--acc1)':'')+';">'+fmtDayDate(a.date).split(' ').slice(0,1).join(' ')+' '+a.date.slice(8)+'</div>'
-        +'<div style="font-size:10px;color:var(--text3);">'+a.date.slice(5,7)+'/'+a.date.slice(0,4)+'</div>'
-        +'</div>';
-      html+='<span class="bdg '+st.cls+'" style="font-size:10px;flex-shrink:0;">'+st.lbl+'</span>';
-      html+='<div style="flex:1;text-align:center;">'
-        +'<div style="font-size:11px;color:var(--ok);">🟢 '+ci+'</div>'
-        +(co!=='—'?'<div style="font-size:11px;color:var(--danger);">🔴 '+co+'</div>':'')
-        +'</div>';
-      html+='<div style="text-align:right;font-size:12px;font-weight:700;color:var(--acc1);">'+dur+'</div>';
-      html+='</div>';
-    });
-    html+='</div>';
-  });
-  el.innerHTML=html;
-}
-
-/* ── Render Profil RH privé ── */
 function renderEpProfil(){
   var e=LOGGED_EMP;
   var team=TEAMS.find(function(t){return t.id===e.team_id;});
-  var def=EQUIPE_DEFS.find(function(d){return d.key===getEmpTeamKey(e);})||{ico:'👤',color:'#22d3a5',lbl:'Équipe'};
-  /* Ancienneté */
-  var seniority='';
-  if(e.hire_date){
-    var ms=Date.now()-new Date(e.hire_date).getTime();
-    var yrs=Math.floor(ms/31536000000);
-    var mths=Math.floor((ms%31536000000)/2628000000);
-    seniority=(yrs>0?yrs+' an'+(yrs>1?'s ':' '):'')+(mths>0?mths+' mois':'');
-  }
-  var ctMap={CDI:'CDI',CDD:'CDD',contractuel:'Contractuel',vacataire:'Vacataire',stage:'Stagiaire'};
-  var color=avatarColor(e.full_name);
-
-  document.getElementById('ep-profil-body').innerHTML=
-    /* Avatar block */
-    '<div class="card" style="margin-bottom:12px;padding:20px 16px;text-align:center;">'
-    +'<div style="width:64px;height:64px;border-radius:50%;background:'+color+';display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;margin:0 auto 10px;">'+esc(avatarInitials(e.full_name))+'</div>'
-    +'<div style="font-size:18px;font-weight:800;color:var(--text);">'+esc(e.full_name)+'</div>'
-    +'<div style="font-size:12px;color:var(--text3);margin-top:4px;">'+esc(e.role||'—')+'</div>'
-    +'<div style="display:inline-flex;align-items:center;gap:5px;background:'+def.color+'18;border:1px solid '+def.color+'44;border-radius:20px;padding:3px 10px;margin-top:8px;font-size:11px;color:'+def.color+';font-weight:700;">'+def.ico+' '+def.lbl+'</div>'
-    +'</div>'
-    /* Info grid */
-    +'<div class="card" style="margin-bottom:12px;padding:14px 16px;">'
-    +'<div style="font-size:11px;font-weight:800;color:var(--acc1);margin-bottom:10px;">📋 Informations personnelles</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">'
-    +ep_row('📞 Téléphone',e.phone||'—')
-    +ep_row('📧 Email',e.email||'—')
-    +ep_row('📱 MoMo',e.momo_number||'—')
-    +ep_row('📅 Embauché le',e.hire_date?fdate(e.hire_date):'—')
-    +'</div></div>'
-    /* Contract */
-    +'<div class="card" style="margin-bottom:12px;padding:14px 16px;">'
-    +'<div style="font-size:11px;font-weight:800;color:var(--acc1);margin-bottom:10px;">💼 Contrat & Rémunération</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">'
-    +ep_row('Type de contrat',ctMap[e.contract_type||'CDI']||e.contract_type||'CDI')
-    +ep_row('⏱ Ancienneté',seniority||'—')
-    +ep_row('💰 Salaire de base',fmt(e.base_salary||0)+' FCFA/mois')
-    +ep_row('👥 Équipe',team?team.name:def.lbl)
+  document.getElementById('ep-profil-body').innerHTML='<div class="card">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">'
+    +'<div><div style="font-size:10px;color:var(--text3);">Nom</div><div style="font-weight:700;">'+esc(e.full_name)+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text3);">R&#244;le</div><div>'+esc(e.role||'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text3);">T&#233;l&#233;phone</div><div>'+esc(e.phone||'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text3);">Email</div><div>'+esc(e.email||'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text3);">&#201;quipe</div><div>'+esc(team?team.name:'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text3);">Embauche</div><div>'+fdate(e.hire_date)+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text3);">MoMo</div><div>'+esc(e.momo_number||'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text3);">Statut</div><div><span class="bdg ok">'+esc(e.status)+'</span></div></div>'
     +'</div></div>';
 }
-
-function ep_row(lbl,val){
-  return '<div><div style="font-size:10px;color:var(--text3);margin-bottom:2px;">'+lbl+'</div><div style="font-weight:600;word-break:break-word;">'+esc(val)+'</div></div>';
+function renderEpSalaire(){
+  var e=LOGGED_EMP;
+  var curMonth=new Date().toISOString().slice(0,7);
+  var bonuses=BONUSES.filter(function(b){return b.employee_id===e.id&&b.month===curMonth;});
+  var bonus=bonuses.filter(function(b){return b.type==='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
+  var deduct=bonuses.filter(function(b){return b.type!=='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
+  var net=(e.base_salary||0)+bonus-deduct;
+  document.getElementById('ep-salaire-body').innerHTML='<div class="card">'
+    +'<div class="sec-title" style="margin-bottom:12px;">&#128176; Salaire — '+curMonth+'</div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span>Salaire de base</span><span>'+fmt(e.base_salary)+' FCFA</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);color:var(--ok);"><span>+ Primes</span><span>+'+fmt(bonus)+' FCFA</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);color:var(--danger);"><span>- Retenues</span><span>-'+fmt(deduct)+' FCFA</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:10px 0;font-size:17px;font-weight:800;color:var(--acc1);"><span>Net &#224; payer</span><span>'+fmt(net)+' FCFA</span></div>'
+    +'</div>';
 }
-
-/* ── Render Tâches avec historique daté ── */
+function renderEpPaie(){
+  var list=PAYROLLS.filter(function(p){return p.employee_id===LOGGED_EMP.id;});
+  var el=document.getElementById('ep-paie-body');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128196;</div>Aucune fiche de paie</div>';return;}
+  el.innerHTML=list.map(function(p){
+    return '<div class="card" style="margin-bottom:8px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+      +'<span style="font-weight:700;">'+esc(payM(p)||'')+'</span>'
+      +'<span class="bdg '+(p.status==='paye'?'ok':'warn')+'">'+esc(p.status)+'</span>'
+      +'</div>'
+      +'<div style="font-size:18px;font-weight:800;color:var(--acc1);margin-top:6px;">'+fmt(netOf(p))+' FCFA</div>'
+      +'<button class="btn btn-sec btn-sm" style="margin-top:8px;" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; Voir le bulletin PDF</button>'
+      +'<button class="btn btn-sec btn-sm" style="margin-top:8px;" data-pid="'+esc(p.id)+'" onclick="sendPayslipEmail(this.dataset.pid)">&#128140; Recevoir par email</button>'
+      +'</div>';
+  }).join('');
+}
 function renderEpTaches(){
-  var eid=LOGGED_EMP.id;
-  var list=TASKS.filter(function(t){return t.employee_id===eid;}).sort(function(a,b){
-    /* Active first, then by date */
-    if(a.status!=='termine'&&b.status==='termine')return -1;
-    if(a.status==='termine'&&b.status!=='termine')return 1;
-    return (b.created_at||'').localeCompare(a.created_at||'');
-  });
+  var list=TASKS.filter(function(t){return t.employee_id===LOGGED_EMP.id;});
   var el=document.getElementById('ep-taches-body');
-  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">✅</div>Aucune tâche assignée</div>';return;}
-
-  var active=list.filter(function(t){return t.status!=='termine';});
-  var done=list.filter(function(t){return t.status==='termine';});
-  var prioMap={haute:{cls:'danger',lbl:'⚡ Haute'},normale:{cls:'acc',lbl:'Normal'},basse:{cls:'ok',lbl:'↓ Basse'}};
-  var html='';
-
-  /* Active tasks */
-  if(active.length){
-    html+='<div style="font-size:11px;font-weight:800;color:var(--acc1);margin-bottom:8px;">⚡ Tâches en cours ('+active.length+')</div>';
-    active.forEach(function(t){
-      var prio=prioMap[t.priority||'normale']||prioMap.normale;
-      var stCls=t.status==='en_cours'?'acc':'warn';
-      var stLbl=t.status==='en_cours'?'▶ En cours':'⬜ À faire';
-      var assignDate=t.created_at?fmtDayDate(t.created_at.slice(0,10)):'';
-      var dueDate=t.due_date?fmtDayDate(t.due_date):'';
-      html+='<div class="card" style="margin-bottom:8px;padding:12px 14px;border-left:3px solid var(--acc1);">';
-      html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">'
-        +'<div style="font-size:13px;font-weight:700;color:var(--text);flex:1;">'+esc(t.title)+'</div>'
-        +'<span class="bdg '+prio.cls+'" style="font-size:10px;flex-shrink:0;">'+prio.lbl+'</span>'
-        +'</div>';
-      if(t.description)html+='<div style="font-size:11px;color:var(--text3);margin-bottom:6px;">'+esc(t.description)+'</div>';
-      html+='<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:10px;color:var(--text3);margin-bottom:8px;">';
-      if(assignDate)html+='<span>📋 Assignée le '+assignDate+'</span>';
-      if(dueDate)html+='<span>⏰ Échéance : <strong style="color:var(--warn);">'+dueDate+'</strong></span>';
-      html+='<span class="bdg '+stCls+'" style="font-size:10px;">'+stLbl+'</span>';
-      html+='</div>';
-      html+='<button class="btn btn-primary" style="width:100%;font-size:12px;" data-tid="'+esc(t.id)+'" onclick="empCompleteTask(this.dataset.tid)">✅ Marquer comme terminée</button>';
-      html+='</div>';
-    });
-  }
-
-  /* Completed tasks grouped by week */
-  if(done.length){
-    html+='<div style="font-size:11px;font-weight:800;color:var(--text3);margin:14px 0 8px;">✅ Historique des tâches terminées ('+done.length+')</div>';
-    var doneGroups={};
-    done.forEach(function(t){
-      var iso=(t.updated_at||t.created_at||'').slice(0,10)||'0000-00-00';
-      var dt=new Date(iso+'T12:00:00');
-      var ws=isoWeekStart(dt);
-      var key=ws.toISOString().slice(0,10);
-      if(!doneGroups[key]){
-        var wsEnd=new Date(ws);wsEnd.setDate(wsEnd.getDate()+6);
-        doneGroups[key]={label:'Sem. du '+ws.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' au '+wsEnd.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}),items:[]};
-      }
-      doneGroups[key].items.push(t);
-    });
-    Object.keys(doneGroups).sort(function(a,b){return b.localeCompare(a);}).forEach(function(key){
-      var g=doneGroups[key];
-      html+='<div style="margin-bottom:12px;">';
-      html+='<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:6px;padding-bottom:3px;border-bottom:1px solid var(--border);">📅 '+g.label+'</div>';
-      g.items.forEach(function(t){
-        var assignDate=t.created_at?t.created_at.slice(0,10):'';
-        var doneDate=(t.updated_at||'').slice(0,10)||assignDate;
-        html+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)22;">';
-        html+='<span style="font-size:16px;">✅</span>';
-        html+='<div style="flex:1;">'
-          +'<div style="font-size:12px;font-weight:600;color:var(--text);">'+esc(t.title)+'</div>'
-          +'<div style="font-size:10px;color:var(--text3);">'
-          +(assignDate?'Assignée le '+fmtDayDate(assignDate):'')
-          +(doneDate&&doneDate!==assignDate?' · Terminée le '+fmtDayDate(doneDate):'')
-          +'</div>'
-          +'</div>';
-        html+='</div>';
-      });
-      html+='</div>';
-    });
-  }
-
-  el.innerHTML=html;
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#9989;</div>Aucune t&#226;che assign&#233;e</div>';return;}
+  el.innerHTML=list.map(function(t){
+    return '<div class="entry"><div class="entry-ico '+(t.status==='termine'?'ok':t.status==='en_cours'?'acc':'warn')+'">'+(t.status==='termine'?'&#9989;':t.status==='en_cours'?'&#9654;':'&#9723;')+'</div>'
+      +'<div class="entry-body"><div class="entry-title">'+esc(t.title)+'</div>'
+      +'<div class="entry-sub">'+(t.due_date?'&#201;ch&#233;ance: '+fdate(t.due_date):'')+(t.description?' · '+esc(t.description):'')+'</div></div>'
+      +(t.status!=='termine'?'<button class="btn btn-primary btn-sm" data-tid="'+esc(t.id)+'" onclick="empCompleteTask(this.dataset.tid)">&#10003;</button>':'<span class="bdg ok">&#9989;</span>')
+      +'</div>';
+  }).join('');
 }
-
 function empCompleteTask(tid){
-  var now=new Date().toISOString();
-  PATCH('veraluz_hr_tasks',tid,{status:'termine',updated_at:now}).then(function(){
-    var t=TASKS.find(function(x){return x.id===tid;});
-    if(t){t.status='termine';t.updated_at=now;}
-    renderEpTaches();
-    toast('✅ Tâche marquée terminée','ok');
-  });
+  PATCH('veraluz_hr_tasks',tid,{status:'termine'}).then(function(){var t=TASKS.find(function(x){return x.id===tid;});if(t)t.status='termine';renderEpTaches();toast('T&#226;che termin&#233;e &#9989;','ok');});
 }
-
-
 function renderEpPlanning(){
   var today=new Date();var monday=new Date(today);var d=monday.getDay()||7;monday.setDate(monday.getDate()-d+1);
   var days=[];for(var i=0;i<7;i++){var dt=new Date(monday);dt.setDate(dt.getDate()+i);days.push(dt);}
@@ -2851,59 +2073,82 @@ function initSignPad(){
   canvas.addEventListener('mousedown',function(e){_drawing=true;var p=getPos(e);_signCtx.beginPath();_signCtx.moveTo(p.x,p.y);});
   canvas.addEventListener('mousemove',function(e){if(!_drawing)return;var p=getPos(e);_signCtx.lineTo(p.x,p.y);_signCtx.stroke();});
   canvas.addEventListener('mouseup',function(){_drawing=false;});
-  canvas.addEventListener('mouseleave',function(){_drawing=false;});
   canvas.addEventListener('touchstart',function(e){e.preventDefault();_drawing=true;var p=getPos(e);_signCtx.beginPath();_signCtx.moveTo(p.x,p.y);},{passive:false});
   canvas.addEventListener('touchmove',function(e){e.preventDefault();if(!_drawing)return;var p=getPos(e);_signCtx.lineTo(p.x,p.y);_signCtx.stroke();},{passive:false});
   canvas.addEventListener('touchend',function(){_drawing=false;});
 }
 
-function confirmSign(){
+function signContract(){
   if(!_signContractId)return;
-  var canvas=document.getElementById('sign-pad');
-  if(!canvas)return;
-  var signatureData=canvas.toDataURL('image/png',0.7);
-  sbPatch('veraluz_contracts',_signContractId,{
-    signed_at:new Date().toISOString(),
-    signature_data:signatureData
-  }).then(function(){
-    document.getElementById('md-sign-contract').classList.remove('on');
-    toast('Contrat sign\u00e9 \u2713','ok');
-    loadContracts();
-  }).catch(function(){toast('Erreur signature','err');});
+  if(!_signCanvas){toast('Pad non initialisé','err');return;}
+  // Vérifier que la signature n\'est pas vide
+  var blank=document.createElement('canvas');blank.width=_signCanvas.width;blank.height=_signCanvas.height;
+  var bctx=blank.getContext('2d');bctx.fillStyle='#f8f8f8';bctx.fillRect(0,0,blank.width,blank.height);
+  if(_signCanvas.toDataURL()===blank.toDataURL()){toast('Veuillez signer dans le cadre','err');return;}
+  var sigData=_signCanvas.toDataURL('image/png');
+  var empName=document.getElementById('sign-emp-name').textContent;
+  var now=new Date().toISOString();
+  PATCH('veraluz_contracts',_signContractId,{signed_at:now,signed_by_name:empName,signature_data:sigData,status:'signe'})
+    .then(function(){
+      var c=CONTRACTS.find(function(x){return x.id===_signContractId;});
+      if(c){c.signed_at=now;c.signed_by_name=empName;c.signature_data=sigData;c.status='signe';}
+      document.getElementById('sign-status').textContent='Signé le '+fdt(now);
+      toast('Contrat signé ✅','ok');
+      setTimeout(function(){closeMd('md-sign-contract');loadContracts();},1200);
+    }).catch(function(e){toast('Erreur signature: '+e,'err');});
 }
 
-/* ═══════════════ INIT ═══════════════ */
+function printContract(cid){
+  var c=CONTRACTS.find(function(x){return x.id===cid;});if(!c)return;
+  var emp=EMPS.find(function(e){return e.id===c.employee_id;});
+  var hotel=SETTINGS.hotel_name||'Résidence Veraluz';
+  var body=c.contract_body||genContractBody(emp,c.type,c.start_date,c.end_date,c.salary||0);
+  var sigHtml=c.signature_data?'<div style="margin-top:24px;"><div style="font-size:12px;color:#666;margin-bottom:4px;">Signature de '+(c.signed_by_name||'')+'</div><img src="'+c.signature_data+'" style="max-width:250px;border:1px solid #ccc;border-radius:4px;"></div><div style="font-size:11px;color:#666;margin-top:4px;">Signé le '+fdt(c.signed_at)+'</div>':'<div style="margin-top:40px;border-top:1px solid #ccc;width:200px;font-size:12px;color:#666;">Signature</div>';
+  var w=window.open('','_blank','width=700,height=900');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Contrat</title><style>body{font-family:Arial,sans-serif;margin:0;padding:40px;color:#111;font-size:13px;line-height:1.8;}h2{color:#22d3a5;margin-bottom:24px;}pre{white-space:pre-wrap;font-family:Arial;font-size:13px;line-height:1.8;}.footer{margin-top:48px;display:flex;justify-content:space-between;}</style></head><body>');
+  w.document.write('<h2>'+hotel+'</h2><pre>'+body+'</pre>');
+  w.document.write('<div class="footer"><div>L\'Employeur<br><br>_______________</div>'+sigHtml+'</div>');
+  w.document.write('</body></html>');
+  w.document.close();setTimeout(function(){w.print();},600);
+}
+
+
 document.addEventListener('DOMContentLoaded',function(){
-  loadAll();
-  setInterval(loadAll,60000);
-  setTimeout(initSignPad,500);
+  function setVal(id,v){var el=document.getElementById(id);if(el)el.value=v;}
+  var td=new Date().toISOString().slice(0,10);
+  var tm=new Date().toISOString().slice(0,7);
+  setVal('att-date',td);setVal('adv-date',td);setVal('att-md-date',td);
+  setVal('pay-month',tm);setVal('bonus-month',tm);
+  setVal('sched-date',td);setVal('emp-hire',td);setVal('doc-date',td);
+  try{loadAll();}catch(e){console.error('loadAll error:',e);}
+  try{initSignPad();}catch(e){console.warn('initSignPad error:',e);}
 });
-</script>
 
-<!-- Modal signature electronique -->
-<div class="ov" id="md-sign-contract">
-  <div class="md" style="max-width:540px;max-height:90vh;overflow-y:auto">
-    <div class="md-hdr">
-      <span class="md-ttl">&#9997;&#65039; Signature electronique</span>
-      <button class="md-cls" onclick="document.getElementById('md-sign-contract').classList.remove('on')">&#10005;</button>
-    </div>
-    <div style="padding:16px 20px">
-      <div style="font-size:.78rem;font-weight:700;color:var(--tx2);margin-bottom:8px">Employ\u00e9(e) :</div>
-      <div id="sign-emp-name" style="font-size:.92rem;font-weight:800;color:var(--tx);margin-bottom:4px"></div>
-      <div id="sign-status" style="font-size:.7rem;color:var(--tx3);margin-bottom:14px"></div>
-      <div style="background:var(--bg3);border-radius:8px;padding:14px;margin-bottom:14px;max-height:200px;overflow-y:auto">
-        <pre id="sign-contract-body" style="font-size:.68rem;line-height:1.6;white-space:pre-wrap;color:var(--tx2);font-family:monospace"></pre>
-      </div>
-      <div style="font-size:.75rem;font-weight:700;color:var(--tx2);margin-bottom:8px">Signature :</div>
-      <canvas id="sign-pad" width="460" height="140" style="width:100%;border:2px dashed var(--border2);border-radius:8px;background:#f8f8f6;cursor:crosshair;touch-action:none"></canvas>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="btn bp" onclick="confirmSign()" style="flex:1">&#9989; Confirmer la signature</button>
-        <button class="btn bs" onclick="clearSignPad()">&#128465; Effacer</button>
-        <button class="btn bs" onclick="document.getElementById('md-sign-contract').classList.remove('on')">Annuler</button>
-      </div>
-    </div>
-  </div>
-</div>
+window.onerror=function(msg,src,line,col,err){
+  console.error('RH JS Error:',msg,'at',src+':'+line);
+  var banner=document.getElementById('load-banner');
+  if(banner&&banner.style.display==='none')return;
+  if(banner){banner.style.display='block';banner.textContent='Erreur JS: '+msg;banner.style.color='var(--danger)';}
+};
 
-</body>
-</html>
+// ─── Auto-login depuis le Core Veraluz OS (postMessage) ─────────────────────
+// Quand l'employé se connecte via le NIP dans le Core, le Core envoie
+// l'employee_id ici via postMessage. On définit LOGGED_EMP automatiquement
+// et on affiche l'écran de pointage sans repasser par le login interne.
+window.addEventListener('message', function(ev) {
+  if (!ev.data || ev.data.source !== 'veraluz-core') return;
+  if (ev.data.type !== 'auth-context') return;
+  var d = ev.data.data || {};
+  var empId = d.employee_id || null;
+  if (!empId) return;
+
+  // EMPS peut encore être en cours de chargement depuis Supabase.
+  // On réessaie jusqu'à 10 fois (toutes les 500 ms = 5 secondes max).
+  function tryAutoLogin(attempts) {
+    var emp = EMPS.find(function(e) { return e.id === empId; });
+    if (emp) {
+      LOGGED_EMP = emp;
+      // Fermer l'écran de login interne s'il est affiché
+      var ls = document.getElementById('login-screen');
+      if (ls) ls.classList.remove('on');
+   
