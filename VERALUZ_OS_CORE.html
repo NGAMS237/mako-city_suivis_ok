@@ -343,10 +343,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
       </button>
     </div>
     <div class="sb-user">
-      <div class="sb-avatar">S</div>
+      <div class="sb-avatar" id="sb-avatar">—</div>
       <div>
-        <div class="sb-uname">Smith</div>
-        <div class="sb-urole">Super Admin</div>
+        <div class="sb-uname" id="sb-uname">—</div>
+        <div class="sb-urole" id="sb-urole">—</div>
       </div>
     </div>
   </div>
@@ -427,6 +427,86 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     </button>
     <div id="bn-modules" style="display:contents"></div>
   </nav>
+</div>
+
+<!-- AUTH OVERLAY — PROMPT 010C (élément HTML manquant — cause racine) -->
+<div id="auth-overlay" class="hidden">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <span class="al-icon">🏖️</span>
+      <div class="al-title">Veraluz OS</div>
+      <div class="al-sub">Résidence · Kribi, Cameroun</div>
+    </div>
+
+    <!-- PROMPT 010C — Bouton DEV MODE (caché en production) -->
+    <div id="dev-mode-btn-wrap" style="display:none;margin-bottom:16px;">
+      <button onclick="enterDevMode()"
+        style="width:100%;padding:12px 16px;background:linear-gradient(135deg,#f59e0b,#d97706);
+        border:2px solid rgba(245,158,11,.3);border-radius:10px;color:#fff;font-size:14px;
+        font-weight:700;cursor:pointer;letter-spacing:.3px;font-family:inherit;">
+        🛠️ Entrer en mode développement
+      </button>
+      <div style="font-size:10px;color:var(--fg2);text-align:center;margin-top:5px;">
+        TEMP DEV ONLY — Authentification réelle désactivée
+      </div>
+    </div>
+
+    <div id="auth-error" class="auth-error"></div>
+
+    <!-- Mode Employé (PIN) -->
+    <div id="auth-emp-mode">
+      <div class="auth-emp-pick">
+        <label>Votre nom</label>
+        <select id="auth-emp-select" class="auth-emp-select">
+          <option value="">⏳ Chargement des employés...</option>
+        </select>
+      </div>
+      <span class="auth-pin-lbl">Votre NIP / PIN employé</span>
+      <div class="auth-pin-display">
+        <div class="auth-pin-dot" id="pin-dot-0"></div>
+        <div class="auth-pin-dot" id="pin-dot-1"></div>
+        <div class="auth-pin-dot" id="pin-dot-2"></div>
+        <div class="auth-pin-dot" id="pin-dot-3"></div>
+        <div class="auth-pin-dot" id="pin-dot-4"></div>
+        <div class="auth-pin-dot" id="pin-dot-5"></div>
+      </div>
+      <div class="auth-pin-pad">
+        <button class="auth-pin-btn" onclick="pinKey('1')">1</button>
+        <button class="auth-pin-btn" onclick="pinKey('2')">2</button>
+        <button class="auth-pin-btn" onclick="pinKey('3')">3</button>
+        <button class="auth-pin-btn" onclick="pinKey('4')">4</button>
+        <button class="auth-pin-btn" onclick="pinKey('5')">5</button>
+        <button class="auth-pin-btn" onclick="pinKey('6')">6</button>
+        <button class="auth-pin-btn" onclick="pinKey('7')">7</button>
+        <button class="auth-pin-btn" onclick="pinKey('8')">8</button>
+        <button class="auth-pin-btn" onclick="pinKey('9')">9</button>
+        <button class="auth-pin-btn del" onclick="pinDel()">⌫</button>
+        <button class="auth-pin-btn zero" onclick="pinKey('0')">0</button>
+      </div>
+      <button class="auth-btn" onclick="doLoginPin()">✅ Se connecter</button>
+    </div>
+
+    <!-- Mode Admin (identifiant + mot de passe) -->
+    <div id="auth-admin-mode">
+      <div class="auth-field">
+        <label>Identifiant</label>
+        <input id="auth-username" type="text" placeholder="admin, manager…" autocomplete="username">
+      </div>
+      <div class="auth-field">
+        <label>Mot de passe</label>
+        <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <label class="auth-remember">
+        <input type="checkbox" id="auth-remember"> Se souvenir de moi (7 jours)
+      </label>
+      <button class="auth-btn auth-login-btn" onclick="doLogin()">Se connecter</button>
+    </div>
+
+    <div class="auth-mode-toggle">
+      <a id="auth-mode-lnk" onclick="toggleAdminMode()">🔐 Accès administrateur</a>
+    </div>
+  </div>
 </div>
 
 <div id="sb-ov" onclick="closeMobileSidebar()"
@@ -918,6 +998,7 @@ function updatePinDisplay() {
 }
 
 /* PROMPT 008A — showAuthOverlay avec messages d'erreur distincts */
+/* PROMPT 010C — Bouton DEV MODE + erreur réseau non-bloquante en mode développement */
 function showAuthOverlay() {
   _pinBuffer = '';
   updatePinDisplay();
@@ -927,6 +1008,10 @@ function showAuthOverlay() {
   if (errEl) errEl.classList.remove('show');
   var sel = document.getElementById('auth-emp-select');
   if (sel) sel.innerHTML = '<option value="">⏳ Chargement des employés...</option>';
+
+  /* PROMPT 010C — Afficher bouton DEV si mode développement */
+  var devWrap = document.getElementById('dev-mode-btn-wrap');
+  if (devWrap) devWrap.style.display = (VERALUZ_AUTH_MODE === 'development') ? 'block' : 'none';
 
   function onOk(emps) {
     var s = document.getElementById('auth-emp-select'); if (!s) return;
@@ -955,6 +1040,12 @@ function showAuthOverlay() {
   function onNetErr(msg) {
     var s = document.getElementById('auth-emp-select');
     if (s) s.innerHTML = '<option value="">⚠ Erreur réseau — vérifiez Supabase / connexion</option>';
+    /* PROMPT 010C Mission 4 — En mode développement : ne pas bloquer l'accès sur erreur réseau */
+    if (VERALUZ_AUTH_MODE === 'development') {
+      /* En dev, l'erreur réseau est un avertissement non-bloquant (bouton DEV reste disponible) */
+      if (errEl) { errEl.textContent = '⚠ Connexion Supabase non disponible — utilisez le bouton Développement ci-dessus.'; errEl.classList.add('show'); }
+      return;
+    }
     if (errEl) { errEl.textContent = msg || 'Erreur réseau : impossible de charger les employés.'; errEl.classList.add('show'); }
   }
 
@@ -984,6 +1075,8 @@ function checkAuth() {
     buildNav();
     initGreeting();
     loadDashboardData();
+    /* PROMPT 010C — Restaurer le bandeau DEV si session dev_mode */
+    if (session.dev_mode) { showDevBanner(); }
     /* PROMPT 008A — Espace Employé d'abord pour les employés */
     if (currentUser.employee_id) {
       setTimeout(function() { goTo('employee_home'); }, 400);
@@ -1014,7 +1107,7 @@ function doLoginPin() {
   /* data-pin supprimé — comparaison PIN JAMAIS côté client */
 
   if (_pinBuffer.length < 4) {
-    errEl.textContent = 'Veuillez entrer un NIP à 4 chiffres.';
+    errEl.textContent = 'Veuillez entrer votre NIP / PIN employé.';
     errEl.classList.add('show');
     return;
   }
@@ -1216,6 +1309,16 @@ function navigateTo(id) { goTo(id); }
  */
 var AUTH_MODE = 'edge';
 
+/* ================================================================
+   PROMPT 010C — MODE DÉVELOPPEMENT CONFIGURABLE
+   TEMP DEV ONLY — VERALUZ_AUTH_MODE='development' permet de travailler
+   pendant la conception. À remettre sur 'production' avant toute
+   utilisation réelle.
+   ================================================================ */
+// TEMP DEV ONLY — VERALUZ_AUTH_MODE='development' permet de travailler pendant la conception.
+// À remettre sur 'production' avant toute utilisation réelle.
+var VERALUZ_AUTH_MODE = 'development'; /* 'development' | 'production' */
+
 /* URL Edge Functions — clé anon safe côté client (service_role JAMAIS ici) */
 var EDGE_VERIFY_PIN_URL    = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
 /* PROMPT 009 Mission 9 — Auth admin via Edge Function (hash bcrypt, jamais en clair) */
@@ -1279,10 +1382,10 @@ function handleDevUnlock() {
       'restaurant','finance','rh','contacts','notifications','analytics',
       'audit','settings','eventbus','auth','appro','integrations'
     ],
-    primaryModule: 'auth',
+    primaryModule: 'dashboard', /* PROMPT 010C — corrigé (était 'auth') */
     loginAt:       Date.now(),
     expires:       Date.now() + 2 * 60 * 60 * 1000, /* max 2h */
-    dev_unlock:    true
+    dev_mode:      true /* PROMPT 010C — remplace dev_unlock */
   };
 
   localStorage.setItem('veraluz_auth_v1', JSON.stringify(devSession));
@@ -1292,7 +1395,7 @@ function handleDevUnlock() {
     role:            devSession.role,
     employee_id:     null,
     allowed_modules: devSession.allowed_modules,
-    dev_unlock:      true
+    dev_mode:        true
   };
 
   hideAuthOverlay();
@@ -1301,7 +1404,7 @@ function handleDevUnlock() {
   initGreeting();
   loadDashboardData();
   showDevBanner();
-  setTimeout(function() { goTo('auth'); }, 400);
+  setTimeout(function() { goTo('dashboard'); }, 400);
 
   return true;
 }
@@ -1313,23 +1416,38 @@ function handleDevUnlock() {
 function showDevBanner() {
   // TODO SECURITY: supprimer cette fonction avant production
   if (document.getElementById('dev-banner')) return;
+
+  /* PROMPT 010C — Détecter le type de session DEV */
+  var isDevMode = false;
+  try {
+    var _s = JSON.parse(localStorage.getItem('veraluz_auth_v1') || '{}');
+    isDevMode = !!(_s.dev_mode);
+  } catch(e) {}
+
+  var bannerMsg = isDevMode
+    ? '🛠️ MODE DÉVELOPPEMENT ACTIF — Authentification réelle désactivée temporairement'
+    : '⚠️ MODE DEV TEMPORAIRE ACTIF — À SUPPRIMER AVANT PRODUCTION';
+  var bannerBg = isDevMode
+    ? 'linear-gradient(90deg,#d97706,#f59e0b)'
+    : 'linear-gradient(90deg,#dc2626,#ea580c)';
+
   var banner = document.createElement('div');
   banner.id = 'dev-banner';
   banner.style.cssText = [
     'position:fixed','top:0','left:0','right:0','z-index:99999',
-    'background:linear-gradient(90deg,#dc2626,#ea580c)',
+    'background:'+bannerBg,
     'color:#fff','font-size:13px','font-weight:700',
     'text-align:center','padding:8px 12px',
     'display:flex','align-items:center','justify-content:space-between',
     'gap:8px','flex-wrap:wrap','box-shadow:0 2px 8px rgba(0,0,0,.4)'
   ].join(';');
   banner.innerHTML = ''
-    + '<span>⚠️ MODE DEV TEMPORAIRE ACTIF — À SUPPRIMER AVANT PRODUCTION</span>'
+    + '<span>' + bannerMsg + '</span>'
     + '<div style="display:flex;gap:6px;flex-wrap:wrap;">'
     + '<button onclick="goTo(\'auth\')" style="background:#fff2;border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;">🔐 Auth</button>'
     + '<button onclick="openDevChangePwModal()" style="background:#fff2;border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;">🔑 Changer mdp admin</button>'
     + '<button onclick="openDevResetPinModal()" style="background:#fff2;border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;">📌 Reset PIN employé</button>'
-    + '<button onclick="quitDevMode()" style="background:#ef4444;border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:800;">✕ Quitter mode DEV</button>'
+    + '<button onclick="quitDevMode()" style="background:rgba(0,0,0,.25);border:1px solid #fff4;color:#fff;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:800;">✕ Quitter mode DEV</button>'
     + '</div>';
   /* Décaler le topbar pour laisser la place au bandeau */
   document.body.insertBefore(banner, document.body.firstChild);
@@ -1338,12 +1456,27 @@ function showDevBanner() {
   var sb   = document.getElementById('sidebar');
   if (main) main.style.paddingTop = bh + 'px';
   if (sb)   sb.style.paddingTop   = bh + 'px';
+
+  /* PROMPT 010C Mission 3 — Badge DEV MODE dans le header */
+  if (isDevMode && !document.getElementById('dev-badge')) {
+    var tbTitle = document.getElementById('tb-title');
+    if (tbTitle) {
+      var badge = document.createElement('span');
+      badge.id = 'dev-badge';
+      badge.textContent = '🛠️ DEV';
+      badge.style.cssText = 'font-size:10px;background:#f59e0b;color:#000;padding:2px 7px;border-radius:4px;margin-left:8px;font-weight:800;vertical-align:middle;letter-spacing:.3px;';
+      tbTitle.appendChild(badge);
+    }
+  }
 }
 
 function removeDevBanner() {
   // TODO SECURITY: supprimer cette fonction avant production
   var banner = document.getElementById('dev-banner');
   if (banner) banner.remove();
+  /* PROMPT 010C — Supprimer aussi le badge DEV du header */
+  var badge = document.getElementById('dev-badge');
+  if (badge) badge.remove();
   var main = document.getElementById('main');
   var sb   = document.getElementById('sidebar');
   if (main) main.style.paddingTop = '';
@@ -1357,6 +1490,53 @@ function quitDevMode() {
   // TODO SECURITY: supprimer cette fonction avant production
   removeDevBanner();
   logout();
+}
+
+/**
+ * PROMPT 010C — enterDevMode()
+ * Crée une session développement complète et accède directement au dashboard.
+ * Appelé par le bouton "Entrer en mode développement" dans l'overlay de login.
+ * Visible uniquement quand VERALUZ_AUTH_MODE === 'development'.
+ * Aucun PIN, aucun mot de passe, aucun secret stocké.
+ */
+function enterDevMode() {
+  /* PROMPT 010C Mission 7 — Aucun PIN, aucun secret, aucune clé service_role */
+  var devSession = {
+    username:        'dev_owner',
+    name:            'Blaise DEV',
+    role:            'superadmin',
+    employee_id:     null,
+    allowed_modules: [
+      'dashboard','employee_home','reservations','payments','housekeeping',
+      'restaurant','finance','rh','contacts','notifications','analytics',
+      'audit','settings','eventbus','auth','appro','integrations'
+    ],
+    primaryModule: 'dashboard',
+    loginAt:       Date.now(),
+    expires:       Date.now() + 12 * 60 * 60 * 1000, /* 12h */
+    dev_mode:      true
+  };
+
+  localStorage.setItem('veraluz_auth_v1', JSON.stringify(devSession));
+  currentUser = {
+    username:        devSession.username,
+    name:            devSession.name,
+    role:            devSession.role,
+    employee_id:     null,
+    allowed_modules: devSession.allowed_modules,
+    dev_mode:        true
+  };
+
+  console.warn('[VERALUZ DEV 010C] Mode développement activé — Blaise DEV (superadmin)');
+  console.warn('[VERALUZ DEV 010C] Session expire à :', new Date(devSession.expires).toLocaleString('fr-FR'));
+
+  hideAuthOverlay();
+  updateTopbarUser();
+  buildNav();
+  initGreeting();
+  loadDashboardData();
+  showDevBanner();
+  setTimeout(function() { goTo('dashboard'); }, 300);
 }
 
 /**
@@ -1894,11 +2074,18 @@ function updateTopbarUser() {
   if (!info) return;
   if (currentUser) {
     info.style.display = 'flex';
+    var rd = ROLES[currentUser.role];
     if (nameEl) nameEl.textContent = currentUser.name || currentUser.username;
-    if (roleEl) {
-      var rd = ROLES[currentUser.role];
-      roleEl.textContent = rd ? rd.label : currentUser.role;
-    }
+    if (roleEl) roleEl.textContent = rd ? rd.label : currentUser.role;
+
+    /* PROMPT 010C — Mettre à jour les éléments de la barre latérale (étaient hardcodés) */
+    var sbAvatar = document.getElementById('sb-avatar');
+    var sbUname  = document.getElementById('sb-uname');
+    var sbUrole  = document.getElementById('sb-urole');
+    var initiale = ((currentUser.name || currentUser.username || '?')[0] || '?').toUpperCase();
+    if (sbAvatar) sbAvatar.textContent = initiale;
+    if (sbUname)  sbUname.textContent  = currentUser.name || currentUser.username || '—';
+    if (sbUrole)  sbUrole.textContent  = rd ? rd.label : (currentUser.role || '—');
   } else {
     info.style.display = 'none';
   }
@@ -2360,4 +2547,215 @@ var EventBus = {
     }
 
     /* ── Booking Engine → nouvelle réservation ── */
-    if (source =
+    if (source === 'booking-engine' && type === 'new_booking') {
+      /* Écrire un timestamp pour que REZ sache qu'une réservation est arrivée */
+      try{ localStorage.setItem('vlz_rez_updated', String(Date.now())); }catch(e){}
+      /* Notifier l'iframe active si c'est REZ (single iframe model) */
+      var activeFrame = document.getElementById('module-frame');
+      if (activeFrame && activeFrame.contentWindow) {
+        try {
+          activeFrame.contentWindow.postMessage({
+            veraluzEvent: true,
+            source: 'veraluz-core',
+            type: 'new_booking',
+            data: data
+          }, '*');
+        } catch(e) {}
+      }
+      showCoreToast('🛏 Nouvelle réservation reçue !', 'ok');
+      return;
+    }
+
+  this.routeToIframe(source, type, data);
+    }
+  }
+};
+
+/* ── Global message listener ─────────────────────────────── */
+window.addEventListener('message', function(ev) {
+  if (!ev.data || !ev.data.source) return;
+  /* Ignore messages originating from the Core itself */
+  if (ev.data.source === 'veraluz-core') return;
+  try {
+    EventBus.handle(ev.data);
+  } catch(e) {
+    EventBus.stats.errors++;
+    console.warn('[EventBus] Error handling event:', e);
+  }
+});
+
+</script>
+
+<!-- ── Panneau Pointage Rapide ──────────────────────────────── -->
+<style>
+#pointage-panel {
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+#pointage-panel.hidden{display:none;}
+.pp-box {
+  background:var(--bg2);border-radius:16px;width:100%;max-width:420px;
+  padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.pp-hdr {display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.pp-hdr h3 {font-size:18px;font-weight:700;}
+.pp-close {background:transparent;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px;}
+.pp-time {font-size:36px;font-weight:800;color:var(--accent);text-align:center;margin:8px 0;}
+.pp-date {font-size:13px;color:var(--text2);text-align:center;margin-bottom:16px;}
+.pp-status {text-align:center;font-size:14px;margin-bottom:16px;min-height:20px;}
+.pp-btns {display:flex;gap:10px;margin-bottom:20px;}
+.pp-btn-in  {flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;
+  background:rgba(34,211,165,.15);color:var(--accent);font-weight:700;font-size:15px;}
+.pp-btn-out {flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;
+  background:rgba(244,63,94,.15);color:var(--err);font-weight:700;font-size:15px;}
+.pp-btn-in:hover  {background:rgba(34,211,165,.25);}
+.pp-btn-out:hover {background:rgba(244,63,94,.25);}
+.pp-section {font-size:11px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.7px;margin-bottom:8px;font-weight:600;}
+.att-history {max-height:220px;overflow-y:auto;}
+.att-row {display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);}
+.att-row:last-child{border:none;}
+</style>
+<div id="pointage-panel" class="hidden">
+  <div class="pp-box">
+    <div class="pp-hdr">
+      <h3>⏱ Mon Pointage</h3>
+      <button class="pp-close" onclick="closePointagePanel()">✕</button>
+    </div>
+    <div class="pp-time" id="punch-clock">--:--</div>
+    <div class="pp-date" id="punch-date"></div>
+    <div class="pp-status" id="punch-status">Chargement...</div>
+    <div class="pp-btns">
+      <button class="pp-btn-in"  id="punch-btn-in"  onclick="doPunchIn()"  style="display:none">▶ Arrivée</button>
+      <button class="pp-btn-out" id="punch-btn-out" onclick="doPunchOut()" style="display:none">⏹ Départ</button>
+    </div>
+    <div class="pp-section">Présences récentes (14 jours)</div>
+    <div class="att-history" id="att-history">
+      <div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Chargement...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Pointage Panel (PROMPT 008A) ───────────────────────────── */
+setInterval(function(){
+  var el=document.getElementById('punch-clock');
+  if(!el)return;
+  var n=new Date();
+  el.textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
+},1000);
+
+function openPointagePanel(){
+  var pp=document.getElementById('pointage-panel');
+  if(!pp)return;
+  pp.classList.remove('hidden');
+  var dn=document.getElementById('punch-date');
+  if(dn) dn.textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  loadAttHistory();
+}
+function closePointagePanel(){
+  var pp=document.getElementById('pointage-panel');
+  if(pp) pp.classList.add('hidden');
+}
+
+function loadAttHistory(){
+  var hist=document.getElementById('att-history');
+  var stat=document.getElementById('punch-status');
+  var btnIn=document.getElementById('punch-btn-in');
+  var btnOut=document.getElementById('punch-btn-out');
+  if(!hist)return;
+  if(!currentUser||!currentUser.employee_id){
+    if(stat) stat.textContent='Connectez-vous comme employé pour utiliser le pointage.';
+    if(btnIn)  btnIn.style.display='none';
+    if(btnOut) btnOut.style.display='none';
+    hist.innerHTML='<div class="emp-empty">Non connecté comme employé.</div>';
+    return;
+  }
+  hist.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Chargement...</div>';
+  var empId=currentUser.employee_id;
+  var since=new Date(Date.now()-14*24*60*60*1000).toISOString().slice(0,10);
+  var today=new Date().toISOString().slice(0,10);
+
+  fetch(SB_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(empId)
+    +'&date=gte.'+since+'&select=*&order=date.desc&limit=20',{
+    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}
+  })
+  .then(function(r){ return r.ok?r.json():null; })
+  .then(function(rows){
+    if(!Array.isArray(rows)||rows.length===0){
+      return fetch(SB_URL+'/rest/v1/veraluz_pointages?employee_id=eq.'+encodeURIComponent(empId)
+        +'&date=gte.'+since+'&select=*&order=date.desc&limit=20',{
+        headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}
+      }).then(function(r2){ return r2.ok?r2.json():[]; });
+    }
+    return rows;
+  })
+  .then(function(rows){
+    var todayRow=Array.isArray(rows)?rows.find(function(r){return(r.date||'').slice(0,10)===today;}):null;
+    if(stat){
+      if(!todayRow) stat.textContent="Pas de pointage aujourd'hui.";
+      else {
+        var ent=todayRow.check_in||todayRow.heure_entree||todayRow.time_in||'?';
+        var sor=todayRow.check_out||todayRow.heure_sortie||todayRow.time_out;
+        stat.textContent='✅ Arrivée : '+esc(String(ent).slice(0,5))+(sor?' · Départ : '+esc(String(sor).slice(0,5)):'');
+      }
+    }
+    if(btnIn)  btnIn.style.display=(!todayRow||!todayRow.check_in)?'flex':'none';
+    if(btnOut) btnOut.style.display=(todayRow&&todayRow.check_in&&!todayRow.check_out)?'flex':'none';
+    if(!Array.isArray(rows)||rows.length===0){
+      hist.innerHTML='<div class="emp-empty">Aucune présence enregistrée.</div>'; return;
+    }
+    hist.innerHTML=rows.slice(0,14).map(function(r){
+      var d=esc(String(r.date||'').slice(0,10));
+      var ent=esc(String(r.check_in||r.heure_entree||r.time_in||'—').slice(0,5));
+      var sor=esc(String(r.check_out||r.heure_sortie||r.time_out||'—').slice(0,5));
+      return '<div class="att-row"><span>'+d+'</span><span>▶ '+ent+' / ⏹ '+sor+'</span></div>';
+    }).join('');
+  })
+  .catch(function(){
+    if(hist) hist.innerHTML='<div class="emp-empty">Erreur réseau — pointages indisponibles.</div>';
+    if(stat) stat.textContent='Erreur réseau.';
+  });
+}
+
+function doPunchIn(){
+  if(!currentUser||!currentUser.employee_id) return;
+  var now=new Date();
+  var today=now.toISOString().slice(0,10);
+  var timeStr=now.toISOString().slice(11,19);
+  fetch(SB_URL+'/rest/v1/veraluz_attendance',{
+    method:'POST',
+    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,
+             'Content-Type':'application/json',Prefer:'return=representation'},
+    body:JSON.stringify({employee_id:currentUser.employee_id,date:today,check_in:timeStr})
+  })
+  .then(function(r){ return r.ok||r.status===201; })
+  .then(function(ok){
+    if(ok){ showCoreToast('✅ Arrivée enregistrée','ok'); loadAttHistory(); }
+    else   showCoreToast('⚠ Erreur enregistrement pointage','err');
+  })
+  .catch(function(){ showCoreToast('⚠ Erreur réseau pointage','err'); });
+}
+
+function doPunchOut(){
+  if(!currentUser||!currentUser.employee_id) return;
+  var now=new Date();
+  var today=now.toISOString().slice(0,10);
+  var timeStr=now.toISOString().slice(11,19);
+  fetch(SB_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(currentUser.employee_id)+'&date=eq.'+today,{
+    method:'PATCH',
+    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({check_out:timeStr})
+  })
+  .then(function(r){ return r.ok; })
+  .then(function(ok){
+    if(ok){ showCoreToast('⏹ Départ enregistré','ok'); loadAttHistory(); }
+    else   showCoreToast('⚠ Erreur enregistrement départ','err');
+  })
+  .catch(function(){ showCoreToast('⚠ Erreur réseau pointage','err'); });
+}
+</script>
+
+</body>
+</html>
