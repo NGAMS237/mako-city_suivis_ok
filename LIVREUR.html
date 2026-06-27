@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#0f0f0d">
 <title>Veraluz — Dashboard Livreur</title>
+<!-- ── PWA VERALUZ LIVREUR — PROMPT 011 ───────────────────── -->
+<link rel="manifest" href="./manifest-livreur.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Livreur">
+<link rel="apple-touch-icon" href="./assets/pwa/icon-livreur-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./assets/pwa/icon-livreur-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./assets/pwa/icon-livreur-512.png">
+<!-- ─────────────────────────────────────────────────────────── -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -1509,4 +1519,136 @@ function logout(){
   clearSession();  /* PROMPT 006: supprimer session (jamais le PIN) */
   LIVREUR_ACTIF=null;_orders=[];_pointages=[];
   _pinBuffer='';_currentOrderId=null;_photoB64=null;_lastSync=null;
-  if(_int
+  if(_interval){clearInterval(_interval);_interval=null;}
+  if(_punchInterval){clearInterval(_punchInterval);_punchInterval=null;}
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('pin-screen').classList.remove('hidden');
+  document.getElementById('pin-livreur-sel').value='';
+  document.getElementById('pin-err').textContent='';
+  renderPinDots();
+  updateNetworkBadge();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROMPT 011 — PWA : Service Worker + Installation + Offline
+══════════════════════════════════════════════════════════════ */
+
+// ── Service Worker ───────────────────────────────────────────
+function registerVeraluzServiceWorker(){
+  if(!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(reg){
+        console.log('[VERALUZ PWA] Service worker enregistré', reg.scope);
+      })
+      .catch(function(err){
+        console.warn('[VERALUZ PWA] Service worker non enregistré', err);
+      });
+  });
+}
+
+// ── Bouton installation (Android/Chrome) ─────────────────────
+var _vlzDeferredInstall = null;
+
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  _vlzDeferredInstall = e;
+  var banner = document.getElementById('vlz-pwa-install-banner');
+  if(banner){ banner.style.display = 'flex'; }
+});
+
+function vlzTriggerInstall(){
+  if(!_vlzDeferredInstall) return;
+  _vlzDeferredInstall.prompt();
+  _vlzDeferredInstall.userChoice.then(function(result){
+    console.log('[VERALUZ PWA] Choix installation:', result.outcome);
+    _vlzDeferredInstall = null;
+    var banner = document.getElementById('vlz-pwa-install-banner');
+    if(banner){ banner.style.display = 'none'; }
+  });
+}
+
+window.addEventListener('appinstalled', function(){
+  var banner = document.getElementById('vlz-pwa-install-banner');
+  if(banner){ banner.style.display = 'none'; }
+});
+
+// ── Indicateur offline ────────────────────────────────────────
+// Note : LIVREUR a déjà un badge réseau (updateNetworkBadge).
+// On gère seulement la bannière globale sans doublon.
+function vlzUpdateOfflineBanner(){
+  var bar = document.getElementById('vlz-offline-bar');
+  if(!bar) return;
+  bar.style.display = navigator.onLine ? 'none' : 'flex';
+}
+window.addEventListener('online',  vlzUpdateOfflineBanner);
+window.addEventListener('offline', vlzUpdateOfflineBanner);
+
+// ── Lancement ─────────────────────────────────────────────────
+registerVeraluzServiceWorker();
+window.addEventListener('DOMContentLoaded', function(){ vlzUpdateOfflineBanner(); });
+
+/* ══════════════════════════════════════════
+   PROMPT 006 — SÉCURISATION PIN FUTURE (NOTE TECHNIQUE)
+   Architecture actuelle : PIN vérifié côté client depuis données Supabase (anon key).
+   Ce mode convient à un usage terrain interne avec confiance implicite.
+   Pour sécuriser réellement les PINs dans une future version :
+     - Option 1 : Supabase Auth (email/password ou magic link)
+     - Option 2 : Supabase Edge Function côté serveur (PIN haché bcrypt)
+     - Option 3 : RPC Supabase sécurisée avec Row Level Security
+     - Option 4 : Hash PIN côté client insuffisant seul (clé anon expose les hashes)
+   Recommandation PROMPT 007+ : migrer vers Supabase Auth ou Edge Function.
+   Ne pas promettre qu'un simple hash côté client sécurise totalement un PIN 4-6 chiffres.
+══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',function(){
+  buildPinPad();
+  updateNetworkBadge();  /* PROMPT 005: badge réseau avant login */
+  loadLivreurs().then(function(){
+    /* PROMPT 006: tenter restauration session 12h après chargement des livreurs */
+    if(checkSession()){
+      document.getElementById('pin-screen').classList.add('hidden');
+      document.getElementById('main-app').style.display='';
+      initApp();
+    } else {
+      renderPinDots();
+    }
+  }).catch(function(){
+    renderPinDots();
+  });
+});
+</script>
+
+<!-- ── PWA Bannière offline ──────────────────────────────────── -->
+<div id="vlz-offline-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
+  background:#f59e0b;color:#0f0f0d;padding:8px 16px;font-size:12px;font-weight:600;
+  align-items:center;justify-content:center;gap:8px;text-align:center;">
+  ⚠ Hors ligne — mode file d'attente actif
+</div>
+
+<!-- ── PWA Bannière installation ─────────────────────────────── -->
+<div id="vlz-pwa-install-banner" style="display:none;position:fixed;bottom:80px;left:50%;
+  transform:translateX(-50%);z-index:99998;width:calc(100% - 32px);max-width:440px;
+  background:#1a1a18;border:1px solid rgba(201,168,76,.35);border-radius:14px;
+  padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.4);
+  flex-direction:column;gap:8px;">
+  <div style="font-size:13px;font-weight:700;color:#f5f5f0;">📲 Installer Veraluz Livreur</div>
+  <div style="font-size:11px;color:#a0a09a;line-height:1.4;">Ajoutez l'application à votre écran d'accueil pour un accès rapide hors ligne.</div>
+  <div style="display:flex;gap:8px;margin-top:4px;">
+    <button onclick="vlzTriggerInstall()"
+      style="flex:1;padding:10px;background:#c9a84c;color:#0f0f0d;border:none;border-radius:10px;
+      font-size:13px;font-weight:700;cursor:pointer;">Installer</button>
+    <button onclick="document.getElementById('vlz-pwa-install-banner').style.display='none'"
+      style="padding:10px 14px;background:rgba(255,255,255,.07);color:#a0a09a;border:none;
+      border-radius:10px;font-size:13px;cursor:pointer;">✕</button>
+  </div>
+  <div style="font-size:10px;color:#555;border-top:1px solid rgba(255,255,255,.06);padding-top:8px;margin-top:2px;">
+    Sur iPhone : Partager → Ajouter à l'écran d'accueil
+  </div>
+</div>
+
+</body>
+</html>
