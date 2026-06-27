@@ -364,12 +364,15 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
   </div>
 </div>
 
+<script src="veraluz-core.js?v=0.3.0"></script>
 <script>
 /* ══════════════════════════════════════════
    CONFIG
 ══════════════════════════════════════════ */
 var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+/* ── Veraluz Core — référence globale + fallback ── */
+var VC = window.VeraluzCore || {};
 
 function sbFetch(path){
   return fetch(SB+'/rest/v1/'+path,{mode:'cors',credentials:'omit',headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json'}})
@@ -392,64 +395,29 @@ var _orders=[], _orderTab='pickup', _online=true, _curId=null, _interval=null;
 var _pointages=[], _pinBuffer='';
 
 /* ══════════════════════════════════════════
-   NORMALIZE UTILS — P0 FIX
+   NORMALIZE UTILS — VERALUZ CORE v0.3.0
+   Déléguées à veraluz-core.js.
+   Fallback minimal intégré si bibliothèque non disponible.
 ══════════════════════════════════════════ */
-/* Mappe les colonnes veraluz_employees vers le format attendu par cette app.
-   La table officielle est veraluz_employees (full_name, hire_date, role…).
-   veraluz_rh_employes est legacy — ne plus utiliser. */
-function normalizeEmployee(row) {
-  var parts = (row.full_name || '').trim().split(' ');
-  return {
-    id:            row.id,
-    prenom:        parts[0] || '',
-    nom:           parts.slice(1).join(' ') || '',
-    full_name:     row.full_name || '',
-    pin_code:      row.pin_code || '',
-    poste:         row.role || '',
-    vehicule:      row.vehicule || '',
-    phone:         row.phone || '',
-    email:         row.email || '',
+var normalizeEmployee = VC.normalizeEmployee || function(row) {
+  /* Fallback minimal — veraluz-core.js absent */
+  var p = (row.full_name || '').trim().split(' ');
+  return Object.assign({
+    prenom: p[0] || '', nom: p.slice(1).join(' ') || '',
+    pin_code: row.pin_code || '', poste: row.role || '',
     date_embauche: row.hire_date || ''
-  };
-}
-/* Compatibilité ascendante — anciens statuts français → statuts canoniques.
-   Garantit qu'une commande ancienne (status='attente') reste visible. */
-function normalizeOrderStatus(status) {
-  var map = {
-    /* pending */
-    'attente':         'pending',          'pending':          'pending',
-    /* confirmed — NE PAS mapper vers pending */
-    'confirme':        'confirmed',        'confirmé':         'confirmed',        'confirmed':  'confirmed',
-    /* preparing */
-    'preparing':       'preparing',        'preparation':      'preparing',
-    'préparation':     'preparing',        'en_preparation':   'preparing',
-    /* ready */
-    'pret':            'ready',            'prêt':             'ready',            'ready':      'ready',
-    /* out_for_delivery — statut canonique pour "en livraison" */
-    'en_livraison':    'out_for_delivery', 'out_for_delivery': 'out_for_delivery',
-    'delivering':      'out_for_delivery', /* legacy interne → canonique */
-    /* delivered */
-    'delivered':       'delivered',        'livre':            'delivered',        'livré':      'delivered',
-    /* LEGACY READ ONLY — ne jamais écrire ces valeurs dans status operationnel */
-    'recu':            'delivered',        /* reçu = livré */
-    'paye':            'delivered',        'payé':             'delivered',        'paid':       'delivered',
-    /* cancelled */
-    'cancelled':       'cancelled',        'annule':           'cancelled',
-    'annulé':          'cancelled',        'canceled':         'cancelled'
-  };
-  return map[String(status || '').toLowerCase()] || 'pending';
-}
-/* Détecte si un employé est livreur (équipe OU rôle).
-   Utilisé pour filtrer depuis veraluz_employees + team join. */
-function isDeliveryEmployee(emp) {
-  var team = String((emp.team && emp.team.name) || emp.team_name || '').toLowerCase();
-  var role = String(emp.role || emp.poste || emp.position || '').toLowerCase();
-  return (
-    team.includes('livr')    || team.includes('delivery') ||
-    role.includes('livreur') || role.includes('delivery') ||
-    role.includes('driver')  || role.includes('coursier')
-  );
-}
+  }, row);
+};
+var normalizeOrderStatus = VC.normalizeOrderStatus || function(s) {
+  /* Fallback minimal — passe le statut tel quel */
+  return String(s || 'pending');
+};
+var isDeliveryEmployee = VC.isDeliveryEmployee || function(emp) {
+  /* Fallback minimal — vérifie uniquement le nom d'équipe */
+  var t = String((emp && emp.team && emp.team.name) || emp.team_name || '').toLowerCase();
+  var r = String((emp && (emp.role || emp.poste)) || '').toLowerCase();
+  return t.includes('livr') || r.includes('livreur');
+};
 
 /* ══════════════════════════════════════════
    STATUSES
@@ -627,7 +595,11 @@ function updateStats(){
   document.getElementById('sDone').textContent=_orders.filter(function(o){return o.status==='delivered';}).length;
 }
 
+/* TODO VERALUZ CORE: escH → VC.esc() dans veraluz-core.js quand compatible.
+   Différence : escH échappe aussi les guillemets doubles ("). */
 function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/* TODO VERALUZ CORE: fmtXAF → VC.fmtMoney() dans veraluz-core.js.
+   Attention : fmtXAF affiche "XAF", fmtMoney affiche "FCFA" — valider avec UX avant migration. */
 function fmtXAF(n){return new Intl.NumberFormat('fr-FR').format(Number(n)||0)+' XAF';}
 
 function renderOrders(){
@@ -862,4 +834,27 @@ function renderPointageToday(){
   var totalMs=0,arriveeTs=null;
   rows.forEach(function(r){
     if(r.type==='arrivee'){arriveeTs=new Date(r.timestamp_pt);}
-    else if(r.type==='depart'&&arr
+    else if(r.type==='depart'&&arriveeTs){totalMs+=new Date(r.timestamp_pt)-arriveeTs;arriveeTs=null;}
+  });
+  if(arriveeTs&&isIn) totalMs+=Date.now()-arriveeTs;
+  var totalMin=Math.floor(totalMs/60000),hrs=Math.floor(totalMin/60),mins=totalMin%60;
+  var sumEl=document.getElementById('punch-summary');
+  if(rows.length>0){sumEl.style.display='';document.getElementById('punch-hrs').textContent=hrs+'h '+mins+'min';}
+  else{sumEl.style.display='none';}
+  var hist=document.getElementById('punch-hist-list');
+  if(!rows.length){hist.innerHTML='<div class="empty"><p>Aucun pointage aujourd\'hui.</p></div>';return;}
+  hist.innerHTML=rows.map(function(r){
+    var isA=r.type==='arrivee';
+    var ts=new Date(r.timestamp_pt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    return '<div class="punch-entry">'
+      +'<div class="punch-entry-ico '+(isA?'in':'out')+'">'+(isA?'✅':'🚪')+'</div>'
+      +'<div class="punch-entry-body"><div class="punch-entry-type">'+(isA?'Arrivée':'Départ')+'</div>'
+      +'<div class="punch-entry-time">'+ts+'</div></div></div>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════════
+   PROFIL
+══════════════════════════════════════════ */
+function renderProfil(){
+  if(!LIVREUR_ACTIF) 
