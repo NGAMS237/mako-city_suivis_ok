@@ -392,6 +392,42 @@ var _orders=[], _orderTab='pickup', _online=true, _curId=null, _interval=null;
 var _pointages=[], _pinBuffer='';
 
 /* ══════════════════════════════════════════
+   NORMALIZE UTILS — P0 FIX
+══════════════════════════════════════════ */
+/* Mappe les colonnes veraluz_employees vers le format attendu par cette app.
+   La table officielle est veraluz_employees (full_name, hire_date, role…).
+   veraluz_rh_employes est legacy — ne plus utiliser. */
+function normalizeEmployee(row) {
+  var parts = (row.full_name || '').trim().split(' ');
+  return {
+    id:            row.id,
+    prenom:        parts[0] || '',
+    nom:           parts.slice(1).join(' ') || '',
+    full_name:     row.full_name || '',
+    pin_code:      row.pin_code || '',
+    poste:         row.role || '',
+    vehicule:      row.vehicule || '',
+    phone:         row.phone || '',
+    email:         row.email || '',
+    date_embauche: row.hire_date || ''
+  };
+}
+/* Compatibilité ascendante — anciens statuts français → statuts canoniques.
+   Garantit qu'une commande ancienne (status='attente') reste visible. */
+function normalizeOrderStatus(status) {
+  var map = {
+    'attente':'pending',       'pending':'pending',
+    'confirme':'pending',      'confirmed':'pending',
+    'preparing':'preparing',   'preparation':'preparing',  'en_preparation':'preparing',
+    'ready':'ready',           'pret':'ready',
+    'delivering':'delivering', 'en_livraison':'delivering','out_for_delivery':'delivering',
+    'delivered':'delivered',   'livre':'delivered',        'recu':'delivered', 'paye':'delivered',
+    'cancelled':'cancelled',   'annule':'cancelled',       'canceled':'cancelled'
+  };
+  return map[String(status || '').toLowerCase()] || 'pending';
+}
+
+/* ══════════════════════════════════════════
    STATUSES
 ══════════════════════════════════════════ */
 var STATUSES=[
@@ -430,14 +466,20 @@ function loadLivreurs(){
   var sel=document.getElementById('pin-livreur-sel');
   var lbl=document.getElementById('pin-loading');
   lbl.textContent='Chargement…';
-  sbFetch('veraluz_rh_employes?equipe=eq.livreur&actif=eq.true&order=nom.asc')
+  /* P0 FIX: utilise veraluz_employees (table officielle) + join equipe */
+  sbFetch('veraluz_employees?select=id,full_name,role,pin_code,status,phone,email,hire_date,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')
     .then(function(rows){
-      LIVREURS=rows;
+      /* Filtre les employés dont l'équipe contient 'livr' ou 'delivery' */
+      var livrows = rows.filter(function(r){
+        var tname = ((r.team && r.team.name) || '').toLowerCase();
+        return tname.includes('livr') || tname.includes('delivery');
+      });
+      LIVREURS = livrows.map(normalizeEmployee);
       sel.innerHTML='<option value="">— Sélectionnez —</option>';
-      rows.forEach(function(lv){
+      LIVREURS.forEach(function(lv){
         var o=document.createElement('option');
         o.value=lv.id;
-        o.textContent=lv.prenom+' '+lv.nom;
+        o.textContent=lv.full_name;
         sel.appendChild(o);
       });
       lbl.textContent='';
@@ -537,12 +579,14 @@ function toggleOnline(){
    ORDERS
 ══════════════════════════════════════════ */
 function loadOrders(){
-  if(!LIVREUR_ACTIF)return;
   var today=new Date().toISOString().slice(0,10);
-  // Filtrer par livreur_id pour ne voir que SES commandes
-  sbFetch('veraluz_food_orders?delivery_type=eq.delivery&livreur_id=eq.'+LIVREUR_ACTIF.id+'&created_at=gte.'+today+'T00:00:00&order=created_at.desc')
+  sbFetch('veraluz_food_orders?delivery_type=eq.delivery&created_at=gte.'+today+'T00:00:00&order=created_at.desc')
     .then(function(rows){
-      _orders=rows;
+      /* P0 FIX: normalise les statuts pour compatibilité anciens enregistrements */
+      _orders = rows.map(function(o){
+        var ns = normalizeOrderStatus(o.status);
+        return ns !== o.status ? Object.assign({}, o, {status: ns}) : o;
+      });
       renderOrders();
       updateStats();
     })
@@ -550,8 +594,7 @@ function loadOrders(){
 }
 
 function filteredOrders(){
-  // pickup = toutes commandes assignées à ce livreur, pas encore en livraison ni livrées
-  if(_orderTab==='pickup')     return _orders.filter(function(o){return o.status!=='delivering'&&o.status!=='delivered';});
+  if(_orderTab==='pickup')     return _orders.filter(function(o){return o.status==='ready';});
   if(_orderTab==='delivering') return _orders.filter(function(o){return o.status==='delivering';});
   if(_orderTab==='done')       return _orders.filter(function(o){return o.status==='delivered';});
   return [];
@@ -615,11 +658,11 @@ function buildOrderCard(o){
   var ini=((o.customer_name||'?')[0]).toUpperCase();
   return '<div class="order-card">'
     +'<div class="sp-bar">'+stepsHtml+'</div>'
-    +'<div class="oc-head"><span class="oc-num">#'+escH(String(o.order_number||o.id||'').slice(-6).toUpperCase())+'</span><span class="oc-status '+st.cls+'">'+st.ico+' '+st.lbl+'</span></div>'
+    +'<div class="oc-head"><span class="oc-num">#'+escH(String(o.order_ref||o.id||'').slice(-6).toUpperCase())+'</span><span class="oc-status '+st.cls+'">'+st.ico+' '+st.lbl+'</span></div>'
     +'<div class="oc-body">'
     +'<div class="oc-client"><div class="oc-av">'+ini+'</div><div><div class="oc-cn">'+escH(o.customer_name||'Client')+'</div>'+(o.customer_phone?'<div class="oc-cp">'+escH(o.customer_phone)+'</div>':'')+'</div></div>'
-    +(o.address?'<div class="oc-addr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><div class="oc-addr-t">'+escH(o.address)+(o.delivery_zone?'<div class="oc-addr-z">Zone: '+escH(o.delivery_zone)+'</div>':'')+'</div></div>':'')
-    +(itemsHtml?'<div class="oc-items">'+itemsHtml+'<div class="oc-total"><span>Total</span><span>'+fmtXAF(o.total||0)+'</span></div></div>':'')
+    +(o.delivery_address?'<div class="oc-addr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><div class="oc-addr-t">'+escH(o.delivery_address)+(o.delivery_zone?'<div class="oc-addr-z">Zone: '+escH(o.delivery_zone)+'</div>':'')+'</div></div>':'')
+    +(itemsHtml?'<div class="oc-items">'+itemsHtml+'<div class="oc-total"><span>Total</span><span>'+fmtXAF(o.total_amount||0)+'</span></div></div>':'')
     +(tm?'<div class="oc-time">🕐 '+tm+'</div>':'')
     +'<div class="oc-actions">'+gpsHtml+phoneHtml+actionHtml+'</div>'
     +photoProofHtml
@@ -819,48 +862,4 @@ function renderPointageToday(){
 
 /* ══════════════════════════════════════════
    PROFIL
-══════════════════════════════════════════ */
-function renderProfil(){
-  if(!LIVREUR_ACTIF) return;
-  var lv=LIVREUR_ACTIF;
-  var ini=((lv.prenom||'')[0]+(lv.nom||'')[0]).toUpperCase();
-  document.getElementById('profil-body').innerHTML=
-    '<div class="profil-hero"><div class="profil-avatar">'+ini+'</div>'
-    +'<div><div class="profil-name">'+escH(lv.prenom+' '+lv.nom)+'</div>'
-    +'<div class="profil-team">🛵 Livreur</div>'
-    +(lv.vehicule?'<div class="profil-sub">'+escH(lv.vehicule)+'</div>':'')
-    +'</div></div>'
-    +'<div class="profil-card">'
-    +(lv.phone?'<div class="profil-row"><span class="profil-row-l">Téléphone</span><span class="profil-row-v">'+escH(lv.phone)+'</span></div>':'')
-    +(lv.email?'<div class="profil-row"><span class="profil-row-l">Email</span><span class="profil-row-v">'+escH(lv.email)+'</span></div>':'')
-    +(lv.date_embauche?'<div class="profil-row"><span class="profil-row-l">Depuis</span><span class="profil-row-v">'+new Date(lv.date_embauche).toLocaleDateString('fr-FR')+'</span></div>':'')
-    +(lv.poste?'<div class="profil-row"><span class="profil-row-l">Poste</span><span class="profil-row-v">'+escH(lv.poste)+'</span></div>':'')
-    +'</div>'
-    +'<button class="logout-btn" onclick="logout()">🚪 Se déconnecter</button>';
-}
-
-/* ══════════════════════════════════════════
-   LOGOUT
-══════════════════════════════════════════ */
-function logout(){
-  LIVREUR_ACTIF=null;_orders=[];_pointages=[];_pinBuffer='';_curId=null;
-  if(_interval){clearInterval(_interval);_interval=null;}
-  if(_clockInterval){clearInterval(_clockInterval);_clockInterval=null;}
-  document.getElementById('main-app').style.display='none';
-  document.getElementById('pin-screen').classList.remove('hidden');
-  document.getElementById('pin-err').textContent='';
-  renderPinDots();
-  switchMainTab('livraisons');
-}
-
-/* ══════════════════════════════════════════
-   BOOT
-══════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded',function(){
-  buildPinPad();
-  loadLivreurs();
-  renderPinDots();
-});
-</script>
-</body>
-</html>
+══════════════
