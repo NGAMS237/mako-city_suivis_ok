@@ -857,8 +857,8 @@ function getEmployeesFromSupabase(cb, onErr) {
       }
     } catch(e) {}
   }
-  /* PROMPT 008B — pin_code retiré du select client : vérification serveur uniquement */
-  fetch(SUPA_URL+'/rest/v1/veraluz_employees?select=id,full_name,role,status,team_id,phone,email,hire_date&status=eq.actif&order=full_name.asc', {
+  /* PROMPT 009 — vue publique veraluz_employees_public : exclut pin_code, salaire, contrat */
+  fetch(SUPA_URL+'/rest/v1/veraluz_employees_public?select=id,full_name,role,status,team_id,team_name,phone,email,hire_date&order=full_name.asc', {
     headers: { apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY }
   })
   .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
@@ -1083,6 +1083,31 @@ function doLoginPin() {
 }
 
 /* ── Admin Login (email + password) ──────────────────────────────── */
+/* PROMPT 009 Mission 9 — Vérification admin via Edge Function (bcrypt hash)
+   RÈGLE : jamais comparer mot de passe en clair côté client.
+   Fallback local conservé pour compatibilité terrain (PROMPT 010 : supprimer). */
+function verifyAdminLogin(username, password, rememberMe) {
+  return fetch(EDGE_VERIFY_ADMIN_URL, {
+    method: 'POST',
+    mode: 'cors',
+    credentials: 'omit',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY
+    },
+    body: JSON.stringify({ username: username, password: password, rememberMe: !!rememberMe })
+  })
+  .then(function(r) {
+    if (r.status === 200 || r.status === 401 || r.status === 429) return r.json();
+    throw new Error('HTTP_' + r.status);
+  })
+  .catch(function(e) {
+    console.warn('[verify-admin] Erreur réseau — fallback local activé:', e.message);
+    return { ok: false, error: 'network' };
+  });
+}
+
 function doLogin() {
   var username = (document.getElementById('auth-username').value || '').trim();
   var password = (document.getElementById('auth-password').value || '').trim();
@@ -1095,42 +1120,85 @@ function doLogin() {
     errEl.classList.add('show'); return;
   }
 
-  var users = getUsers();
-  var user  = users.find(function(u){
-    return u.username === username && u.password === password && u.active !== false;
-  });
+  /* Désactiver le bouton pendant la vérification */
+  var btnLogin = document.querySelector('.auth-login-btn');
+  if (!btnLogin) btnLogin = document.querySelector('button[onclick*="doLogin"]');
+  if (btnLogin) { btnLogin.disabled = true; btnLogin.textContent = '⏳ Vérification…'; }
 
-  if (!user) {
-    errEl.textContent = 'Identifiants incorrects. Réessayez.';
-    errEl.classList.add('show');
-    var pw = document.getElementById('auth-password');
-    if (pw) { pw.value = ''; pw.focus(); }
-    logAuthEvent('failed', username, '?');
-    return;
+  function resetBtn() {
+    if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; }
+  }
+  function applyAdminSession(adminObj, rememberMe) {
+    var roleConf = ROLES[adminObj.role] || ROLES['superadmin'];
+    var expires  = rememberMe ? Date.now()+7*24*60*60*1000 : Date.now()+8*60*60*1000;
+    var mods     = adminObj.allowed_modules && adminObj.allowed_modules.length > 0
+                   ? adminObj.allowed_modules
+                   : (roleConf.modules || []).slice();
+    var session  = {
+      username:        adminObj.username,
+      role:            adminObj.role,
+      name:            adminObj.name,
+      allowed_modules: mods,
+      primaryModule:   roleConf.primaryModule || null,
+      loginAt:         Date.now(),
+      expires:         expires
+    };
+    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    logAuthEvent('admin-login', adminObj.username, adminObj.role);
+    currentUser = { username:adminObj.username, name:adminObj.name, role:adminObj.role,
+                    allowed_modules: mods };
+    hideAuthOverlay();
+    updateTopbarUser();
+    buildNav();
+    initGreeting();
+    loadDashboardData();
   }
 
-  var roleConf = ROLES[user.role] || ROLES['superadmin'];
-  var expires = remember ? Date.now()+7*24*60*60*1000 : Date.now()+8*60*60*1000;
-  /* PROMPT 008A — session admin avec allowed_modules */
-  var session = {
-    username:        user.username,
-    role:            user.role,
-    name:            user.name,
-    allowed_modules: (roleConf.modules||[]).slice(),
-    primaryModule:   roleConf.primaryModule || null,
-    loginAt:         Date.now(),
-    expires:         expires
-  };
-  localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
-  logAuthEvent('admin-login', user.username, user.role);
+  /* PROMPT 009 — Tentative Edge Function d'abord */
+  verifyAdminLogin(username, password, remember)
+  .then(function(result) {
+    if (result.ok && result.admin) {
+      /* Succès Edge Function — hash bcrypt côté serveur */
+      resetBtn();
+      applyAdminSession(result.admin, remember);
+      return;
+    }
 
-  currentUser = { username:user.username, name:user.name, role:user.role,
-                  allowed_modules:(roleConf.modules||[]).slice() };
-  hideAuthOverlay();
-  updateTopbarUser();
-  buildNav();
-  initGreeting();
-  loadDashboardData();
+    if (result.error === 'too_many_attempts') {
+      resetBtn();
+      errEl.textContent = 'Trop de tentatives — réessayez dans 15 min.';
+      errEl.classList.add('show');
+      return;
+    }
+
+    /* Edge Function a répondu invalid_credentials — ne pas tenter le fallback */
+    if (result.error !== 'network') {
+      resetBtn();
+      errEl.textContent = 'Identifiants incorrects. Réessayez.';
+      errEl.classList.add('show');
+      var pw = document.getElementById('auth-password');
+      if (pw) { pw.value = ''; pw.focus(); }
+      logAuthEvent('failed', username, '?');
+      return;
+    }
+
+    /* Fallback local si réseau indisponible (PROMPT 009 — à supprimer en PROMPT 010) */
+    console.warn('[doLogin] Edge Function inaccessible — fallback DEFAULT_USERS activé');
+    var users = getUsers();
+    var user  = users.find(function(u){
+      return u.username === username && u.password === password && u.active !== false;
+    });
+    resetBtn();
+    if (!user) {
+      errEl.textContent = 'Identifiants incorrects (mode hors-ligne).';
+      errEl.classList.add('show');
+      var pw2 = document.getElementById('auth-password');
+      if (pw2) { pw2.value = ''; pw2.focus(); }
+      logAuthEvent('failed', username, '?');
+      return;
+    }
+    applyAdminSession(user, remember);
+  });
 }
 
 function navigateTo(id) { goTo(id); }
@@ -1149,8 +1217,10 @@ function navigateTo(id) { goTo(id); }
  */
 var AUTH_MODE = 'edge';
 
-/* URL Edge Function — clé anon safe côté client (lecture seule) */
-var EDGE_VERIFY_PIN_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
+/* URL Edge Functions — clé anon safe côté client (service_role JAMAIS ici) */
+var EDGE_VERIFY_PIN_URL   = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
+/* PROMPT 009 Mission 9 — Auth admin via Edge Function (hash bcrypt, jamais en clair) */
+var EDGE_VERIFY_ADMIN_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-admin-login';
 
 /**
  * Mission 7 — Nettoyer un objet employé pour le stockage/rendu client
@@ -2147,70 +2217,4 @@ function loadAttHistory(){
     return rows;
   })
   .then(function(rows){
-    var todayRow=Array.isArray(rows)?rows.find(function(r){return(r.date||'').slice(0,10)===today;}):null;
-    if(stat){
-      if(!todayRow) stat.textContent="Pas de pointage aujourd'hui.";
-      else {
-        var ent=todayRow.check_in||todayRow.heure_entree||todayRow.time_in||'?';
-        var sor=todayRow.check_out||todayRow.heure_sortie||todayRow.time_out;
-        stat.textContent='✅ Arrivée : '+esc(String(ent).slice(0,5))+(sor?' · Départ : '+esc(String(sor).slice(0,5)):'');
-      }
-    }
-    if(btnIn)  btnIn.style.display=(!todayRow||!todayRow.check_in)?'flex':'none';
-    if(btnOut) btnOut.style.display=(todayRow&&todayRow.check_in&&!todayRow.check_out)?'flex':'none';
-    if(!Array.isArray(rows)||rows.length===0){
-      hist.innerHTML='<div class="emp-empty">Aucune présence enregistrée.</div>'; return;
-    }
-    hist.innerHTML=rows.slice(0,14).map(function(r){
-      var d=esc(String(r.date||'').slice(0,10));
-      var ent=esc(String(r.check_in||r.heure_entree||r.time_in||'—').slice(0,5));
-      var sor=esc(String(r.check_out||r.heure_sortie||r.time_out||'—').slice(0,5));
-      return '<div class="att-row"><span>'+d+'</span><span>▶ '+ent+' / ⏹ '+sor+'</span></div>';
-    }).join('');
-  })
-  .catch(function(){
-    if(hist) hist.innerHTML='<div class="emp-empty">Erreur réseau — pointages indisponibles.</div>';
-    if(stat) stat.textContent='Erreur réseau.';
-  });
-}
-
-function doPunchIn(){
-  if(!currentUser||!currentUser.employee_id) return;
-  var now=new Date();
-  var today=now.toISOString().slice(0,10);
-  var timeStr=now.toISOString().slice(11,19);
-  fetch(SUPA_URL+'/rest/v1/veraluz_attendance',{
-    method:'POST',
-    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,
-             'Content-Type':'application/json',Prefer:'return=representation'},
-    body:JSON.stringify({employee_id:currentUser.employee_id,date:today,check_in:timeStr})
-  })
-  .then(function(r){ return r.ok||r.status===201; })
-  .then(function(ok){
-    if(ok){ showCoreToast('✅ Arrivée enregistrée','ok'); loadAttHistory(); }
-    else   showCoreToast('⚠ Erreur enregistrement pointage','err');
-  })
-  .catch(function(){ showCoreToast('⚠ Erreur réseau pointage','err'); });
-}
-
-function doPunchOut(){
-  if(!currentUser||!currentUser.employee_id) return;
-  var now=new Date();
-  var today=now.toISOString().slice(0,10);
-  var timeStr=now.toISOString().slice(11,19);
-  fetch(SUPA_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(currentUser.employee_id)+'&date=eq.'+today,{
-    method:'PATCH',
-    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json'},
-    body:JSON.stringify({check_out:timeStr})
-  })
-  .then(function(r){ return r.ok; })
-  .then(function(ok){
-    if(ok){ showCoreToast('⏹ Départ enregistré','ok'); loadAttHistory(); }
-    else   showCoreToast('⚠ Erreur enregistrement départ','err');
-  })
-  .catch(function(){ showCoreToast('⚠ Erreur réseau pointage','err'); });
-}
-</script>
-
-</body>
-</html>
+    var todayRow=Array.isArr
