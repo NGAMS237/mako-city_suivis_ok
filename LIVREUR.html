@@ -1530,8 +1530,14 @@ function logout(){
 }
 
 /* ══════════════════════════════════════════════════════════════
-   PROMPT 011 — PWA : Service Worker + Installation + Offline
+   PROMPT 012 — PWA v012 : Service Worker + Installation + Offline
+   Améliorations : iOS detect, standalone masque bouton, SW update
 ══════════════════════════════════════════════════════════════ */
+
+// ── Détection plateforme ──────────────────────────────────────
+var _vlzIsIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+var _vlzIsStandalone = (window.navigator.standalone === true) ||
+  window.matchMedia('(display-mode: standalone)').matches;
 
 // ── Service Worker ───────────────────────────────────────────
 function registerVeraluzServiceWorker(){
@@ -1540,6 +1546,15 @@ function registerVeraluzServiceWorker(){
     navigator.serviceWorker.register('./sw.js')
       .then(function(reg){
         console.log('[VERALUZ PWA] Service worker enregistré', reg.scope);
+        reg.addEventListener('updatefound', function(){
+          var newWorker = reg.installing;
+          if(!newWorker) return;
+          newWorker.addEventListener('statechange', function(){
+            if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+              console.log('[VERALUZ PWA] Mise à jour disponible — actualiser pour appliquer');
+            }
+          });
+        });
       })
       .catch(function(err){
         console.warn('[VERALUZ PWA] Service worker non enregistré', err);
@@ -1553,7 +1568,10 @@ var _vlzDeferredInstall = null;
 window.addEventListener('beforeinstallprompt', function(e){
   e.preventDefault();
   _vlzDeferredInstall = e;
+  if(_vlzIsStandalone) return;
   var banner = document.getElementById('vlz-pwa-install-banner');
+  var btn = document.getElementById('vlz-pwa-install-btn-liv');
+  if(btn) btn.style.display = 'block';
   if(banner){ banner.style.display = 'flex'; }
 });
 
@@ -1574,8 +1592,7 @@ window.addEventListener('appinstalled', function(){
 });
 
 // ── Indicateur offline ────────────────────────────────────────
-// Note : LIVREUR a déjà un badge réseau (updateNetworkBadge).
-// On gère seulement la bannière globale sans doublon.
+// Note : LIVREUR a déjà updateNetworkBadge(). Bannière globale sans doublon.
 function vlzUpdateOfflineBanner(){
   var bar = document.getElementById('vlz-offline-bar');
   if(!bar) return;
@@ -1586,7 +1603,24 @@ window.addEventListener('offline', vlzUpdateOfflineBanner);
 
 // ── Lancement ─────────────────────────────────────────────────
 registerVeraluzServiceWorker();
-window.addEventListener('DOMContentLoaded', function(){ vlzUpdateOfflineBanner(); });
+window.addEventListener('DOMContentLoaded', function(){
+  vlzUpdateOfflineBanner();
+  // iOS : afficher l'aide installation si pas encore en standalone
+  if(_vlzIsIOS && !_vlzIsStandalone){
+    var banner = document.getElementById('vlz-pwa-install-banner');
+    if(banner){
+      // Masquer le bouton Installer (inutile sur iOS) et garder l'aide Partager
+      var installBtn = banner.querySelector('button:first-of-type');
+      if(installBtn) installBtn.style.display = 'none';
+      banner.style.display = 'flex';
+    }
+  }
+  // Si déjà installée en standalone : masquer bannière installation
+  if(_vlzIsStandalone){
+    var b = document.getElementById('vlz-pwa-install-banner');
+    if(b) b.style.display = 'none';
+  }
+});
 
 /* ══════════════════════════════════════════
    PROMPT 006 — SÉCURISATION PIN FUTURE (NOTE TECHNIQUE)
@@ -1622,6 +1656,13 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<!-- ── PWA : masquer bannière installation si standalone ──────── -->
+<style>
+@media (display-mode: standalone) {
+  #vlz-pwa-install-banner { display:none !important; }
+}
+</style>
+
 <!-- ── PWA Bannière offline ──────────────────────────────────── -->
 <div id="vlz-offline-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
   background:#f59e0b;color:#0f0f0d;padding:8px 16px;font-size:12px;font-weight:600;
@@ -1634,19 +1675,25 @@ document.addEventListener('DOMContentLoaded',function(){
   transform:translateX(-50%);z-index:99998;width:calc(100% - 32px);max-width:440px;
   background:#1a1a18;border:1px solid rgba(201,168,76,.35);border-radius:14px;
   padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.4);
-  flex-direction:column;gap:8px;">
-  <div style="font-size:13px;font-weight:700;color:#f5f5f0;">📲 Installer Veraluz Livreur</div>
-  <div style="font-size:11px;color:#a0a09a;line-height:1.4;">Ajoutez l'application à votre écran d'accueil pour un accès rapide hors ligne.</div>
-  <div style="display:flex;gap:8px;margin-top:4px;">
-    <button onclick="vlzTriggerInstall()"
-      style="flex:1;padding:10px;background:#c9a84c;color:#0f0f0d;border:none;border-radius:10px;
-      font-size:13px;font-weight:700;cursor:pointer;">Installer</button>
+  flex-direction:column;gap:10px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-size:13px;font-weight:700;color:#f5f5f0;">📲 Installer Veraluz Livreur</div>
     <button onclick="document.getElementById('vlz-pwa-install-banner').style.display='none'"
-      style="padding:10px 14px;background:rgba(255,255,255,.07);color:#a0a09a;border:none;
-      border-radius:10px;font-size:13px;cursor:pointer;">✕</button>
+      style="padding:3px 8px;background:rgba(255,255,255,.07);color:#a0a09a;border:none;
+      border-radius:5px;font-size:13px;cursor:pointer;">✕</button>
   </div>
-  <div style="font-size:10px;color:#555;border-top:1px solid rgba(255,255,255,.06);padding-top:8px;margin-top:2px;">
-    Sur iPhone : Partager → Ajouter à l'écran d'accueil
+  <div style="font-size:11px;color:#a0a09a;line-height:1.5;">
+    Installez l'application pour un accès rapide sur le terrain, même hors ligne.
+  </div>
+  <!-- Bouton Android/Chrome -->
+  <button id="vlz-pwa-install-btn-liv" onclick="vlzTriggerInstall()" style="display:none;
+    width:100%;padding:12px;background:#c9a84c;color:#0f0f0d;border:none;border-radius:10px;
+    font-size:14px;font-weight:700;cursor:pointer;">⬇ Installer l'application</button>
+  <!-- Aide iPhone -->
+  <div style="font-size:11px;color:#666;background:rgba(255,255,255,.04);
+    border-radius:8px;padding:10px 12px;line-height:1.6;">
+    📱 <strong style="color:#a0a09a;">iPhone / iPad :</strong><br>
+    Partager ⬆ → Ajouter à l'écran d'accueil
   </div>
 </div>
 

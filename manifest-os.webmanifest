@@ -1,4 +1,5 @@
 {
+  "id": "/mako-city_suivis_ok/VERALUZ_OS_CORE.html",
   "name": "VERALUZ OS",
   "short_name": "VERALUZ",
   "description": "Plateforme de gestion intelligente VERALUZ",
@@ -9,6 +10,7 @@
   "theme_color": "#0d0d1a",
   "background_color": "#0d0d1a",
   "lang": "fr",
+  "prefer_related_applications": false,
   "categories": ["business", "productivity"],
   "icons": [
     {

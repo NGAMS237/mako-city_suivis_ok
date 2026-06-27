@@ -1,4 +1,5 @@
 {
+  "id": "/mako-city_suivis_ok/LIVREUR.html",
   "name": "VERALUZ Livreur",
   "short_name": "Livreur",
   "description": "Application terrain livreur VERALUZ",
@@ -9,6 +10,7 @@
   "theme_color": "#0f0f0d",
   "background_color": "#0f0f0d",
   "lang": "fr",
+  "prefer_related_applications": false,
   "categories": ["business", "productivity"],
   "icons": [
     {
