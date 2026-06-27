@@ -1751,16 +1751,30 @@ function goLounge(){document.getElementById('lounge-section').scrollIntoView({be
 /* ══════════════════════════════════════════
    NORMALIZE UTILS — P0 FIX
 ══════════════════════════════════════════ */
-/* Compatibilité ascendante — anciens statuts → statuts canoniques */
+/* Compatibilité ascendante — anciens statuts français → statuts canoniques.
+   Utilisé pour le suivi client (renderTrackOrder). */
 function normalizeOrderStatus(status) {
   var map = {
-    'attente':'pending',       'pending':'pending',
-    'confirme':'pending',      'confirmed':'pending',
-    'preparing':'preparing',   'preparation':'preparing',  'en_preparation':'preparing',
-    'ready':'ready',           'pret':'ready',
-    'delivering':'delivering', 'en_livraison':'delivering','out_for_delivery':'delivering',
-    'delivered':'delivered',   'livre':'delivered',        'recu':'delivered', 'paye':'delivered',
-    'cancelled':'cancelled',   'annule':'cancelled',       'canceled':'cancelled'
+    /* pending */
+    'attente':         'pending',          'pending':          'pending',
+    /* confirmed — NE PAS mapper vers pending */
+    'confirme':        'confirmed',        'confirmé':         'confirmed',        'confirmed':  'confirmed',
+    /* preparing */
+    'preparing':       'preparing',        'preparation':      'preparing',
+    'préparation':     'preparing',        'en_preparation':   'preparing',
+    /* ready */
+    'pret':            'ready',            'prêt':             'ready',            'ready':      'ready',
+    /* out_for_delivery — statut canonique */
+    'en_livraison':    'out_for_delivery', 'out_for_delivery': 'out_for_delivery',
+    'delivering':      'out_for_delivery', /* legacy interne → canonique */
+    /* delivered */
+    'delivered':       'delivered',        'livre':            'delivered',        'livré':      'delivered',
+    /* LEGACY READ ONLY — ne jamais écrire ces valeurs comme status operationnel */
+    'recu':            'delivered',        /* reçu = livré */
+    'paye':            'delivered',        'payé':             'delivered',        'paid':       'delivered',
+    /* cancelled */
+    'cancelled':       'cancelled',        'annule':           'cancelled',
+    'annulé':          'cancelled',        'canceled':         'cancelled'
   };
   return map[String(status || '').toLowerCase()] || 'pending';
 }
@@ -1773,7 +1787,7 @@ var TRACK_STATUSES=[
   {id:'pending',    lbl:'En attente',     ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'},
   {id:'preparing',  lbl:'Préparation',    ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6h2.8a1 1 0 0 1 1 1.1l-.5 4.3A2 2 0 0 1 17.3 20h-.6a2 2 0 0 1-2-1.6l-.5-4.3a1 1 0 0 1 1-1.1H17"/></svg>'},
   {id:'ready',      lbl:'Prête',          ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'},
-  {id:'delivering', lbl:'En livraison',   ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>'},
+  {id:'out_for_delivery', lbl:'En livraison',   ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>'},
   {id:'delivered',  lbl:'Livrée',         ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'}
 ];
 function openTrack(num){
@@ -1848,27 +1862,4 @@ function printReceipt(){
   var w=window.open('','_blank','width=360,height=600');
   w.document.write('<html><head><title>Reçu Veraluz</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:13px;max-width:320px;margin:0 auto}.rcp-wrap{border:1px solid #ddd;border-radius:8px;padding:16px}.rcp-top{text-align:center;border-bottom:1px dashed #ddd;padding-bottom:10px}.rcp-logo{font-weight:800;font-size:14px;color:#b8860b;letter-spacing:1px}.rcp-sub{color:#999;font-size:11px;margin-top:3px}.rcp-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#555}.rcp-tot{font-weight:800;font-size:14px;padding-top:8px;border-top:1px dashed #ddd;margin-top:5px;display:flex;justify-content:space-between}.rcp-pay{color:#999;font-size:11px;padding-top:4px}.pay-status-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:8px}.ps-pending{background:#fef3c7;color:#d97706}.ps-paid{background:#dcfce7;color:#16a34a}.ps-delivery{background:#ede9fe;color:#7c3aed}@media print{button{display:none}}</style></head><body>');
   w.document.write(rcp.innerHTML);
-  w.document.write('<br><button onclick="window.print()" style="width:100%;padding:10px;background:#b8860b;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px">🖨️ Imprimer</button></body></html>');
-  w.document.close();
-}
-
-/* ── Core integration ── */
-window.addEventListener('message',function(ev){
-  if(!ev.data)return;
-  if(ev.data.type==='hotel-config'&&ev.data.data&&ev.data.data.whatsapp)applyWA(ev.data.data.whatsapp);
-  /* Reload menu if admin changed products */
-  if(ev.data.type==='menu_updated'||ev.data.type==='products_updated')loadMenu();
-});
-
-/* ── Init ── */
-(function(){
-  /* Check for tracking hash */
-  (function(){
-    var h=window.location.hash;
-    if(h&&h.indexOf('#track=')===0){
-      var num=decodeURIComponent(h.slice(7));
-      if(num)setTimeout(function(){openTrack(num);},500);
-    }
-  })();
-  loadCart();
-  try{var inf=JSON.parse(localStorage.
+  w.document.write('<br><button onclick="window.prin
