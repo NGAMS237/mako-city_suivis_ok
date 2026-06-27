@@ -726,6 +726,15 @@ function buildNav(){
   var grid     = document.getElementById('dash-grid');
   sbMods.innerHTML = bnMods.innerHTML = sbComing.innerHTML = grid.innerHTML = '';
 
+  /* PROMPT 016A — DEV logs visibilité ai_center */
+  if (currentUser && currentUser.dev_mode) {
+    console.log('[VERALUZ DEV] allowed_modules', currentUser.allowed_modules);
+    console.log('[VERALUZ DEV] ai_center dans allowed_modules?',
+      currentUser.allowed_modules ? currentUser.allowed_modules.indexOf('ai_center') >= 0 : 'N/A');
+    console.log('[VERALUZ DEV] ROLES[role].modules contient ai_center?',
+      ROLES[currentUser.role] ? ROLES[currentUser.role].modules.indexOf('ai_center') >= 0 : 'N/A');
+  }
+
   var visibleModules = (currentUser && ROLES[currentUser.role])
     ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0; })
     : MODULES;
@@ -1393,7 +1402,7 @@ function handleDevUnlock() {
     allowed_modules: [
       'dashboard','employee_home','reservations','payments','housekeeping',
       'restaurant','finance','rh','contacts','notifications','analytics',
-      'audit','settings','eventbus','auth','appro','integrations'
+      'audit','settings','eventbus','auth','appro','integrations','ai_center'
     ],
     primaryModule: 'dashboard', /* PROMPT 010C — corrigé (était 'auth') */
     loginAt:       Date.now(),
@@ -1523,7 +1532,7 @@ function enterDevMode() {
     allowed_modules: [
       'dashboard','employee_home','reservations','payments','housekeeping',
       'restaurant','finance','rh','contacts','notifications','analytics',
-      'audit','settings','eventbus','auth','appro','integrations'
+      'audit','settings','eventbus','auth','appro','integrations','ai_center'
     ],
     primaryModule: 'dashboard',
     loginAt:       Date.now(),
@@ -2134,6 +2143,23 @@ function sendAuthContext(iframe) {
 
 document.addEventListener('DOMContentLoaded', function(){
   purgeLegacyPinCache(); /* PROMPT 008B — purge cache PIN legacy */
+
+  /* PROMPT 016A — Migration auto session DEV existante : ajouter ai_center si absent */
+  (function patchDevSessionModules(){
+    try {
+      var raw = localStorage.getItem('veraluz_auth_v1');
+      if (!raw) return;
+      var s = JSON.parse(raw);
+      if (!s.dev_mode) return; /* Toucher uniquement les sessions DEV */
+      if (!Array.isArray(s.allowed_modules)) return;
+      if (s.allowed_modules.indexOf('ai_center') < 0) {
+        s.allowed_modules.push('ai_center');
+        localStorage.setItem('veraluz_auth_v1', JSON.stringify(s));
+        console.warn('[VERALUZ 016A] Session DEV patchée — ai_center ajouté à allowed_modules');
+      }
+    } catch(e) { console.warn('[VERALUZ 016A] Patch session DEV échoué :', e); }
+  })();
+
   /* PROMPT 010B — Mode DEV unlock (TEMP DEV ONLY — à supprimer avant production) */
   if (handleDevUnlock()) return; /* Si mode DEV actif, court-circuit checkAuth() normal */
   checkAuth();
@@ -2910,35 +2936,4 @@ window.addEventListener('DOMContentLoaded', function(){
 <!-- ── PWA Bannière offline ────────────────────────────────── -->
 <div id="vlz-offline-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
   background:#f59e0b;color:#0d0d1a;padding:8px 16px;font-size:12px;font-weight:600;
-  align-items:center;justify-content:center;gap:8px;text-align:center;">
-  ⚠ Connexion faible ou hors ligne. Certaines données peuvent ne pas se synchroniser.
-</div>
-
-<!-- ── PWA Bannière installation ──────────────────────────────── -->
-<div id="vlz-pwa-install-banner" style="display:none;position:fixed;bottom:16px;right:16px;z-index:99998;
-  background:#1a1a2e;border:1px solid rgba(34,211,165,.35);border-radius:12px;
-  padding:12px 16px;max-width:270px;box-shadow:0 8px 32px rgba(0,0,0,.4);
-  flex-direction:column;gap:8px;">
-  <div style="display:flex;align-items:center;justify-content:space-between;">
-    <div style="font-size:13px;font-weight:600;color:#e2e8f0;">📲 Installer VERALUZ OS</div>
-    <button onclick="document.getElementById('vlz-pwa-install-banner').style.display='none'"
-      style="padding:2px 7px;background:rgba(255,255,255,.07);color:#94a3b8;border:none;
-      border-radius:5px;font-size:13px;cursor:pointer;line-height:1.4;">✕</button>
-  </div>
-  <div style="font-size:11px;color:#94a3b8;line-height:1.5;">
-    Ajoutez l'application à votre écran d'accueil pour un accès rapide, même hors ligne.
-  </div>
-  <!-- Bouton Android/Chrome : affiché via JS si beforeinstallprompt disponible -->
-  <button id="vlz-pwa-install-btn" onclick="vlzTriggerInstall()" style="display:none;
-    width:100%;padding:9px;background:#22d3a5;color:#0d0d1a;border:none;border-radius:8px;
-    font-size:13px;font-weight:700;cursor:pointer;">⬇ Installer l'application</button>
-  <!-- Aide iPhone : toujours visible dans la bannière -->
-  <div style="font-size:11px;color:#64748b;background:rgba(255,255,255,.04);
-    border-radius:6px;padding:8px 10px;line-height:1.5;">
-    📱 <strong style="color:#94a3b8;">iPhone / iPad :</strong><br>
-    Partager ⬆ → Ajouter à l'écran d'accueil
-  </div>
-</div>
-
-</body>
-</html>
+  al

@@ -10,7 +10,7 @@
  * À chaque changement important des fichiers statiques, incrémenter CACHE_NAME.
  */
 
-var CACHE_NAME = 'veraluz-pwa-v012';
+var CACHE_NAME = 'veraluz-pwa-v016'; /* PROMPT 016A — Force invalidation cache AI Center */
 
 // Contrôle d'activation (mettre false pour désactiver en dev si besoin)
 var VERALUZ_PWA_ENABLED = true;
