@@ -209,6 +209,7 @@ select.form-input option{background:var(--bg3);}
   <div class="tab-pane" id="pane-recommendations"></div>
   <div class="tab-pane" id="pane-prompts"></div>
   <div class="tab-pane" id="pane-history"></div>
+  <div class="tab-pane" id="pane-guide"></div>
   <div class="tab-pane" id="pane-settings"></div>
 </div>
 
@@ -237,6 +238,31 @@ select.form-input option{background:var(--bg3);}
    'edge' : appel Edge Function veraluz-ai-runner (nécessite secrets Supabase)
    ⚠  NE JAMAIS écrire une clé IA ici — les secrets sont côté serveur uniquement
 ──────────────────────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   PROMPT 016B — MODE STANDALONE PREVIEW
+   Permet d'ouvrir AI_CENTER_EMBEDDED.html directement sans Core.
+   Détecte automatiquement si le module est ouvert sans parent.
+══════════════════════════════════════════════════════════════ */
+var AI_CENTER_STANDALONE_PREVIEW = false;
+try {
+  AI_CENTER_STANDALONE_PREVIEW = (window.parent === window);
+} catch(e) {
+  AI_CENTER_STANDALONE_PREVIEW = true;
+}
+
+/* Contexte utilisateur de test en mode standalone */
+var AI_PREVIEW_USER = {
+  username:        'preview_owner',
+  name:            'Blaise Preview',
+  role:            'superadmin',
+  dev_mode:        true,
+  allowed_modules: ['ai_center'],
+  preview_mode:    true
+};
+
+/* Tracking disponibilité Supabase (mis à jour par sbPost) */
+var _sbAvailable = true;
+
 var VERALUZ_AI_MODE = 'mock'; /* Changer en 'edge' pour activer l'IA réelle */
 var VERALUZ_EF_URL  = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/veraluz-ai-runner';
 var SB = 'https://dfdmasejsoibxrvubegu.supabase.co';
@@ -345,6 +371,9 @@ var AI_AGENTS_DEFAULT = [
     forbidden_actions_json:{actions:['identifier_personne','décision_sécuritaire_autonome','exposer_flux_caméra','désactiver_caméra']}}
 ];
 
+/* PROMPT 016B — Alias AI_DEMO_AGENTS (données démo complètes = AI_AGENTS_DEFAULT) */
+var AI_DEMO_AGENTS = AI_AGENTS_DEFAULT;
+
 /* ── Tabs config ─────────────────────────────────────────────── */
 var TABS = [
   { id:'overview',       label:'Vue d\'ensemble', icon:'🏠' },
@@ -353,6 +382,7 @@ var TABS = [
   { id:'recommendations',label:'Recommandations',icon:'💡', badge:'_recs' },
   { id:'prompts',       label:'Prompts',         icon:'📝' },
   { id:'history',       label:'Historique',      icon:'🕐' },
+  { id:'guide',         label:'Guide rapide',    icon:'📖' },
   { id:'settings',      label:'Paramètres IA',   icon:'⚙️' }
 ];
 
@@ -367,7 +397,14 @@ function sbPost(table, data) {
     method:'POST', headers:{ apikey:KEY, Authorization:'Bearer '+KEY,
       'Content-Type':'application/json', Prefer:'return=representation' },
     body:JSON.stringify(data)
-  }).then(function(r){ return r.json(); }).catch(function(e){ console.warn('[AI]',e); return null; });
+  }).then(function(r){
+    _sbAvailable = r.ok || r.status < 500; /* PROMPT 016B — tracker disponibilité */
+    return r.json();
+  }).catch(function(e){
+    _sbAvailable = false; /* PROMPT 016B — Supabase indisponible */
+    console.warn('[AI]',e);
+    return null;
+  });
 }
 function sbPatch(table, filter, data) {
   return fetch(SB+'/rest/v1/'+table+'?'+filter, {
@@ -397,10 +434,51 @@ function pendingCount(){ return _recs.filter(function(r){ return r.status==='pen
 
 /* ── INIT ────────────────────────────────────────────────────── */
 window.addEventListener('DOMContentLoaded', function() {
+  /* PROMPT 016B — Mode standalone : init contexte + bandeau */
+  if (AI_CENTER_STANDALONE_PREVIEW) {
+    _currentUser = AI_PREVIEW_USER;
+    var tbUser = document.getElementById('tb-user');
+    if (tbUser) tbUser.textContent = '👑 ' + AI_PREVIEW_USER.name + ' · Aperçu standalone';
+    injectStandaloneBanner();
+    console.log('[AI CENTER 016B] Mode standalone détecté — aperçu activé sans Core parent');
+  }
   renderTabsBar();
   showTab('overview');
   loadAll();
 });
+
+/* ── Standalone banner — PROMPT 016B ────────────────────────── */
+function injectStandaloneBanner() {
+  if (document.getElementById('standalone-banner')) return;
+  var banner = document.createElement('div');
+  banner.id = 'standalone-banner';
+  banner.style.cssText = [
+    'background:linear-gradient(90deg,#1a1a2e,#22223a)',
+    'border-bottom:2px solid rgba(34,211,165,.4)',
+    'padding:8px 16px',
+    'display:flex',
+    'align-items:center',
+    'gap:12px',
+    'font-size:11px',
+    'color:var(--accent)',
+    'flex-shrink:0',
+    'z-index:100'
+  ].join(';');
+  banner.innerHTML = '<span style="font-size:14px;">\U0001f9ea</span>'
+    + '<span style="font-weight:700;letter-spacing:.3px;">MODE APÉRÇU STANDALONE</span>'
+    + '<span style="color:var(--text2);">—</span>'
+    + '<span style="color:var(--text2);">Test du module IA hors VERALUZ OS Core</span>'
+    + '<span style="margin-left:auto;background:rgba(34,211,165,.12);border:1px solid rgba(34,211,165,.3);'
+    + 'padding:2px 10px;border-radius:10px;font-size:10px;font-weight:700;">⊙ STANDALONE</span>';
+  var topbar = document.querySelector('.topbar');
+  if (topbar && topbar.parentNode) {
+    topbar.parentNode.insertBefore(banner, topbar.nextSibling);
+  } else {
+    document.body.insertBefore(banner, document.body.firstChild);
+  }
+  console.log('[AI CENTER 016B] Bandeau standalone injecté');
+}
+
 
 function loadAll() {
   loadAgents();
@@ -433,6 +511,7 @@ function renderCurrentTab() {
     recommendations: renderRecommendations,
     prompts:         renderPrompts,
     history:         renderHistory,
+    guide:           renderGuide,
     settings:        renderSettings
   };
   if (fns[_currentTab]) fns[_currentTab]();
@@ -453,6 +532,25 @@ function renderOverview() {
       kpiCard('Recommandations',  pendingRecs, '','En attente de validation','💡'),
       kpiCard('Mode IA', 'MOCK','','Aucune clé IA — mode simulation','⚙️'),
     '</div>',
+
+    /* PROMPT 016B — Guide "Comment tester" en mode standalone */
+    AI_CENTER_STANDALONE_PREVIEW ? [
+      '<div style="background:rgba(34,211,165,.05);border:1px solid rgba(34,211,165,.2);border-radius:11px;padding:14px;margin-bottom:14px;">',
+      '<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;">🧪 Comment tester les agents — Mode aperçu</div>',
+      '<ol style="font-size:12px;color:var(--text2);line-height:2.2;padding-left:18px;margin:0;">',
+      '<li>Ici <b>Vue d\'ensemble</b> → Cliquer <b>Générer rapport Directeur Quotidien</b></li>',
+      '<li>Onglet <b>🤖 Agents</b> → Voir les 10 agents, statuts, risques, prompts</li>',
+      '<li>Onglet <b>📝 Prompts</b> → Ouvrir et modifier un prompt (version +1)</li>',
+      '<li>Onglet <b>💡 Recommandations</b> → Approuver / Rejeter / Marquer fait</li>',
+      '<li>Onglet <b>🕐 Historique</b> → Consulter les runs enregistrés</li>',
+      '<li>Onglet <b>📖 Guide rapide</b> → Comprendre les agents IA et leurs limites</li>',
+      '<li>Onglet <b>⚙️ Paramètres IA</b> → Tableau de bord sécurité + préparer edge</li>',
+      '</ol>',
+      '<div style="margin-top:8px;font-size:10px;color:var(--text3);">',
+      '📌 Mode standalone : Supabase disponible si configuré. Données Analytics : non disponibles (pas de Core parent). Rapport généré avec snapshot mock.',
+      '</div>',
+      '</div>'
+    ].join('') : '',
 
     '<div class="generate-area">',
       '<div class="generate-icon">🧠</div>',
@@ -506,6 +604,21 @@ function runDirectorReport() {
   /* Essai snapshot parent */
   var parentSnap = null;
   try { parentSnap = window.parent.VeraluzAnalyticsSnapshot; } catch(e){}
+  /* PROMPT 016B — Fallback snapshot en mode standalone (pas de Core parent) */
+  if (!parentSnap && AI_CENTER_STANDALONE_PREVIEW) {
+    parentSnap = {
+      reservations: { today: 0, arrivals: 0, departures: 0, occupancy_rate: 0 },
+      revenues: { total: 0, pending: 0 },
+      expenses: { total: 0 },
+      housekeeping: { pending: 0, urgent: 0 },
+      food: { pending_orders: 0, delayed_orders: 0 },
+      hr: { active_employees: 0 },
+      alerts: [
+        { priority:'normal', title:'Mode aperçu', description:'Données réelles Analytics non disponibles en mode standalone.' }
+      ],
+      _standalone_mock: true
+    };
+  }
 
   /* Charger données Supabase */
   Promise.all([
@@ -560,7 +673,17 @@ function runDirectorReport() {
     var ra = document.getElementById('report-area');
     if (ra) ra.innerHTML = renderReportHTML(_reportData);
     loadRuns(); loadRecs();
-    showToast('Rapport généré avec succès ✓','ok');
+    /* PROMPT 016B — Badge sauvegarde conditionnel */
+    var saveMsg = _sbAvailable
+      ? 'Rapport généré et sauvegardé Supabase ✓'
+      : 'Rapport généré · Non sauvegardé (Supabase indisponible)';
+    showToast(saveMsg, _sbAvailable ? 'ok' : 'warn');
+    if (!_sbAvailable && AI_CENTER_STANDALONE_PREVIEW) {
+      var sbNote = document.createElement('div');
+      sbNote.style.cssText = 'margin-top:8px;padding:8px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:7px;font-size:11px;color:var(--yellow);text-align:center;';
+      sbNote.textContent = '📴 Non sauvegardé — aperçu local (Supabase indisponible)';
+      if (ra) ra.insertBefore(sbNote, ra.firstChild);
+    }
   }).catch(function(err) {
     console.error('[AI Director]', err);
     showToast('Erreur lors de la génération','err');
@@ -697,6 +820,7 @@ function buildMockReport(snap, reservations, payments, employees, housekeeping, 
     validatedRev > 0 ? 'Revenus validés : '+fmtXAF(validatedRev)+'.' : '',
     pendingPays.length > 0 ? pendingPays.length+' paiement(s) en attente.' : '',
     activeEmp > 0 ? activeEmp+' employé(s) actif(s).' : '',
+    snap && snap._standalone_mock ? 'Rapport généré en mode aperçu avec données limitées (standalone).' :
     snap ? 'Données Analytics disponibles.' : 'Données chargées directement depuis Supabase.'
   ].filter(Boolean).join(' ');
 
@@ -821,7 +945,17 @@ function renderAgentCard(a) {
       a.approval_required ? '<span class="bdg bdg-pending">✓ VALIDATION</span>' : '',
     '</div>',
     '<div class="ac-desc">'+esc(a.description||'—')+'</div>',
-    '<div class="ac-meta">Clé : <code>'+esc(a.agent_key)+'</code></div>',
+    '<div class="ac-meta">Clé : <code>'+esc(a.agent_key)+'</code> · v'+esc(String(a.version||1))+'</div>',
+    /* PROMPT 016B — État connexion + validation + role */
+    '<div style="display:flex;flex-wrap:wrap;gap:4px;margin:7px 0 5px;">',
+      '<span class="bdg" style="background:rgba(100,116,139,.12);color:var(--text2);font-size:9px;letter-spacing:.3px;">🔌 MOCK uniquement</span>',
+      (a.risk_level==='critical'?'<span class="bdg bdg-critical" style="font-size:9px;">⚠ Risque critique</span>':
+       a.risk_level==='high'?'<span class="bdg bdg-high" style="font-size:9px;">⚠ Risque élevé</span>':''),
+      '<span class="bdg" style="background:rgba(34,211,165,.08);color:var(--accent);font-size:9px;">✋ Validation humaine</span>',
+    '</div>',
+    '<div style="font-size:10px;color:var(--text3);font-style:italic;margin-bottom:8px;">',
+      'Cet agent ne peut pas encore exécuter d\'action métier automatiquement.',
+    '</div>',
     '<div class="ac-actions">',
       '<button class="btn btn-sec btn-sm" onclick="viewAgentDetail(\''+esc(a.agent_key)+'\')">👁 Voir</button>',
       a.status==='active'
@@ -978,6 +1112,85 @@ function secBadge(label, value, level, note) {
     +'</div>';
 }
 
+/* ══════════════════════════════════════════════════════════════
+   TAB 7 — GUIDE RAPIDE (PROMPT 016B)
+══════════════════════════════════════════════════════════════ */
+function renderGuide() {
+  var pane = document.getElementById('pane-guide');
+  if (!pane) return;
+  function guideSection(icon, title, rows) {
+    return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:12px;">'
+      +'<div style="font-size:12px;font-weight:700;margin-bottom:10px;">'+icon+' '+title+'</div>'
+      +'<div style="font-size:12px;color:var(--text2);line-height:1.9;">'
+      +rows.map(function(r){ return '<div>'+r+'</div>'; }).join('')
+      +'</div></div>';
+  }
+  pane.innerHTML = [
+    '<div class="sec-hdr"><div>',
+      '<div class="sec-title">📖 Guide rapide — VERALUZ Intelligence IA</div>',
+      '<div class="sec-sub">Comprendre les agents, leurs limites et comment les utiliser en toute sécurité</div>',
+    '</div></div>',
+    guideSection('✅','Ce que les agents peuvent faire maintenant', [
+      '• <b>daily_director</b> : générer un rapport quotidien structuré avec alertes et recommandations',
+      '• <b>Tous les agents</b> : afficher leur prompt, statut, niveau de risque',
+      '• <b>Prompts</b> : modifiables manuellement avec versioning automatique',
+      '• <b>Recommandations</b> : approvuables, rejetables ou marquables — manuellement',
+      '• <b>Agents</b> : activables ou mis en pause individuellement',
+      '• <b>Mode mock</b> : rapports simulés depuis les données Supabase réelles'
+    ]),
+    guideSection('\U0001f6ab','Ce que les agents ne peuvent PAS encore faire', [
+      '• Appeler une IA réelle (OpenAI / Claude) — nécessite Edge Function + clé Supabase Secrets',
+      '• Modifier un paiement, un prix, une réservation, un salaire ou un accès',
+      '• Envoyer un message client sans validation humaine explicite',
+      '• Prendre une décision autonome sur des données critiques',
+      '• S\'exécuter automatiquement (pas de cron, pas de trigger automatique)',
+      '• Agir sans que le propriétaire approuve chaque recommandation'
+    ]),
+    guideSection('⚖️','Différence Mode Mock vs Mode Edge', [
+      '• <b>MOCK</b> (actuel) : rapport généré localement depuis Supabase — aucune IA externe',
+      '&nbsp;&nbsp;→ Sûr, gratuit, fonctionnel pour tester format et recommandations',
+      '• <b>EDGE</b> (futur) : rapport envoyé à Claude Haiku / GPT-4o-mini via Edge Function sécurisée',
+      '&nbsp;&nbsp;→ Nécessite : deploy veraluz-ai-runner + secrets ANTHROPIC_API_KEY côté Supabase',
+      '&nbsp;&nbsp;→ La clé IA ne sera JAMAIS dans le frontend — uniquement Supabase Secrets',
+      '• Basculer : changer VERALUZ_AI_MODE = \'mock\' → \'edge\' dans ce fichier'
+    ]),
+    guideSection('✏️','Comment modifier un prompt', [
+      '1. Onglet <b>📝 Prompts</b> → cliquer <b>✏ Modifier</b> sur l\'agent souhaité',
+      '2. Modifier le texte dans la zone de saisie',
+      '3. Cliquer <b>Enregistrer + v(n+1)</b> — la version s\'incrémente automatiquement',
+      '4. La version précédente est conservée dans veraluz_ai_prompt_versions pour audit',
+      '⚠ Ne jamais inclure de données sensibles (PIN, mot de passe) dans un prompt'
+    ]),
+    guideSection('⏸️','Comment activer / mettre en pause un agent', [
+      '1. Onglet <b>🤖 Agents</b> → fiche de l\'agent',
+      '2. <b>⏸ Pause</b> si actif → agent suspendu, non exécutable en edge',
+      '3. <b>▶ Activer</b> si inactif → agent réactivé',
+      '4. Le statut est sauvegardé en Supabase',
+      '• Agents en statut <b>draft</b> : non encore connectés à une IA — test uniquement'
+    ]),
+    guideSection('\U0001f4a1','Pourquoi valider chaque recommandation', [
+      '• Règle absolue VERALUZ : aucune action métier automatique sans approbation humaine',
+      '• requires_approval=TRUE forcé sur chaque recommandation — même en mode edge',
+      '• ✓ Approuver → statut approved uniquement — aucune action déclenchée',
+      '• ✕ Rejeter → statut rejected — aucune donnée modifiée',
+      '• ☑ Fait → statut done — log de traçabilité uniquement',
+      '• Le propriétaire reste toujours le décideur final de chaque action'
+    ]),
+    guideSection('\U0001f9ea','Comment tester sans risque', [
+      '1. Rester en mode <b>MOCK</b> — aucun appel IA externe, aucun coût',
+      '2. Générer rapport depuis Vue d\'ensemble — données Supabase, rapport simulé',
+      '3. Approuver/rejeter recommandations → ne déclenche aucune action réelle',
+      '4. Modifier des prompts → versioning traçable, aucune IA appelée',
+      '5. Mettre un agent en pause → ne casse pas les autres modules',
+      '6. Ouvrir ce fichier seul (standalone) → fonctionne sans VERALUZ OS Core',
+      '→ Pour tester avec IA réelle : onglet ⚙️ Paramètres IA → Section Edge Function'
+    ])
+  ].join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB 8 — PARAMÈTRES IA
+══════════════════════════════════════════════════════════════ */
 function renderSettings() {
   var pane = document.getElementById('pane-settings');
   pane.innerHTML = [
@@ -1029,7 +1242,35 @@ function renderSettings() {
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;">',
     '<div style="font-size:12px;font-weight:700;margin-bottom:10px;">🔒 SQL Durcissement RLS — Production future</div>',
     '<div style="font-size:11px;color:var(--text3);font-family:monospace;background:var(--bg3);padding:10px;border-radius:7px;line-height:1.8;white-space:pre-wrap;">-- À exécuter AVANT mise en production avec IA réelle\n-- Supprimer les policies permissives\nDROP POLICY IF EXISTS \"anon_update_agents\" ON veraluz_ai_agents;\nDROP POLICY IF EXISTS \"anon_update_recs\" ON veraluz_ai_recommendations;\n-- Les actions sensibles passeront par RPC / Edge Function authentifiée</div>',
+    '</div>',
+
+    /* PROMPT 016B — Section "Améliorer un agent plus tard" */
+    '<div style="background:var(--bg2);border:1px solid rgba(129,140,248,.2);border-radius:11px;padding:16px;margin-top:12px;">',
+    '<div style="font-size:12px;font-weight:700;margin-bottom:12px;color:var(--acc2);">🚀 Améliorer un agent plus tard</div>',
+    '<div style="font-size:11px;color:var(--text2);line-height:1.9;">',
+    'Chaque agent peut être amélioré progressivement sans casser le reste du système :<br><br>',
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">',
+    [
+      ['✏️ Modifier le prompt','Affiner le comportement et le ton — versioning automatique'],
+      ['📊 Ajouter des données','Autoriser de nouvelles sources (incidents, CRM, stock…)'],
+      ['⚖️ Ajuster le risque','Changer le niveau de risque au fil du temps'],
+      ['⏸ Activer / désactiver','Contrôle individuel sans impact sur les autres agents'],
+      ['💬 Exemples few-shot','Ajouter des exemples dans le prompt pour guider l\'IA'],
+      ['👍 Feedback humain','Approuver/rejeter des recommandations alimente le suivi'],
+      ['📈 Historique perf','Consulter l\'onglet Historique pour voir les runs passés'],
+      ['🌐 Connexion edge','Déployer la vraie IA une fois le CORE publié sur GitHub']
+    ].map(function(r){
+      return '<div style="background:var(--bg3);border-radius:7px;padding:8px;">'
+        +'<div style="font-size:11px;font-weight:700;margin-bottom:2px;">'+r[0]+'</div>'
+        +'<div style="font-size:10px;color:var(--text3);">'+r[1]+'</div></div>';
+    }).join(''),
+    '</div>',
+    '</div>',
+    '<div style="margin-top:10px;padding:8px 12px;background:rgba(129,140,248,.05);border:1px solid rgba(129,140,248,.2);border-radius:7px;font-size:11px;color:var(--acc2);">',
+    '💡 Priorité recommandée : 1) Publier sur GitHub Pages → 2) Déployer Edge Function → 3) Configurer Supabase Secrets → 4) Basculer en mode edge → 5) Tester daily_director réel → 6) Activer progressivement les autres agents',
+    '</div>',
     '</div>'
+
   ].join('');
 }
 
