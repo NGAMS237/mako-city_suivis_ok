@@ -491,9 +491,10 @@ var _lastSync=null;  // PROMPT 005: dernière synchronisation réussie
 /* ══════════════════════════════════════════
    PROMPT 005 — localStorage KEYS
 ══════════════════════════════════════════ */
-var LS_ORDERS  = 'veraluz_livreur_cache_orders';
-var LS_ACTIONS = 'veraluz_livreur_pending_actions';
-var LS_LIVREUR = 'veraluz_livreur_actif_id';
+var LS_ORDERS   = 'veraluz_livreur_cache_orders';
+var LS_ACTIONS  = 'veraluz_livreur_pending_actions';
+var LS_LIVREUR  = 'veraluz_livreur_actif_id';
+var LS_SESSION  = 'veraluz_livreur_session';       /* PROMPT 006: session 12h sans PIN */
 
 /* ══════════════════════════════════════════
    NORMALIZE UTILS — VERALUZ CORE v0.3.0
@@ -560,7 +561,8 @@ function loadLivreurs(){
   var lbl=document.getElementById('pin-loading');
   lbl.textContent='Chargement…';
   /* P0 FIX: utilise veraluz_employees (table officielle) + join equipe */
-  sbFetch('veraluz_employees?select=id,full_name,role,pin_code,status,phone,email,hire_date,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')
+  /* PROMPT 006: return Promise pour que DOMContentLoaded puisse attendre */
+  return sbFetch('veraluz_employees?select=id,full_name,role,pin_code,status,phone,email,hire_date,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')
     .then(function(rows){
       /* Filtre via isDeliveryEmployee() : équipe OU rôle */
       var livrows = rows.filter(isDeliveryEmployee);
@@ -574,7 +576,7 @@ function loadLivreurs(){
       });
       lbl.textContent='';
     })
-    .catch(function(){lbl.textContent='Erreur réseau';});
+    .catch(function(){lbl.textContent='Erreur réseau — vérifiez la connexion.';});
 }
 
 function buildPinPad(){
@@ -616,6 +618,7 @@ function validatePin(){
   if(!lv){err.textContent='Livreur introuvable.';_pinBuffer='';renderPinDots();return;}
   if(String(_pinBuffer)===String(lv.pin_code)){
     LIVREUR_ACTIF=lv;
+    saveSession(lv);  /* PROMPT 006: session 12h — PIN non persisté */
     document.getElementById('pin-screen').classList.add('hidden');
     document.getElementById('main-app').style.display='';
     initApp();
@@ -633,7 +636,8 @@ function initApp(){
   document.getElementById('tbName').textContent=LIVREUR_ACTIF.prenom+' '+LIVREUR_ACTIF.nom;
   document.getElementById('tbDate').textContent='Veraluz · Livreur';
   startClock();
-  initNetworkDetection();  /* PROMPT 005: démarrer la détection réseau */
+  initNetworkDetection();    /* PROMPT 005: démarrer la détection réseau */
+  cleanupPendingActions();   /* PROMPT 006: expirer actions > 48h, notifier failed */
   loadOrders();
   loadPointageToday();
   updateSyncStrip();
@@ -791,12 +795,141 @@ function updateStats(){
   document.getElementById('sDone').textContent=_orders.filter(function(o){return o.status==='delivered';}).length;
 }
 
-/* TODO VERALUZ CORE: escH → VC.esc() dans veraluz-core.js quand compatible.
-   Différence : escH échappe aussi les guillemets doubles ("). */
-function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/* PROMPT 006: escH → wrapper VC.esc() si disponible (migration progressive vers veraluz-core.js).
+   VC.esc() échappe & < > " — comportement identique à la version locale.
+   Fallback local conservé si VC absent (offline, chargement partiel). */
+function escH(s){
+  if(VC&&typeof VC.esc==='function') return VC.esc(s);
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 /* TODO VERALUZ CORE: fmtXAF → VC.fmtMoney() dans veraluz-core.js.
    Attention : fmtXAF affiche "XAF", fmtMoney affiche "FCFA" — valider avec UX avant migration. */
 function fmtXAF(n){return new Intl.NumberFormat('fr-FR').format(Number(n)||0)+' XAF';}
+
+/* ══════════════════════════════════════════
+   PROMPT 006 — COMPRESSION PHOTO OFFLINE
+   Compression photo offline pour limiter localStorage (~5MB)
+══════════════════════════════════════════ */
+function compressImageDataUrl(dataUrl, maxWidth, quality){
+  maxWidth = maxWidth || 1024;
+  quality  = quality  || 0.7;
+  return new Promise(function(resolve){
+    try {
+      var img = new Image();
+      img.onload = function(){
+        var w = img.width, h = img.height;
+        if (w > maxWidth){ h = Math.round(h * maxWidth / w); w = maxWidth; }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = function(){
+        console.warn('[Veraluz] Compression photo échouée — image originale conservée');
+        resolve(dataUrl);
+      };
+      img.src = dataUrl;
+    } catch(e){
+      console.warn('[Veraluz] compressImageDataUrl erreur:', e);
+      resolve(dataUrl);
+    }
+  });
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 006 — LIMITE TAILLE FILE D'ATTENTE
+══════════════════════════════════════════ */
+var QUEUE_MAX_BYTES = 4 * 1024 * 1024; /* 4MB — marge prudente sur ~5MB localStorage */
+
+function estimateStorageSize(obj){
+  try { return JSON.stringify(obj).length; } catch(e){ return 0; }
+}
+
+function canQueueAction(action){
+  /* Vérifie que la file + la nouvelle action restent sous QUEUE_MAX_BYTES */
+  var actions = getPendingActions();
+  var currentSize = estimateStorageSize(actions);
+  var actionSize  = estimateStorageSize(action);
+  return (currentSize + actionSize) < QUEUE_MAX_BYTES;
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 006 — EXPIRATION ACTIONS OFFLINE (48h)
+══════════════════════════════════════════ */
+var ACTION_EXPIRY_MS = 48 * 60 * 60 * 1000; /* 48h */
+
+function cleanupPendingActions(){
+  var actions = getPendingActions();
+  if (!actions.length) return;
+  var now = Date.now();
+  var active = [], expired = [], failedCount = 0;
+  actions.forEach(function(a){
+    if (a.status_local === 'failed'){
+      active.push(a);   /* PROMPT 006: garder les failed — pas supprimer silencieusement */
+      failedCount++;
+    } else {
+      var age = now - new Date(a.created_at || 0).getTime();
+      if (age > ACTION_EXPIRY_MS){
+        a.status_local = 'expired';
+        expired.push(a);
+        console.warn('[Veraluz] Action expirée:', a.type, 'order:', a.order_id, 'créée:', a.created_at);
+      } else {
+        active.push(a);
+      }
+    }
+  });
+  if (expired.length){
+    toast('⚠ '+expired.length+' action(s) locale(s) non synchronisée(s) ont expiré (> 48h)', 'err');
+  }
+  if (failedCount > 0){
+    toast('❌ '+failedCount+' action(s) en échec définitif — contactez le manager', 'err');
+  }
+  savePendingActions(active);
+  updateSyncStrip();
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 006 — SESSION LIVREUR (12h, sans PIN)
+   IMPORTANT SÉCURITÉ: Le PIN ne doit JAMAIS être stocké dans localStorage.
+   Seuls employee_id, nom, role et expiry sont persistés.
+   Pour une sécurisation future des PINs, voir commentaire en bas de fichier.
+══════════════════════════════════════════ */
+function saveSession(livreur){
+  var session = {
+    employee_id:     livreur.id,
+    prenom:          livreur.prenom,
+    nom:             livreur.nom,
+    role:            livreur.role || 'livreur',
+    login_time:      new Date().toISOString(),
+    session_expiry:  new Date(Date.now() + 12*60*60*1000).toISOString()
+    /* INTERDIT: ne pas ajouter pin_code ici */
+  };
+  try { localStorage.setItem(LS_SESSION, JSON.stringify(session)); } catch(e){}
+}
+
+function checkSession(){
+  /* PROMPT 006: restaurer session si < 12h, retour PIN si expirée */
+  try {
+    var v = localStorage.getItem(LS_SESSION);
+    if (!v) return false;
+    var s = JSON.parse(v);
+    if (!s || !s.session_expiry) return false;
+    if (new Date(s.session_expiry) < new Date()){
+      clearSession();
+      return false; /* toast affiché après chargement LIVREURS */
+    }
+    /* Retrouver le livreur complet pour que les infos PIN restent en mémoire */
+    var lv = LIVREURS.find(function(l){ return String(l.id) === String(s.employee_id); });
+    if (!lv) return false;
+    LIVREUR_ACTIF = lv;
+    return true;
+  } catch(e){ return false; }
+}
+
+function clearSession(){
+  try { localStorage.removeItem(LS_SESSION); } catch(e){}
+}
 
 /* ══════════════════════════════════════════
    PROMPT 005 — FILE D'ATTENTE ACTIONS OFFLINE
@@ -810,16 +943,28 @@ function savePendingActions(arr){
 
 /* Ajouter une action à la file locale */
 function queueAction(type, orderId, payload){
-  var actions = getPendingActions();
-  actions.push({
-    id_local: Date.now()+'_'+Math.random().toString(36).slice(2,6),
-    type: type,         // 'patch_order' | 'punch'
-    order_id: orderId,
-    payload: payload,
-    created_at: new Date().toISOString(),
-    retry_count: 0,
+  var action = {
+    id_local:     Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    type:         type,        /* 'patch_order' | 'punch' */
+    order_id:     orderId,
+    payload:      payload,
+    created_at:   new Date().toISOString(),
+    retry_count:  0,
     status_local: 'pending'
-  });
+  };
+  /* PROMPT 006: vérification taille avant ajout */
+  if (!canQueueAction(action)){
+    var hasPhoto = payload && payload.delivery_photo_b64;
+    if (hasPhoto){
+      toast('⚠ Photo trop lourde pour le mode hors ligne. Réessayez avec la connexion ou reprenez une photo.', 'err');
+    } else {
+      toast('⚠ File d\'attente locale pleine — connexion requise pour cette action.', 'err');
+    }
+    console.warn('[Veraluz] queueAction refusée — taille localStorage dépassée');
+    return;
+  }
+  var actions = getPendingActions();
+  actions.push(action);
   savePendingActions(actions);
   updateSyncStrip();
   toast('📝 Action enregistrée — sync dès retour connexion', 'err');
@@ -827,8 +972,14 @@ function queueAction(type, orderId, payload){
 
 /* Rejouer les actions en attente */
 function syncPendingActions(){
-  var actions = getPendingActions();
-  if (!actions.length) { toast('✓ Aucune action en attente', 'ok'); return; }
+  /* PROMPT 006: nettoyer avant sync */
+  cleanupPendingActions();
+  var actions = getPendingActions().filter(function(a){ return a.status_local !== 'failed'; });
+  if (!actions.length){
+    var failedOnly = getPendingActions().filter(function(a){ return a.status_local === 'failed'; });
+    if (!failedOnly.length) toast('✓ Aucune action en attente', 'ok');
+    return;
+  }
   if (!_online) { toast('📡 Hors ligne — sync impossible', 'err'); return; }
   var remaining = [];
   var done = 0;
@@ -838,32 +989,54 @@ function syncPendingActions(){
       return sbPatch('veraluz_food_orders', a.order_id, a.payload)
         .then(function(){
           done++;
-          /* Mettre à jour _orders en mémoire */
           var o = _orders.find(function(x){ return x.id === a.order_id; });
           if (o && a.payload.status) o.status = a.payload.status;
           if (o && a.payload.delivery_photo_b64) o.delivery_photo_b64 = a.payload.delivery_photo_b64;
         })
         .catch(function(){
           a.retry_count++;
-          if (a.retry_count < 5) remaining.push(a);
+          if (a.retry_count < 5){
+            remaining.push(a);
+          } else {
+            /* PROMPT 006: max retries atteint → failed (gardé, pas supprimé) */
+            a.status_local = 'failed';
+            remaining.push(a);
+            console.error('[Veraluz] Action en échec définitif:', a.type, a.order_id);
+          }
         });
     } else if (a.type === 'punch'){
       return sbPost('veraluz_pointages', a.payload)
         .then(function(){ done++; })
         .catch(function(){
           a.retry_count++;
-          if (a.retry_count < 5) remaining.push(a);
+          if (a.retry_count < 5){
+            remaining.push(a);
+          } else {
+            a.status_local = 'failed';
+            remaining.push(a);
+            console.error('[Veraluz] Pointage en échec définitif:', a.payload);
+          }
         });
     }
     return Promise.resolve();
   });
   Promise.all(promises).then(function(){
+    /* Conserver aussi les failed du cycle précédent */
+    var prevFailed = getPendingActions().filter(function(a){ return a.status_local === 'failed'; });
+    /* Éviter les doublons (remaining peut déjà contenir les nouveaux failed) */
+    var remainingIds = remaining.map(function(a){ return a.id_local; });
+    prevFailed.forEach(function(a){
+      if (remainingIds.indexOf(a.id_local) < 0) remaining.push(a);
+    });
     savePendingActions(remaining);
     updateSyncStrip();
     renderOrders();
     updateStats();
+    var newFailed = remaining.filter(function(a){ return a.status_local === 'failed'; });
+    var retrying  = remaining.filter(function(a){ return a.status_local !== 'failed'; });
     if (done > 0) toast('✅ '+done+'/'+total+' action(s) synchronisée(s)', 'ok');
-    else if (remaining.length) toast('⚠ '+remaining.length+' action(s) en échec', 'err');
+    if (newFailed.length) toast('❌ '+newFailed.length+' action(s) en échec définitif — contactez le manager', 'err');
+    else if (retrying.length) toast('⚠ '+retrying.length+' action(s) en cours de retry', 'err');
   });
 }
 
@@ -1091,11 +1264,14 @@ function onPhotoSelected(inp){
   if(!inp.files||!inp.files[0])return;
   var reader=new FileReader();
   reader.onload=function(e){
-    _photoB64=e.target.result;
-    var prev=document.getElementById('photoPreview');
-    if(prev){prev.src=_photoB64;prev.style.display='block';}
-    var lbl=document.getElementById('photoStatusLbl');
-    if(lbl)lbl.style.display='block';
+    /* PROMPT 006: compresser avant stockage offline (limite localStorage ~5MB) */
+    compressImageDataUrl(e.target.result, 1024, 0.7).then(function(compressed){
+      _photoB64=compressed;
+      var prev=document.getElementById('photoPreview');
+      if(prev){prev.src=_photoB64;prev.style.display='block';}
+      var lbl=document.getElementById('photoStatusLbl');
+      if(lbl)lbl.style.display='block';
+    });
   };
   reader.readAsDataURL(inp.files[0]);
 }
@@ -1169,7 +1345,6 @@ function doPunch(type){
     date:now.toISOString().slice(0,10),
     note:''
   };
-  /* Feedback UI immédiat */
   var statusEl=document.getElementById('punch-status-lbl');
   if(statusEl){
     if(type==='arrivee'){statusEl.textContent='En service';statusEl.className='punch-status in';}
@@ -1182,7 +1357,7 @@ function doPunch(type){
   savePunch(payload);
 }
 
-/* PROMPT 005: savePunch avec file d'attente offline */
+/* PROMPT 005/006: savePunch avec file d'attente offline */
 function savePunch(payload){
   sbPost('veraluz_pointages',payload)
     .then(function(){
@@ -1190,7 +1365,6 @@ function savePunch(payload){
       loadPointageToday();
     })
     .catch(function(){
-      /* PROMPT 005: file d'attente offline */
       queueAction('punch',null,payload);
       toast('📝 Pointage en attente (sync au retour connexion)','err');
     });
@@ -1219,19 +1393,15 @@ function renderPointageToday(){
     var time=p.punched_at?new Date(p.punched_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'--:--';
     return '<div class="punch-item"><span>'+ico+' '+escH(label)+'</span><span>'+escH(time)+'</span></div>';
   }).join('');
-  /* Calcul heures travaillées */
   var arrivees=_pointages.filter(function(p){return p.type==='arrivee';});
   var departs=_pointages.filter(function(p){return p.type==='depart';});
   if(arrivees.length&&departs.length){
-    var firstIn=new Date(arrivees[0].punched_at).getTime();
-    var lastOut=new Date(departs[departs.length-1].punched_at).getTime();
-    var diffMin=Math.floor(Math.max(0,lastOut-firstIn)/60000);
+    var diffMin=Math.floor(Math.max(0,new Date(departs[departs.length-1].punched_at)-new Date(arrivees[0].punched_at))/60000);
     var hrsEl=document.getElementById('punch-hrs');
     var sumEl=document.getElementById('punch-summary');
     if(hrsEl)hrsEl.textContent=Math.floor(diffMin/60)+'h '+(diffMin%60)+'min';
     if(sumEl)sumEl.style.display='flex';
   }
-  /* Boutons selon dernier état */
   var last=_pointages[_pointages.length-1];
   var statusEl=document.getElementById('punch-status-lbl');
   var btnA=document.getElementById('btn-arrive');
@@ -1265,6 +1435,7 @@ function renderProfil(){
    LOGOUT
 ══════════════════════════════════════════ */
 function logout(){
+  clearSession();  /* PROMPT 006: supprimer session (jamais le PIN) */
   LIVREUR_ACTIF=null;_orders=[];_pointages=[];
   _pinBuffer='';_currentOrderId=null;_photoB64=null;_lastSync=null;
   if(_interval){clearInterval(_interval);_interval=null;}
@@ -1285,14 +1456,36 @@ function logout(){
 ══════════════════════════════════════════ */
 
 /* ══════════════════════════════════════════
+   PROMPT 006 — SÉCURISATION PIN FUTURE (NOTE TECHNIQUE)
+   Architecture actuelle : PIN vérifié côté client depuis données Supabase (anon key).
+   Ce mode convient à un usage terrain interne avec confiance implicite.
+   Pour sécuriser réellement les PINs dans une future version :
+     - Option 1 : Supabase Auth (email/password ou magic link)
+     - Option 2 : Supabase Edge Function côté serveur (PIN haché bcrypt)
+     - Option 3 : RPC Supabase sécurisée avec Row Level Security
+     - Option 4 : Hash PIN côté client insuffisant seul (clé anon expose les hashes)
+   Recommandation PROMPT 007+ : migrer vers Supabase Auth ou Edge Function.
+   Ne pas promettre qu'un simple hash côté client sécurise totalement un PIN 4-6 chiffres.
+══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════
    BOOT
 ══════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded',function(){
   buildPinPad();
-  loadLivreurs();
-  renderPinDots();
-  /* PROMPT 005: init réseau avant login pour badge visuel */
-  updateNetworkBadge();
+  updateNetworkBadge();  /* PROMPT 005: badge réseau avant login */
+  loadLivreurs().then(function(){
+    /* PROMPT 006: tenter restauration session 12h après chargement des livreurs */
+    if(checkSession()){
+      document.getElementById('pin-screen').classList.add('hidden');
+      document.getElementById('main-app').style.display='';
+      initApp();
+    } else {
+      renderPinDots();
+    }
+  }).catch(function(){
+    renderPinDots();
+  });
 });
 </script>
 </body>
