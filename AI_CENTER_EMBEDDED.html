@@ -876,22 +876,41 @@ function renderHistory() {
 /* ══════════════════════════════════════════════════════════════
    TAB 7 — PARAMÈTRES IA
 ══════════════════════════════════════════════════════════════ */
+function secBadge(label, value, level, note) {
+  var colors = { ok:'var(--green)', warn:'var(--yellow)', err:'var(--red)' };
+  var bgs    = { ok:'rgba(16,185,129,.08)', warn:'rgba(245,158,11,.08)', err:'rgba(239,68,68,.08)' };
+  var borders= { ok:'rgba(16,185,129,.2)',  warn:'rgba(245,158,11,.2)',  err:'rgba(239,68,68,.2)' };
+  var icons  = { ok:'✅', warn:'⚠', err:'🚨' };
+  return '<div style="background:'+bgs[level]+';border:1px solid '+borders[level]+';border-radius:8px;padding:10px 12px;">'
+    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">'
+    +'<span style="font-size:12px;">'+icons[level]+'</span>'
+    +'<span style="font-size:11px;font-weight:700;color:'+colors[level]+'">'+esc(value)+'</span></div>'
+    +'<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">'+esc(label)+'</div>'
+    +'<div style="font-size:10px;color:var(--text3);line-height:1.4;">'+esc(note)+'</div>'
+    +'</div>';
+}
+
 function renderSettings() {
   var pane = document.getElementById('pane-settings');
   pane.innerHTML = [
     '<div class="sec-hdr"><div><div class="sec-title">Paramètres Intelligence IA</div></div></div>',
 
+    /* ── Statut sécurité IA complet ──── */
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;margin-bottom:14px;">',
-    '<div style="font-size:12px;font-weight:700;margin-bottom:10px;">Mode IA actuel</div>',
-    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">',
-      '<div class="mode-badge '+(VERALUZ_AI_MODE==='mock'?'mode-mock':'mode-edge')+'" style="font-size:12px;padding:6px 16px;">',
-        VERALUZ_AI_MODE==='mock' ? '⚙ MODE MOCK — Simulation contrôlée' : '🌐 MODE EDGE — Edge Function',
-      '</div>',
-      '<div style="font-size:11px;color:var(--text3);">',
-        VERALUZ_AI_MODE==='mock' ? 'Aucun appel IA externe · Aucune clé API · Données Supabase uniquement' : 'Edge Function configurée · Clé IA côté serveur uniquement',
-      '</div>',
+    '<div style="font-size:12px;font-weight:700;margin-bottom:12px;">📊 Tableau de bord Sécurité IA</div>',
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;">',
+      secBadge('Mode IA actuel',      'MOCK',        'ok',  'Simulation locale — aucun appel IA externe'),
+      secBadge('Appel IA externe',    'DÉSACTIVÉ',   'ok',  'Aucune requête vers OpenAI/Claude/Anthropic'),
+      secBadge('Clé IA frontend',     'ABSENTE',     'ok',  'Aucune clé API dans le code HTML/JS'),
+      secBadge('Validation humaine',  'ACTIVE',      'ok',  'approval_required=TRUE sur tous les agents'),
+      secBadge('Actions auto critiques','DÉSACTIVÉES','ok',  'Aucune action métier sans validation'),
+      secBadge('RLS IA',              'DEV/PERMISSIF','warn','Policies anon permissives — mode développement'),
+      secBadge('Edge Function IA',    'PLACEHOLDER', 'warn','Retourne ok:false — aucune clé configurée'),
+      secBadge('Production ready',    'NON',         'err', 'Durcir RLS + configurer Edge Function avant prod'),
     '</div>',
-    VERALUZ_AI_MODE==='mock' ? '<div style="margin-top:10px;font-size:11px;color:var(--yellow);background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-radius:7px;padding:8px;">⚠ Pour activer le mode edge, une Edge Function <code>veraluz-ai-runner</code> doit être déployée avec la clé IA côté serveur.</div>' : '',
+    '<div style="margin-top:12px;padding:10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.25);border-radius:7px;font-size:11px;color:var(--yellow);">',
+      '⚠ <b>Mode développement :</b> règles IA permissives. Policies anon UPDATE sur agents/recommandations actives. À durcir avant toute mise en production avec une vraie clé IA.',
+    '</div>',
     '</div>',
 
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;margin-bottom:14px;">',
@@ -908,14 +927,18 @@ function renderSettings() {
     ].map(function(r){ return '<div class="sec-rule"><div class="sec-rule-icon">'+r[0]+'</div><div class="sec-rule-text">'+esc(r[1])+'</div></div>'; }).join(''),
     '</div>',
 
-    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;">',
-    '<div style="font-size:12px;font-weight:700;margin-bottom:10px;">Edge Function future</div>',
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;margin-bottom:14px;">',
+    '<div style="font-size:12px;font-weight:700;margin-bottom:10px;">🌐 Edge Function IA</div>',
     '<div style="font-size:11px;color:var(--text3);font-family:monospace;background:var(--bg3);padding:10px;border-radius:7px;line-height:1.7;">',
       'supabase/functions/veraluz-ai-runner/index.ts<br>',
-      '// Placeholder — retourne {ok:false, message:"AI runner not configured yet"}<br>',
-      '// FUTURE: appeler OpenAI / Claude via secret serveur uniquement<br>',
-      '// Ne jamais exposer la clé IA dans le frontend',
+      '// Placeholder — retourne {ok:false, mode:"placeholder"}<br>',
+      '// FUTURE: appeler OpenAI / Claude via Supabase Secrets (côté serveur uniquement)<br>',
+      '// Ne JAMAIS exposer de clé IA dans le frontend HTML/JS',
     '</div>',
+    '</div>',
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;">',
+    '<div style="font-size:12px;font-weight:700;margin-bottom:10px;">🔒 SQL Durcissement RLS — Production future</div>',
+    '<div style="font-size:11px;color:var(--text3);font-family:monospace;background:var(--bg3);padding:10px;border-radius:7px;line-height:1.8;white-space:pre-wrap;">-- À exécuter AVANT mise en production avec IA réelle\n-- Supprimer les policies permissives\nDROP POLICY IF EXISTS \"anon_update_agents\" ON veraluz_ai_agents;\nDROP POLICY IF EXISTS \"anon_update_recs\" ON veraluz_ai_recommendations;\n-- Les actions sensibles passeront par RPC / Edge Function authentifiée</div>',
     '</div>'
   ].join('');
 }
@@ -983,6 +1006,18 @@ function savePrompt(key, curVersion) {
     savePromise = Promise.resolve(null);
   }
 
+  /* Enregistrer version dans veraluz_ai_prompt_versions (audit trail) */
+  sbPost('veraluz_ai_prompt_versions',{
+    agent_key: key,
+    version: newVersion,
+    system_prompt: newPrompt,
+    data_sources_json: (a && a.data_sources_json) ? a.data_sources_json : {},
+    allowed_actions_json: (a && a.allowed_actions_json) ? a.allowed_actions_json : {},
+    forbidden_actions_json: (a && a.forbidden_actions_json) ? a.forbidden_actions_json : {},
+    changed_by: _currentUser.username||'admin',
+    change_note: 'Modification via AI Center — v'+newVersion
+  });
+
   /* Enregistrer dans l'historique feedback */
   sbPost('veraluz_ai_feedback',{
     agent_key:key, rating:null,
@@ -1025,7 +1060,7 @@ function viewRunDetail(id) {
 
 /* ── Supabase data loaders ───────────────────────────────────── */
 function loadAgents() {
-  sbGet('/rest/v1/veraluz_ai_agents?select=*&order=created_at.asc').then(function(data) {
+  sbGet('/rest/v1/veraluz_ai_agents?select=id,agent_key,name,category,icon,description,system_prompt,data_sources_json,allowed_actions_json,forbidden_actions_json,risk_level,approval_required,status,version,created_at,updated_at&order=created_at.asc').then(function(data) {
     if (Array.isArray(data) && data.length > 0) {
       _agents = data;
     } else {
@@ -1035,14 +1070,14 @@ function loadAgents() {
   });
 }
 function loadRuns() {
-  sbGet('/rest/v1/veraluz_ai_agent_runs?select=*&order=created_at.desc&limit=50').then(function(data) {
+  sbGet('/rest/v1/veraluz_ai_agent_runs?select=id,agent_key,run_type,status,output_text,output_json,recommendations_json,duration_ms,created_by,created_at&order=created_at.desc&limit=50').then(function(data) {
     _runs = Array.isArray(data) ? data : [];
     updateBadges();
     if (_currentTab === 'history' || _currentTab === 'reports' || _currentTab === 'overview') renderCurrentTab();
   });
 }
 function loadRecs() {
-  sbGet('/rest/v1/veraluz_ai_recommendations?select=*&order=created_at.desc&limit=100').then(function(data) {
+  sbGet('/rest/v1/veraluz_ai_recommendations?select=id,agent_key,category,title,description,priority,status,requires_approval,related_module,suggested_action,approved_by,approved_at,rejected_by,rejected_at,created_at&order=created_at.desc&limit=100').then(function(data) {
     _recs = Array.isArray(data) ? data : [];
     updateBadges();
     if (_currentTab === 'recommendations') renderCurrentTab();
