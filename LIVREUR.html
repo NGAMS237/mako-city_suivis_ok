@@ -206,6 +206,77 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
 .pin-key.del{font-size:.9rem;color:var(--dt2)}
 .pin-err{text-align:center;color:#f87171;font-size:.77rem;font-weight:600;min-height:20px;margin-top:4px}
 .pin-loading{text-align:center;color:var(--dt2);font-size:.77rem;margin-top:8px;min-height:20px}
+
+/* ── MEDIA QUERIES MOBILE TERRAIN — PROMPT 005 ── */
+@media (max-width:480px){
+  body{max-width:100%;}
+  .content-pane{padding:12px 10px 100px;}
+  .act-btn{min-height:44px;padding:11px 8px;font-size:.73rem;}
+  .oc-actions{gap:7px;}
+  .order-card{border-radius:12px;}
+  .stat-n{font-size:1.2rem;}
+  .stat-box{padding:10px 8px;}
+  .modal{max-height:88vh;}
+}
+@media (max-width:390px){
+  .top-bar{padding:0 12px;height:52px;}
+  .tb-title{font-size:.82rem;}
+  .tb-sub{font-size:.62rem;}
+  .main-tab{font-size:.67rem;padding:10px 5px;gap:3px;}
+  .main-tab svg{width:13px;height:13px;}
+  .content-pane{padding:10px 8px 95px;}
+  .order-tab{padding:5px 10px;font-size:.67rem;}
+  .act-btn{min-height:44px;padding:10px 6px;font-size:.68rem;}
+  .oc-cn{font-size:.78rem;}
+  .oc-cp,.oc-addr-t,.oc-item{font-size:.69rem;}
+  .punch-time{font-size:2rem;}
+  .punch-btn{font-size:.82rem;padding:13px;}
+  .pin-key{height:54px;font-size:1.2rem;}
+  .pin-card{padding:20px 16px;}
+  .stat-n{font-size:1.1rem;}
+}
+@media (orientation:landscape) and (max-height:500px){
+  #pin-screen{justify-content:flex-start;padding-top:16px;}
+  .pin-logo{font-size:2rem;margin-bottom:0;}
+  .pin-tagline{margin-bottom:12px;}
+  .pin-card{padding:14px 18px;}
+  .pin-pad{gap:6px;}
+  .pin-key{height:46px;}
+}
+
+/* ── OFFLINE / SYNC INDICATORS — PROMPT 005 ── */
+.offline-bar{position:sticky;top:56px;z-index:88;color:#fff;font-size:.72rem;font-weight:700;text-align:center;padding:5px 14px;display:none;letter-spacing:.2px;}
+.offline-bar.show{display:block;}
+.offline-bar.err{background:rgba(220,38,38,.93);top:56px;}
+.offline-bar.warn{background:rgba(245,158,11,.93);}
+.sync-strip{background:var(--bg2);border-bottom:1px solid var(--border);padding:5px 14px;display:flex;align-items:center;gap:8px;font-size:.67rem;color:var(--tx3);min-height:30px;}
+.sync-last{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.sync-badge{background:rgba(220,38,38,.1);color:var(--red);border:1px solid rgba(220,38,38,.25);border-radius:20px;padding:2px 8px;font-weight:700;font-size:.65rem;flex-shrink:0;display:none;}
+.sync-badge.show{display:inline-flex;align-items:center;gap:3px;}
+.btn-sync-now{background:var(--tx);color:#fff;border-radius:20px;padding:4px 11px;font-size:.65rem;font-weight:700;border:none;cursor:pointer;flex-shrink:0;display:none;}
+.btn-sync-now.show{display:block;}
+
+/* ── MESSAGES RAPIDES — PROMPT 005 ── */
+.msg-list{padding:0 14px 8px;display:flex;flex-direction:column;gap:7px;}
+.msg-item{background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--r12);padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.msg-item:active{opacity:.8;}
+.msg-item .msg-ico{font-size:1.3rem;flex-shrink:0;}
+.msg-item .msg-body{flex:1;min-width:0;}
+.msg-item .msg-title{font-size:.8rem;font-weight:700;color:var(--tx);}
+.msg-item .msg-preview{font-size:.68rem;color:var(--tx3);margin-top:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.msg-item .msg-copy{flex-shrink:0;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.65rem;font-weight:700;color:var(--tx2);}
+.msg-wa-btn{background:rgba(37,211,102,.08);border-color:rgba(37,211,102,.3);}
+.msg-wa-btn .msg-title{color:#128C7E;}
+
+/* ── DELIVERY CONFIRM — PROMPT 005 ── */
+.delivery-confirm-box{background:rgba(22,163,74,.06);border:2px solid rgba(22,163,74,.3);border-radius:12px;padding:13px 14px;margin-bottom:10px;}
+.dc-q{font-size:.83rem;font-weight:700;color:var(--tx);margin-bottom:9px;}
+.dc-btns{display:flex;gap:8px;}
+.dc-btns .act-btn{min-height:44px;}
+
+/* ── MAPS BUTTON — PROMPT 005 ── */
+.act-btn.act-maps{background:rgba(59,130,246,.08);color:var(--blue);border-color:rgba(59,130,246,.3);}
+.act-btn.act-orange{background:rgba(249,115,22,.08);color:#c2410c;border-color:rgba(249,115,22,.3);}
 </style>
 </head>
 <body>
@@ -253,10 +324,19 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
   <button class="online-btn" id="onlineBtn" onclick="toggleOnline()">En ligne</button>
 </header>
 
+<!-- PROMPT 005: Offline banner -->
+<div class="offline-bar" id="offline-bar">📡 Connexion indisponible — données locales</div>
+
 <div class="stats-strip">
   <div class="stat-box"><div class="stat-n" id="sTotal">0</div><div class="stat-l">Aujourd'hui</div></div>
   <div class="stat-box"><div class="stat-n" id="sActive">0</div><div class="stat-l">En cours</div></div>
   <div class="stat-box"><div class="stat-n" id="sDone">0</div><div class="stat-l">Livrées</div></div>
+</div>
+<!-- PROMPT 005: Sync strip -->
+<div class="sync-strip" id="sync-strip">
+  <span class="sync-last" id="sync-last">Synchronisation…</span>
+  <span class="sync-badge" id="sync-badge">⚠ <span id="sync-badge-n">0</span> action(s) en attente</span>
+  <button class="btn-sync-now" id="btn-sync-now" onclick="syncPendingActions()">🔄 Sync</button>
 </div>
 
 <!-- Main tab bar -->
@@ -282,6 +362,11 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
     <button class="order-tab"        id="otab-delivering" onclick="switchOrderTab('delivering',this)">🔵 En livraison</button>
     <button class="order-tab"        id="otab-done"       onclick="switchOrderTab('done',this)">✅ Livrées</button>
   </div>
+  <!-- PROMPT 005: Refresh button -->
+  <button class="refresh-btn" onclick="manualRefresh(this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+    Rafraîchir les livraisons
+  </button>
   <div id="order-list"></div>
 </div>
 
@@ -334,6 +419,14 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
 </nav>
 
 </div><!-- /#main-app -->
+
+<!-- ── MESSAGES RAPIDES MODAL — PROMPT 005 ── -->
+<div class="modal-ov" id="msgOv" onclick="closeMsgMod()"></div>
+<div class="modal" id="msgMod" style="max-height:80vh">
+  <div class="modal-handle"></div>
+  <div class="modal-title">💬 Messages rapides — <span id="msg-client-name">Client</span></div>
+  <div class="msg-list" id="msg-list"></div>
+</div>
 
 <!-- ── STATUS MODAL ── -->
 <div class="toast" id="toast"></div>
@@ -391,8 +484,16 @@ function sbPatch(table,id,data){
    STATE
 ══════════════════════════════════════════ */
 var LIVREURS=[], LIVREUR_ACTIF=null;
-var _orders=[], _orderTab='pickup', _online=true, _curId=null, _interval=null;
+var _orders=[], _orderTab='pickup', _online=navigator.onLine, _curId=null, _interval=null;
 var _pointages=[], _pinBuffer='';
+var _lastSync=null;  // PROMPT 005: dernière synchronisation réussie
+
+/* ══════════════════════════════════════════
+   PROMPT 005 — localStorage KEYS
+══════════════════════════════════════════ */
+var LS_ORDERS  = 'veraluz_livreur_cache_orders';
+var LS_ACTIONS = 'veraluz_livreur_pending_actions';
+var LS_LIVREUR = 'veraluz_livreur_actif_id';
 
 /* ══════════════════════════════════════════
    NORMALIZE UTILS — VERALUZ CORE v0.3.0
@@ -532,9 +633,17 @@ function initApp(){
   document.getElementById('tbName').textContent=LIVREUR_ACTIF.prenom+' '+LIVREUR_ACTIF.nom;
   document.getElementById('tbDate').textContent='Veraluz · Livreur';
   startClock();
+  initNetworkDetection();  /* PROMPT 005: démarrer la détection réseau */
   loadOrders();
   loadPointageToday();
-  _interval=setInterval(function(){loadOrders();loadPointageToday();},45000);
+  updateSyncStrip();
+  /* PROMPT 005: syncer les actions en attente au démarrage si online */
+  if (_online) setTimeout(syncPendingActions, 2000);
+  _interval=setInterval(function(){
+    loadOrders();
+    loadPointageToday();
+    if (_online) syncPendingActions();
+  },45000);
 }
 
 /* ══════════════════════════════════════════
@@ -556,12 +665,67 @@ function switchOrderTab(t,btn){
   renderOrders();
 }
 
+/* PROMPT 005 — Réseau réel via navigator.onLine */
+function updateNetworkBadge(){
+  _online = navigator.onLine;
+  var btn = document.getElementById('onlineBtn');
+  var bar = document.getElementById('offline-bar');
+  btn.textContent = _online ? 'En ligne' : 'Hors ligne';
+  btn.classList.toggle('off', !_online);
+  if (!_online) {
+    bar.textContent = '📡 Connexion indisponible — données locales affichées';
+    bar.className = 'offline-bar show err';
+  } else {
+    bar.className = 'offline-bar';
+  }
+  updateSyncStrip();
+}
+
+/* Bouton réseau: bascule manuelle n'est plus nécessaire mais on la garde pour test terrain */
 function toggleOnline(){
-  _online=!_online;
-  var btn=document.getElementById('onlineBtn');
-  btn.textContent=_online?'En ligne':'Hors ligne';
-  btn.classList.toggle('off',!_online);
-  toast(_online?'Vous êtes en ligne':'Vous êtes hors ligne',_online?'ok':'err');
+  /* Info seulement — le vrai statut vient de navigator.onLine */
+  toast(_online ? 'Connexion active' : 'Connexion indisponible — mode local', _online ? 'ok' : 'err');
+}
+
+/* PROMPT 005 — Initialisation détection réseau */
+function initNetworkDetection(){
+  updateNetworkBadge();
+  window.addEventListener('online', function(){
+    _online = true;
+    updateNetworkBadge();
+    toast('📶 Connexion rétablie', 'ok');
+    loadOrders();
+    syncPendingActions();
+  });
+  window.addEventListener('offline', function(){
+    _online = false;
+    updateNetworkBadge();
+    toast('📡 Connexion perdue — mode local activé', 'err');
+  });
+}
+
+/* PROMPT 005 — Mise à jour bande de synchronisation */
+function updateSyncStrip(){
+  var el = document.getElementById('sync-last');
+  var badge = document.getElementById('sync-badge');
+  var badgeN = document.getElementById('sync-badge-n');
+  var btnSync = document.getElementById('btn-sync-now');
+  var pending = getPendingActions();
+  var n = pending.length;
+  if (el) {
+    if (!_online) {
+      el.textContent = '📡 Hors ligne' + (_lastSync ? ' — dernier sync ' + _lastSync : '');
+    } else if (_lastSync) {
+      el.textContent = '✓ Sync ' + _lastSync;
+    } else {
+      el.textContent = 'Synchronisation…';
+    }
+  }
+  if (badge && badgeN) {
+    badgeN.textContent = n;
+    badge.classList.toggle('show', n > 0);
+  }
+  if (btnSync) btnSync.classList.toggle('show', n > 0 && _online);
 }
 
 /* ══════════════════════════════════════════
@@ -576,10 +740,42 @@ function loadOrders(){
         var ns = normalizeOrderStatus(o.status);
         return ns !== o.status ? Object.assign({}, o, {status: ns}) : o;
       });
+      /* PROMPT 005: sauvegarder dans localStorage */
+      try { localStorage.setItem(LS_ORDERS, JSON.stringify({saved_at: new Date().toISOString(), orders: _orders})); } catch(e){}
+      _lastSync = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
       renderOrders();
       updateStats();
+      updateSyncStrip();
     })
-    .catch(function(){toast('Erreur chargement commandes','err');});
+    .catch(function(){
+      /* PROMPT 005: fallback cache local si Supabase inaccessible */
+      toast('📡 Données hors ligne — cache local','err');
+      var cached = loadOrdersFromCache();
+      if (cached) {
+        _orders = cached.orders || [];
+        var savedAt = cached.saved_at ? new Date(cached.saved_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : '?';
+        var bar = document.getElementById('offline-bar');
+        if (bar) { bar.textContent = '📡 Données hors ligne — dernière sync ' + savedAt; bar.className = 'offline-bar show warn'; }
+      } else {
+        _orders = [];
+      }
+      renderOrders();
+      updateStats();
+      updateSyncStrip();
+    });
+}
+
+/* PROMPT 005: cache localStorage commandes */
+function loadOrdersFromCache(){
+  try { var v = localStorage.getItem(LS_ORDERS); return v ? JSON.parse(v) : null; } catch(e){ return null; }
+}
+
+/* PROMPT 005: Refresh bouton manuel */
+function manualRefresh(btn){
+  if (btn) { var svg=btn.querySelector('svg'); if(svg) svg.classList.add('spinning'); }
+  loadOrders();
+  loadPointageToday();
+  setTimeout(function(){ if(btn){var svg=btn.querySelector('svg');if(svg)svg.classList.remove('spinning');} }, 1200);
 }
 
 function filteredOrders(){
@@ -602,89 +798,242 @@ function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
    Attention : fmtXAF affiche "XAF", fmtMoney affiche "FCFA" — valider avec UX avant migration. */
 function fmtXAF(n){return new Intl.NumberFormat('fr-FR').format(Number(n)||0)+' XAF';}
 
+/* ══════════════════════════════════════════
+   PROMPT 005 — FILE D'ATTENTE ACTIONS OFFLINE
+══════════════════════════════════════════ */
+function getPendingActions(){
+  try { var v=localStorage.getItem(LS_ACTIONS); return v?JSON.parse(v):[]; } catch(e){ return []; }
+}
+function savePendingActions(arr){
+  try { localStorage.setItem(LS_ACTIONS, JSON.stringify(arr)); } catch(e){}
+}
+
+/* Ajouter une action à la file locale */
+function queueAction(type, orderId, payload){
+  var actions = getPendingActions();
+  actions.push({
+    id_local: Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    type: type,         // 'patch_order' | 'punch'
+    order_id: orderId,
+    payload: payload,
+    created_at: new Date().toISOString(),
+    retry_count: 0,
+    status_local: 'pending'
+  });
+  savePendingActions(actions);
+  updateSyncStrip();
+  toast('📝 Action enregistrée — sync dès retour connexion', 'err');
+}
+
+/* Rejouer les actions en attente */
+function syncPendingActions(){
+  var actions = getPendingActions();
+  if (!actions.length) { toast('✓ Aucune action en attente', 'ok'); return; }
+  if (!_online) { toast('📡 Hors ligne — sync impossible', 'err'); return; }
+  var remaining = [];
+  var done = 0;
+  var total = actions.length;
+  var promises = actions.map(function(a){
+    if (a.type === 'patch_order'){
+      return sbPatch('veraluz_food_orders', a.order_id, a.payload)
+        .then(function(){
+          done++;
+          /* Mettre à jour _orders en mémoire */
+          var o = _orders.find(function(x){ return x.id === a.order_id; });
+          if (o && a.payload.status) o.status = a.payload.status;
+          if (o && a.payload.delivery_photo_b64) o.delivery_photo_b64 = a.payload.delivery_photo_b64;
+        })
+        .catch(function(){
+          a.retry_count++;
+          if (a.retry_count < 5) remaining.push(a);
+        });
+    } else if (a.type === 'punch'){
+      return sbPost('veraluz_pointages', a.payload)
+        .then(function(){ done++; })
+        .catch(function(){
+          a.retry_count++;
+          if (a.retry_count < 5) remaining.push(a);
+        });
+    }
+    return Promise.resolve();
+  });
+  Promise.all(promises).then(function(){
+    savePendingActions(remaining);
+    updateSyncStrip();
+    renderOrders();
+    updateStats();
+    if (done > 0) toast('✅ '+done+'/'+total+' action(s) synchronisée(s)', 'ok');
+    else if (remaining.length) toast('⚠ '+remaining.length+' action(s) en échec', 'err');
+  });
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 005 — MESSAGES RAPIDES CLIENT
+══════════════════════════════════════════ */
+var MSG_TEMPLATES = [
+  {id:'en_route',  ico:'🛵', title:'En route',  text:'Bonjour, votre commande Veraluz est en route. Le livreur arrive bientôt.'},
+  {id:'arrive',    ico:'📍', title:'Arrivé',    text:'Bonjour, votre commande Veraluz est arrivée. Merci de vous rapprocher du point de réception.'},
+  {id:'livre',     ico:'✅', title:'Livré',     text:'Votre commande Veraluz a bien été livrée. Merci pour votre confiance.'},
+  {id:'retard',    ico:'⏳', title:'Retard',    text:'Bonjour, votre commande Veraluz aura un léger retard. Merci pour votre patience.'},
+];
+function openMsgMod(oid){
+  var o=_orders.find(function(x){return x.id===oid;});
+  if(!o)return;
+  _currentOrderId=oid;
+  document.getElementById('msg-client-name').textContent=o.client_name||o.customer_name||'Client';
+  var phone=o.client_phone||o.customer_phone||null;
+  var list=document.getElementById('msg-list');
+  list.innerHTML=MSG_TEMPLATES.map(function(t){
+    var safe=t.text.replace(/'/g,"\\'");
+    var wa=phone
+      ?'<a href="https://wa.me/'+encodeURIComponent((phone+'').replace(/\s/g,''))+'?text='+encodeURIComponent(t.text)+'" target="_blank" rel="noopener" class="msg-wa-btn">📱 WhatsApp</a>'
+      :'<button class="msg-wa-btn msg-copy-btn" onclick="sendOrCopyMsg(\''+safe+'\',null,this)">📋 Copier</button>';
+    return '<div class="msg-item"><div class="msg-item-title">'+t.ico+' '+escH(t.title)+'</div>'
+      +'<div class="msg-item-text">'+escH(t.text)+'</div>'+wa+'</div>';
+  }).join('');
+  document.getElementById('msgOv').classList.add('open');
+  document.getElementById('msgMod').classList.add('open');
+}
+
+function closeMsgMod(){
+  var ov=document.getElementById('msgOv');
+  var md=document.getElementById('msgMod');
+  if(ov)ov.classList.remove('open');
+  if(md)md.classList.remove('open');
+}
+
+/* PROMPT 005: WA ou clipboard */
+function sendOrCopyMsg(text,phone,btnEl){
+  if(phone){
+    window.open('https://wa.me/'+encodeURIComponent((phone+'').replace(/\s/g,''))+'?text='+encodeURIComponent(text),'_blank','noopener');
+  } else {
+    fallbackCopy(text);
+    if(btnEl){var orig=btnEl.textContent;btnEl.textContent='✅ Copié!';setTimeout(function(){btnEl.textContent=orig;},1800);}
+  }
+}
+
+function fallbackCopy(text){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).catch(function(){_execCopy(text);});
+  } else { _execCopy(text); }
+}
+function _execCopy(text){
+  var ta=document.createElement('textarea');
+  ta.value=text;ta.style.cssText='position:fixed;opacity:0';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);
+  toast('📋 Message copié','ok');
+}
+
+/* ══════════════════════════════════════════
+   RENDER ORDERS
+══════════════════════════════════════════ */
 function renderOrders(){
   var list=document.getElementById('order-list');
-  var orders=filteredOrders();
-  if(!orders.length){
-    var msgs={pickup:'Aucune commande prête à récupérer.',delivering:'Aucune livraison en cours.',done:'Aucune livraison terminée aujourd\'hui.'};
-    list.innerHTML='<div class="empty"><p>'+(msgs[_orderTab]||'Aucune commande.')+'</p></div>';
+  if(!list)return;
+  var rows=filteredOrders();
+  if(!rows.length){
+    list.innerHTML='<div style="padding:24px 16px;text-align:center;color:var(--muted)">Aucune commande dans cet onglet.</div>';
     return;
   }
-  list.innerHTML=orders.map(buildOrderCard).join('');
+  list.innerHTML=rows.map(buildOrderCard).join('');
 }
 
 function buildOrderCard(o){
-  var si=stepIdx(o.status);
-  var st=STATUSES.find(function(s){return s.id===o.status;})||STATUSES[0];
-  // Step bar
-  var stepsHtml=STEPS.map(function(s,i){
-    var done=i<si,cur=i===si;
-    var dc=done?'done':(cur?'cur':'');
-    return (i>0?'<div class="sp-seg '+(done?'done':'')+'"></div>':'')+
-      '<div class="sp-step"><div class="sp-dot '+dc+'">'+(done?'✓':(cur?'●':''))+'</div>'+
-      '<div class="sp-lbl '+dc+'">'+s.lbl+'</div></div>';
-  }).join('');
-  // Items
-  var items=[];
-  try{items=Array.isArray(o.items)?o.items:(o.items?JSON.parse(o.items):[]);}catch(e){}
-  var itemsHtml=items.map(function(it){
-    return '<div class="oc-item"><span>'+escH(it.name||it.nom||'')+(it.qty?' ×'+it.qty:'')+'</span><span>'+(it.price?fmtXAF(it.price):'')+'</span></div>';
-  }).join('');
-  var tm=o.created_at?new Date(o.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
-  var gpsHtml=o.delivery_lat&&o.delivery_lng?
-    '<a class="act-btn act-blue" href="https://maps.google.com/?q='+o.delivery_lat+','+o.delivery_lng+'" target="_blank">📍 GPS</a>':'';
-  var phoneHtml=o.customer_phone?
-    '<a class="act-btn" href="tel:'+o.customer_phone+'">📞 Appeler</a>':'';
-  var actionHtml='';
+  var statusLabel={
+    pending:'En attente',confirmed:'Confirmée',preparing:'En préparation',
+    ready:'Prête',out_for_delivery:'En livraison',delivered:'Livrée',cancelled:'Annulée'
+  }[o.status]||escH(String(o.status||''));
+
+  /* Items */
+  var itemsStr='';
+  try{
+    var arr=typeof o.items_json==='string'?JSON.parse(o.items_json):(o.items_json||[]);
+    if(Array.isArray(arr))itemsStr=arr.map(function(it){return escH(String(it.nom||it.name||''))+(it.qty?(' ×'+it.qty):'');}).filter(Boolean).join(', ');
+  }catch(e){itemsStr=escH(String(o.items||''));}
+
+  /* PROMPT 005: Maps — GPS prioritaire, sinon adresse texte */
+  var mapsHtml='';
+  if(o.delivery_lat&&o.delivery_lng){
+    mapsHtml='<a href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(o.delivery_lat+','+o.delivery_lng)+'" target="_blank" rel="noopener" class="act-btn act-maps">📍 Maps</a>';
+  }else if(o.delivery_address){
+    mapsHtml='<a href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(o.delivery_address)+'" target="_blank" rel="noopener" class="act-btn act-maps">📍 Maps</a>';
+  }
+
+  /* PROMPT 005: message rapide */
+  var msgHtml='<button class="act-btn act-orange" onclick="openMsgMod('+o.id+')">💬 Message</button>';
+
+  /* Actions selon statut */
+  var actHtml='';
   if(o.status==='ready'){
-    actionHtml='<button class="act-btn act-primary" onclick="openStatusMod(\''+o.id+'\')">🛵 Prendre en charge</button>';
-  } else if(o.status==='out_for_delivery'){
-    actionHtml='<button class="act-btn act-green" onclick="openPhotoMod(\''+o.id+'\')">✅ Confirmer livraison</button>';
+    actHtml='<button class="act-btn" onclick="pickStatus('+o.id+',\'out_for_delivery\',this)">🛵 Prendre en charge</button>';
+  }else if(o.status==='out_for_delivery'){
+    /* PROMPT 005: confirmation inline avant livraison */
+    actHtml='<button class="act-btn act-ok" id="act-deliver-'+o.id+'" onclick="confirmDeliveryPrompt('+o.id+',this)">✅ Livré</button>';
   }
-  // Photo proof for delivered orders
-  var photoProofHtml='';
+
+  /* Photo si livrée */
+  var photoHtml='';
   if(o.status==='delivered'&&o.delivery_photo_b64){
-    photoProofHtml='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
-      +'<div style="font-size:.68rem;font-weight:700;color:var(--green);margin-bottom:6px">📸 Preuve de livraison</div>'
-      +'<img src="'+o.delivery_photo_b64+'" alt="Preuve" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" onclick="openFullPhoto(this.src)" /></div>';
+    photoHtml='<div style="padding:6px 0"><img src="'+o.delivery_photo_b64+'" onclick="openFullPhoto(this.src)" style="max-width:100%;max-height:120px;border-radius:6px;cursor:zoom-in"></div>';
   }
-  var ini=((o.customer_name||'?')[0]).toUpperCase();
-  return '<div class="order-card">'
-    +'<div class="sp-bar">'+stepsHtml+'</div>'
-    +'<div class="oc-head"><span class="oc-num">#'+escH(String(o.order_ref||o.id||'').slice(-6).toUpperCase())+'</span><span class="oc-status '+st.cls+'">'+st.ico+' '+st.lbl+'</span></div>'
-    +'<div class="oc-body">'
-    +'<div class="oc-client"><div class="oc-av">'+ini+'</div><div><div class="oc-cn">'+escH(o.customer_name||'Client')+'</div>'+(o.customer_phone?'<div class="oc-cp">'+escH(o.customer_phone)+'</div>':'')+'</div></div>'
-    +(o.delivery_address?'<div class="oc-addr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><div class="oc-addr-t">'+escH(o.delivery_address)+(o.delivery_zone?'<div class="oc-addr-z">Zone: '+escH(o.delivery_zone)+'</div>':'')+'</div></div>':'')
-    +(itemsHtml?'<div class="oc-items">'+itemsHtml+'<div class="oc-total"><span>Total</span><span>'+fmtXAF(o.total_amount||0)+'</span></div></div>':'')
-    +(tm?'<div class="oc-time">🕐 '+tm+'</div>':'')
-    +'<div class="oc-actions">'+gpsHtml+phoneHtml+actionHtml+'</div>'
-    +photoProofHtml
-    +'</div></div>';
+
+  /* PROMPT 005: XSS — escH sur toutes les données utilisateur */
+  return '<div class="order-card" id="oc-'+o.id+'">'
+    +'<div class="oc-header">'
+    +'<span class="oc-id">#'+escH(String(o.order_number||o.id||''))+'</span>'
+    +'<span class="oc-status status-'+escH(o.status||'')+'">'+escH(statusLabel)+'</span>'
+    +'</div>'
+    +'<div class="oc-client">👤 '+escH(String(o.client_name||o.customer_name||'Client'))+'</div>'
+    +(o.delivery_address?'<div class="oc-addr">📍 '+escH(String(o.delivery_address))+'</div>':'')
+    +(itemsStr?'<div class="oc-items">🍽 '+escH(itemsStr)+'</div>':'')
+    +(o.note?'<div class="oc-note">📝 '+escH(String(o.note))+'</div>':'')
+    +(o.total_price?'<div class="oc-note" style="color:var(--accent)">💰 '+fmtXAF(o.total_price)+'</div>':'')
+    +photoHtml
+    +'<div class="oc-actions">'+mapsHtml+msgHtml+actHtml+'</div>'
+    +'</div>';
+}
+
+/* PROMPT 005: confirmation inline avant livraison */
+function confirmDeliveryPrompt(oid,btnEl){
+  _currentOrderId=oid;
+  var card=document.getElementById('oc-'+oid);
+  if(!card)return;
+  var existing=card.querySelector('.delivery-confirm-box');
+  if(existing){existing.remove();return;}
+  var box=document.createElement('div');
+  box.className='delivery-confirm-box';
+  box.innerHTML='<span>Confirmer la livraison ?</span>'
+    +'<button onclick="confirmDeliveryNoPhoto()">✅ Oui</button>'
+    +'<button onclick="openPhotoMod('+oid+')">📸 Avec photo</button>'
+    +'<button onclick="this.closest(\'.delivery-confirm-box\').remove()">✗ Annuler</button>';
+  if(btnEl&&btnEl.parentNode)btnEl.parentNode.insertBefore(box,btnEl.nextSibling);
+  else card.appendChild(box);
 }
 
 function openFullPhoto(src){
   var ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px';
-  ov.onclick=function(){document.body.removeChild(ov);};
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
   var img=document.createElement('img');
-  img.src=src;
-  img.style.cssText='max-width:100%;max-height:100%;border-radius:8px;object-fit:contain';
+  img.src=src;img.style.cssText='max-width:95vw;max-height:90vh;border-radius:8px';
   ov.appendChild(img);
+  ov.onclick=function(){document.body.removeChild(ov);};
   document.body.appendChild(ov);
 }
 
 /* ══════════════════════════════════════════
-   STATUS MODAL
+   MODALS
 ══════════════════════════════════════════ */
 function openStatusMod(oid){
-  _curId=oid;
+  _currentOrderId=oid;
   var o=_orders.find(function(x){return x.id===oid;});
-  if(!o) return;
-  var si=stepIdx(o.status);
-  var list=document.getElementById('spickList');
-  list.innerHTML=STATUSES.map(function(s,i){
-    var past=i<si,cur=i===si;
-    return '<button class="spick-btn'+(cur?' cur':'')+(past?' past':'')+'" onclick="pickStatus(\''+s.id+'\')">'+s.ico+' <span>'+s.lbl+'</span></button>';
+  if(!o)return;
+  var STATUSES=['pending','confirmed','preparing','ready','out_for_delivery','delivered','cancelled'];
+  var LABELS={pending:'En attente',confirmed:'Confirmée',preparing:'En préparation',ready:'Prête',out_for_delivery:'En livraison',delivered:'Livrée',cancelled:'Annulée'};
+  var ul=document.getElementById('spickList');
+  ul.innerHTML=STATUSES.map(function(s){
+    return '<li class="status-opt'+(s===o.status?' active':'')+'" onclick="pickStatus('+oid+',\''+s+'\',this)">'+escH(LABELS[s])+'</li>';
   }).join('');
   document.getElementById('mOv').classList.add('open');
   document.getElementById('statusMod').classList.add('open');
@@ -695,166 +1044,256 @@ function closeMod(){
   document.getElementById('statusMod').classList.remove('open');
   document.getElementById('photoOv').classList.remove('open');
   document.getElementById('photoMod').classList.remove('open');
+  /* PROMPT 005 */
+  closeMsgMod();
 }
 
-function pickStatus(sid){
-  if(!_curId) return;
-  sbPatch('veraluz_food_orders',_curId,{status:sid})
+function pickStatus(oid,status,elBtn){
+  if(elBtn)elBtn.disabled=true;
+  /* PROMPT 005: mise à jour optimiste immédiate */
+  var o=_orders.find(function(x){return x.id===oid;});
+  if(o){o.status=status;renderOrders();updateStats();}
+  closeMod();
+  sbPatch('veraluz_food_orders',oid,{status:status})
     .then(function(){
-      var o=_orders.find(function(x){return x.id===_curId;});
-      if(o) o.status=sid;
-      closeMod();
-      renderOrders();
-      updateStats();
-      toast('Statut mis à jour','ok');
+      _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      updateSyncStrip();
+      toast('Statut → '+status,'ok');
     })
-    .catch(function(){toast('Erreur mise à jour','err');});
+    .catch(function(){
+      /* PROMPT 005: file d'attente */
+      queueAction('patch_order',oid,{status:status});
+    });
 }
 
 /* ══════════════════════════════════════════
    PHOTO PROOF MODAL
 ══════════════════════════════════════════ */
-var _photob64=null;
+var _photoB64=null;
 
 function openPhotoMod(oid){
-  _curId=oid;
-  _photob64=null;
-  document.getElementById('photoPreview').classList.remove('show');
-  document.getElementById('photoPreview').src='';
-  document.getElementById('photoStatusLbl').classList.remove('show');
-  document.getElementById('photoZone').classList.remove('has-photo');
-  document.getElementById('photoInput').value='';
+  if(oid)_currentOrderId=oid;
+  _photoB64=null;
+  var prev=document.getElementById('photoPreview');
+  if(prev){prev.src='';prev.style.display='none';}
+  var lbl=document.getElementById('photoStatusLbl');
+  if(lbl)lbl.style.display='none';
+  var inp=document.getElementById('photoInput');
+  if(inp)inp.value='';
+  /* Fermer confirmation inline si présente */
+  var box=document.querySelector('.delivery-confirm-box');
+  if(box)box.remove();
   document.getElementById('photoOv').classList.add('open');
   document.getElementById('photoMod').classList.add('open');
 }
 
-function cancelPhoto(){closeMod();}
-
-function onPhotoSelected(input){
-  if(!input.files||!input.files[0]) return;
+function onPhotoSelected(inp){
+  if(!inp.files||!inp.files[0])return;
   var reader=new FileReader();
   reader.onload=function(e){
-    var img2=new Image();
-    img2.onload=function(){
-      var canvas=document.createElement('canvas');
-      var maxW=800,maxH=800,w=img2.width,h=img2.height;
-      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
-      if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
-      canvas.width=w;canvas.height=h;
-      canvas.getContext('2d').drawImage(img2,0,0,w,h);
-      _photob64=canvas.toDataURL('image/jpeg',0.72);
-      var prev=document.getElementById('photoPreview');
-      prev.src=_photob64;
-      prev.classList.add('show');
-      document.getElementById('photoStatusLbl').classList.add('show');
-      document.getElementById('photoZone').classList.add('has-photo');
-    };
-    img2.src=e.target.result;
+    _photoB64=e.target.result;
+    var prev=document.getElementById('photoPreview');
+    if(prev){prev.src=_photoB64;prev.style.display='block';}
+    var lbl=document.getElementById('photoStatusLbl');
+    if(lbl)lbl.style.display='block';
   };
-  reader.readAsDataURL(input.files[0]);
+  reader.readAsDataURL(inp.files[0]);
 }
 
+function cancelPhoto(){
+  _photoB64=null;
+  closeMod();
+}
+
+/* PROMPT 005: livraison AVEC photo — optimiste + queue */
 function confirmDeliveryWithPhoto(){
-  if(!_curId) return;
-  var data={status:'delivered'};
-  if(_photob64) data.delivery_photo_b64=_photob64;
-  sbPatch('veraluz_food_orders',_curId,data)
+  var oid=_currentOrderId;
+  var photo=_photoB64;
+  closeMod();
+  var o=_orders.find(function(x){return x.id===oid;});
+  if(o){o.status='delivered';if(photo)o.delivery_photo_b64=photo;renderOrders();updateStats();}
+  var payload={status:'delivered'};
+  if(photo)payload.delivery_photo_b64=photo;
+  sbPatch('veraluz_food_orders',oid,payload)
     .then(function(){
-      var o=_orders.find(function(x){return x.id===_curId;});
-      if(o){o.status='delivered';if(_photob64)o.delivery_photo_b64=_photob64;}
-      closeMod();renderOrders();updateStats();
-      toast('Livraison confirmée ✓','ok');
+      _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      updateSyncStrip();
+      toast('✅ Livraison + photo confirmées','ok');
     })
-    .catch(function(){toast('Erreur confirmation','err');});
+    .catch(function(){queueAction('patch_order',oid,payload);});
+  _photoB64=null;
 }
 
+/* PROMPT 005: livraison SANS photo — optimiste + queue */
 function confirmDeliveryNoPhoto(){
-  if(!_curId) return;
-  sbPatch('veraluz_food_orders',_curId,{status:'delivered'})
+  var oid=_currentOrderId;
+  closeMod();
+  var box=document.querySelector('.delivery-confirm-box');
+  if(box)box.remove();
+  var o=_orders.find(function(x){return x.id===oid;});
+  if(o){o.status='delivered';renderOrders();updateStats();}
+  sbPatch('veraluz_food_orders',oid,{status:'delivered'})
     .then(function(){
-      var o=_orders.find(function(x){return x.id===_curId;});
-      if(o) o.status='delivered';
-      closeMod();renderOrders();updateStats();
-      toast('Livraison confirmée','ok');
+      _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      updateSyncStrip();
+      toast('✅ Livraison confirmée','ok');
     })
-    .catch(function(){toast('Erreur confirmation','err');});
+    .catch(function(){queueAction('patch_order',oid,{status:'delivered'});});
 }
 
 /* ══════════════════════════════════════════
    POINTAGE
 ══════════════════════════════════════════ */
-var _clockInterval=null;
+var _punchInterval=null;
+
 function startClock(){
   function tick(){
     var now=new Date();
-    document.getElementById('punch-clock').textContent=now.toLocaleTimeString('fr-FR');
-    document.getElementById('punch-date-lbl').textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+    var cl=document.getElementById('punch-clock');
+    if(cl)cl.textContent=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    var dl=document.getElementById('punch-date-lbl');
+    if(dl)dl.textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
   }
   tick();
-  _clockInterval=setInterval(tick,1000);
+  if(_punchInterval)clearInterval(_punchInterval);
+  _punchInterval=setInterval(tick,1000);
 }
 
 function doPunch(type){
-  if(!LIVREUR_ACTIF) return;
-  var payload={employe_id:LIVREUR_ACTIF.id,type:type,timestamp_pt:new Date().toISOString()};
-  if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(
-      function(pos){payload.lat=pos.coords.latitude;payload.lng=pos.coords.longitude;savePunch(payload);},
-      function(){savePunch(payload);},{timeout:5000}
-    );
-  } else {savePunch(payload);}
+  if(!LIVREUR_ACTIF)return;
+  var now=new Date();
+  var payload={
+    employee_id:LIVREUR_ACTIF.id,
+    type:type,
+    punched_at:now.toISOString(),
+    date:now.toISOString().slice(0,10),
+    note:''
+  };
+  /* Feedback UI immédiat */
+  var statusEl=document.getElementById('punch-status-lbl');
+  if(statusEl){
+    if(type==='arrivee'){statusEl.textContent='En service';statusEl.className='punch-status in';}
+    else{statusEl.textContent='Hors service';statusEl.className='punch-status out';}
+  }
+  var btnA=document.getElementById('btn-arrive');
+  var btnD=document.getElementById('btn-depart');
+  if(type==='arrivee'){if(btnA)btnA.disabled=true;if(btnD)btnD.disabled=false;}
+  else{if(btnA)btnA.disabled=false;if(btnD)btnD.disabled=true;}
+  savePunch(payload);
 }
 
+/* PROMPT 005: savePunch avec file d'attente offline */
 function savePunch(payload){
   sbPost('veraluz_pointages',payload)
     .then(function(){
-      toast(payload.type==='arrivee'?'Arrivée enregistrée ✓':'Départ enregistré ✓','ok');
+      toast('✅ Pointage enregistré','ok');
       loadPointageToday();
     })
-    .catch(function(){toast('Erreur pointage','err');});
+    .catch(function(){
+      /* PROMPT 005: file d'attente offline */
+      queueAction('punch',null,payload);
+      toast('📝 Pointage en attente (sync au retour connexion)','err');
+    });
 }
 
 function loadPointageToday(){
-  if(!LIVREUR_ACTIF) return;
+  if(!LIVREUR_ACTIF)return;
   var today=new Date().toISOString().slice(0,10);
-  sbFetch('veraluz_pointages?employe_id=eq.'+LIVREUR_ACTIF.id+'&timestamp_pt=gte.'+today+'T00:00:00&order=timestamp_pt.asc')
-    .then(function(rows){_pointages=rows;renderPointageToday();})
-    .catch(function(){});
+  sbFetch('veraluz_pointages?employee_id=eq.'+LIVREUR_ACTIF.id+'&date=eq.'+today+'&order=punched_at.asc')
+    .then(function(rows){_pointages=rows||[];renderPointageToday();})
+    .catch(function(){_pointages=[];renderPointageToday();});
 }
 
 function renderPointageToday(){
-  var rows=_pointages;
-  var lastType=rows.length?rows[rows.length-1].type:null;
-  var isIn=lastType==='arrivee';
-  document.getElementById('btn-arrive').disabled=isIn;
-  document.getElementById('btn-depart').disabled=!isIn;
-  var sl=document.getElementById('punch-status-lbl');
-  sl.textContent=isIn?'En service':'Hors service';
-  sl.className='punch-status '+(isIn?'in':'out');
-  var totalMs=0,arriveeTs=null;
-  rows.forEach(function(r){
-    if(r.type==='arrivee'){arriveeTs=new Date(r.timestamp_pt);}
-    else if(r.type==='depart'&&arriveeTs){totalMs+=new Date(r.timestamp_pt)-arriveeTs;arriveeTs=null;}
-  });
-  if(arriveeTs&&isIn) totalMs+=Date.now()-arriveeTs;
-  var totalMin=Math.floor(totalMs/60000),hrs=Math.floor(totalMin/60),mins=totalMin%60;
-  var sumEl=document.getElementById('punch-summary');
-  if(rows.length>0){sumEl.style.display='';document.getElementById('punch-hrs').textContent=hrs+'h '+mins+'min';}
-  else{sumEl.style.display='none';}
-  var hist=document.getElementById('punch-hist-list');
-  if(!rows.length){hist.innerHTML='<div class="empty"><p>Aucun pointage aujourd\'hui.</p></div>';return;}
-  hist.innerHTML=rows.map(function(r){
-    var isA=r.type==='arrivee';
-    var ts=new Date(r.timestamp_pt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    return '<div class="punch-entry">'
-      +'<div class="punch-entry-ico '+(isA?'in':'out')+'">'+(isA?'✅':'🚪')+'</div>'
-      +'<div class="punch-entry-body"><div class="punch-entry-type">'+(isA?'Arrivée':'Départ')+'</div>'
-      +'<div class="punch-entry-time">'+ts+'</div></div></div>';
+  var el=document.getElementById('punch-hist-list');
+  if(!el)return;
+  if(!_pointages||!_pointages.length){
+    el.innerHTML='<div class="empty"><p>Aucun pointage aujourd\'hui.</p></div>';
+    var sumEl=document.getElementById('punch-summary');
+    if(sumEl)sumEl.style.display='none';
+    return;
+  }
+  el.innerHTML=_pointages.map(function(p){
+    var ico=p.type==='arrivee'?'🟢':p.type==='depart'?'🔴':'⏸';
+    var label=p.type==='arrivee'?'Arrivée':p.type==='depart'?'Départ':escH(String(p.type||''));
+    var time=p.punched_at?new Date(p.punched_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'--:--';
+    return '<div class="punch-item"><span>'+ico+' '+escH(label)+'</span><span>'+escH(time)+'</span></div>';
   }).join('');
+  /* Calcul heures travaillées */
+  var arrivees=_pointages.filter(function(p){return p.type==='arrivee';});
+  var departs=_pointages.filter(function(p){return p.type==='depart';});
+  if(arrivees.length&&departs.length){
+    var firstIn=new Date(arrivees[0].punched_at).getTime();
+    var lastOut=new Date(departs[departs.length-1].punched_at).getTime();
+    var diffMin=Math.floor(Math.max(0,lastOut-firstIn)/60000);
+    var hrsEl=document.getElementById('punch-hrs');
+    var sumEl=document.getElementById('punch-summary');
+    if(hrsEl)hrsEl.textContent=Math.floor(diffMin/60)+'h '+(diffMin%60)+'min';
+    if(sumEl)sumEl.style.display='flex';
+  }
+  /* Boutons selon dernier état */
+  var last=_pointages[_pointages.length-1];
+  var statusEl=document.getElementById('punch-status-lbl');
+  var btnA=document.getElementById('btn-arrive');
+  var btnD=document.getElementById('btn-depart');
+  if(last&&last.type==='arrivee'){
+    if(statusEl){statusEl.textContent='En service';statusEl.className='punch-status in';}
+    if(btnA)btnA.disabled=true;if(btnD)btnD.disabled=false;
+  }else{
+    if(statusEl){statusEl.textContent='Hors service';statusEl.className='punch-status out';}
+    if(btnA)btnA.disabled=false;if(btnD)btnD.disabled=true;
+  }
 }
 
 /* ══════════════════════════════════════════
    PROFIL
 ══════════════════════════════════════════ */
 function renderProfil(){
-  if(!LIVREUR_ACTIF) 
+  if(!LIVREUR_ACTIF)return;
+  var el=document.getElementById('profil-body');
+  if(!el)return;
+  el.innerHTML='<div style="padding:16px">'
+    +'<div style="font-size:1.3rem;font-weight:700;margin-bottom:4px">'+escH(LIVREUR_ACTIF.prenom+' '+LIVREUR_ACTIF.nom)+'</div>'
+    +'<div style="color:var(--muted);margin-bottom:12px">'+escH(LIVREUR_ACTIF.role||'Livreur')+'</div>'
+    +(LIVREUR_ACTIF.telephone?'<div style="margin-bottom:8px">📞 '+escH(LIVREUR_ACTIF.telephone)+'</div>':'')
+    +(LIVREUR_ACTIF.email?'<div style="margin-bottom:8px">✉️ '+escH(LIVREUR_ACTIF.email)+'</div>':'')
+    +'<button class="act-btn" style="margin-top:20px;background:var(--bg3);color:var(--tx);border:1px solid var(--border)" onclick="logout()">🚪 Déconnexion</button>'
+    +'</div>';
+}
+
+/* ══════════════════════════════════════════
+   LOGOUT
+══════════════════════════════════════════ */
+function logout(){
+  LIVREUR_ACTIF=null;_orders=[];_pointages=[];
+  _pinBuffer='';_currentOrderId=null;_photoB64=null;_lastSync=null;
+  if(_interval){clearInterval(_interval);_interval=null;}
+  if(_punchInterval){clearInterval(_punchInterval);_punchInterval=null;}
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('pin-screen').classList.remove('hidden');
+  document.getElementById('pin-livreur-sel').value='';
+  document.getElementById('pin-err').textContent='';
+  renderPinDots();
+  updateNetworkBadge();
+}
+
+/* ══════════════════════════════════════════
+   TODO PWA VERALUZ: ajouter manifest.json
+   TODO PWA VERALUZ: ajouter service worker pour cache offline
+   TODO PWA VERALUZ: préparer installation sur téléphone
+   TODO PWA VERALUZ: utiliser Background Sync API si supporté
+══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',function(){
+  buildPinPad();
+  loadLivreurs();
+  renderPinDots();
+  /* PROMPT 005: init réseau avant login pour badge visuel */
+  updateNetworkBadge();
+});
+</script>
+</body>
+</html>
