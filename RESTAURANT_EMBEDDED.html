@@ -413,8 +413,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
           <div class="cacts">
             <button class="btn bg bs" onclick="clearCart()" style="flex:1">&#128465;</button>
             <button class="btn bw bs" onclick="openPickTbl()" style="flex:1">&#128203; Table</button>
-            <button class="btn bw bs" onclick="openPickChambre()" style="flex:1" id="btn-pick-chambre">&#127974; Chambre</button>
-            <button class="btn bw bs" onclick="openPickLivraison()" style="flex:1" id="btn-pick-livraison">&#128666; Livraison</button>
+            <button class="btn bw bs" onclick="openPickChambre()" style="flex:1" id="btn-pick-chambre" title="Facturer &#224; une chambre h&#244;tel">&#127974; Chambre</button>
             <button id="send-btn" class="btn bp bs" onclick="sendKitchen()" style="flex:2">&#9989; Envoyer en cuisine</button>
           </div>
         </div>
@@ -747,19 +746,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);
         <div class="fg"><label class="fl">Disponible</label>
           <select class="fs" id="prod-av"><option value="true">Oui</option><option value="false">Non</option></select></div>
       </div>
-      <div class="fg">
-        <label class="fl">Image du plat (URL ou base64)</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input class="fi" id="prod-img" type="text" placeholder="https://... ou laissez vide" style="flex:1">
-          <label style="cursor:pointer;background:var(--bg3);border:1px solid var(--bord);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--text2);flex-shrink:0">
-            &#128247; Parcourir
-            <input type="file" accept="image/*" style="display:none" onchange="loadProdImgFile(this)">
-          </label>
-        </div>
-        <div id="prod-img-preview" style="margin-top:6px;display:none">
-          <img id="prod-img-thumb" style="width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--bord)" src="">
-        </div>
-      </div>
     </div>
     <div class="mdf">
       <button class="btn bd bs" id="prod-del" onclick="delProd()" style="display:none">&#128465;</button>
@@ -904,6 +890,38 @@ var payMeth='cash',payOid=null;
 var _tt=null;
 var APP_PROMOS=[], _appSub='promos';
 var LIVREURS=[], _assignOid=null;
+
+/* ══════════════════════════════════════════
+   NORMALIZE UTILS — P0 FIX
+══════════════════════════════════════════ */
+/* Mappe veraluz_employees → format prenom/nom attendu par kdsAssignLivreur() */
+function normalizeEmployee(row) {
+  var parts = (row.full_name || '').trim().split(' ');
+  return {
+    id:        row.id,
+    prenom:    parts[0] || '',
+    nom:       parts.slice(1).join(' ') || '',
+    full_name: row.full_name || '',
+    pin_code:  row.pin_code || '',
+    poste:     row.role || '',
+    vehicule:  row.vehicule || '',
+    phone:     row.phone || '',
+    email:     row.email || ''
+  };
+}
+/* Compatibilité ascendante statuts food — anciens statuts français → canoniques */
+function normalizeOrderStatus(status) {
+  var map = {
+    'attente':'pending',       'pending':'pending',
+    'confirme':'pending',      'confirmed':'pending',
+    'preparing':'preparing',   'preparation':'preparing',  'en_preparation':'preparing',
+    'ready':'ready',           'pret':'ready',
+    'delivering':'delivering', 'en_livraison':'delivering','out_for_delivery':'delivering',
+    'delivered':'delivered',   'livre':'delivered',        'recu':'delivered', 'paye':'delivered',
+    'cancelled':'cancelled',   'annule':'cancelled',       'canceled':'cancelled'
+  };
+  return map[String(status || '').toLowerCase()] || 'pending';
+}
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(n){return Number(n||0).toLocaleString('fr-FR')+' FCFA';}
@@ -1091,8 +1109,7 @@ function goTab(t){
   if(t==='rs')renderRS();
   if(t==='ventes')goVnt(curVnt,null);
   if(t==='resa')renderResa();
-  if(t==='stock')goStk(curStk,null)
-  if(t==='adm')renderAdmApp();;
+  if(t==='stock')goStk(curStk,null);
   if(t==='admin')goAdm(curAdm,null);
 }
 
@@ -1111,11 +1128,16 @@ function loadAll(){
     _safe(GET('/rest/v1/veraluz_room_charges?select=*&settled=eq.false&order=created_at.desc')),
     _safe(GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50')),
     _safe(GET('/rest/v1/veraluz_food_promotions?select=*&order=created_at.desc')),
-    _safe(GET('/rest/v1/veraluz_rh_employes?equipe=eq.livreur&actif=eq.true&order=nom.asc')),
+    /* P0 FIX: veraluz_employees (table officielle) + join equipe */
+    _safe(GET('/rest/v1/veraluz_employees?select=id,full_name,role,pin_code,status,phone,email,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')),
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
     RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];APP_PROMOS=r[9]||[];
-    LIVREURS=r[10]||[];
+    /* Filtre livreurs par nom d'équipe + normalise colonnes */
+    LIVREURS=(r[10]||[]).filter(function(row){
+      var tname=((row.team&&row.team.name)||'').toLowerCase();
+      return tname.includes('livr')||tname.includes('delivery');
+    }).map(normalizeEmployee);
     buildSecFilt();renderTables();buildMenu();updateBdg();
     loadMvts();loadSOs();
     if(curTab==='resa')renderResa();
@@ -1337,7 +1359,7 @@ function confirmPick(){
 }
 
 /* Send to kitchen */
-function _sendKitchenInternal(){
+function sendKitchen(){
   if(!CART.length){toast('Panier vide','er');return;}
   /* Anti-409 : check mémoire locale d'abord */
   if(!cartOrd&&cartTbl&&cartTbl.id&&!cartTbl.id.startsWith('room_')&&!cartTbl.id.startsWith('guest_')){
@@ -1506,13 +1528,14 @@ function buildKdsUnified(){
       created_at:o.created_at,payStatus:null,phone:'',zone:''
     });
   });
-  /* Food web app orders */
+  /* Food web app orders — P0 FIX: normalise statuts pour compatibilité ascendante */
   var skipFood=['delivered','cancelled'];
   FOOD_ORDERS.forEach(function(o){
-    if(skipFood.indexOf(o.status)>-1)return;
+    var ns=normalizeOrderStatus(o.status);
+    if(skipFood.indexOf(ns)>-1)return;
     var dt=o.delivery_type||'pickup';
     var src=dt==='delivery'?'livraison':dt==='room'?'room':dt==='lounge'?'lounge':'place';
-    var kst=o.status==='pending'?'new':o.status==='preparing'?'prep':o.status==='ready'?'ready':o.status==='delivering'?'handed':'new';
+    var kst=ns==='pending'?'new':ns==='preparing'?'prep':ns==='ready'?'ready':ns==='delivering'?'handed':'new';
     var items=[];
     try{items=typeof o.items==='string'?JSON.parse(o.items):(o.items||[]);}catch(e){}
     unified.push({
@@ -1629,11 +1652,6 @@ function kdsCard(o){
     }else if(o._kst==='handed')
       acts='<button class="btn bg bs" style="flex:1;font-size:10px;color:var(--text3)" data-id="'+o._id+'" data-st="delivered" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Confirm&#233;e</button>';
   }
-  // Bouton reçu imprimable dès que prêt
-  var receiptBtn='';
-  if(o._kst==='ready'||o._kst==='handed'||o._kst==='done'){
-    receiptBtn='<button class="btn bw bs" style="width:100%;font-size:11px;margin-top:6px;gap:5px" data-id="'+o._id+'" data-tbl="'+o._table+'" onclick="printKdsReceipt(this.dataset.id,this.dataset.tbl)">&#128203; Imprimer le re&#231;u</button>';
-  }
   return '<div class="kc2">'
     +'<div class="kc2-stripe '+sCls+'"></div>'
     +'<div class="kc2-top">'
@@ -1647,201 +1665,7 @@ function kdsCard(o){
     +'<div class="kc2-prog">'+progBar+'</div>'
     +'<div class="kc2-prog-lbl">'+( STEP_LBL[si]||'')+'</div>'
     +'<div class="kc2-acts">'+acts+'</div>'
-    +receiptBtn
     +'</div>';
-}
-
-
-
-/* LIVRAISON TELEPHONIQUE */
-var _livClient={name:'',phone:'',addr:'',livId:null,livName:'',pay:'cash'};
-function openPickLivraison(){
-  var sel=document.getElementById('liv-livreur-sel');
-  if(sel){sel.innerHTML='<option value="">— Assigner plus tard —</option>'+(LIVREURS||[]).map(function(l){return '<option value="'+l.id+'">'+esc((l.prenom||'')+' '+(l.nom||''))+'</option>';}).join('');if(_livClient.livId)sel.value=_livClient.livId;}
-  var n=document.getElementById('liv-client-name');if(n)n.value=_livClient.name;
-  var p=document.getElementById('liv-client-phone');if(p)p.value=_livClient.phone;
-  var a=document.getElementById('liv-client-addr');if(a)a.value=_livClient.addr;
-  openMd('md-livraison');
-}
-function confirmPickLivraison(){
-  var name=(document.getElementById('liv-client-name')||{value:''}).value.trim();
-  var phone=(document.getElementById('liv-client-phone')||{value:''}).value.trim();
-  var addr=(document.getElementById('liv-client-addr')||{value:''}).value.trim();
-  if(!name||!phone){toast('Nom et telephone requis','err');return;}
-  var sel=document.getElementById('liv-livreur-sel');
-  var livId=sel?sel.value:'';
-  var lObj=(LIVREURS||[]).find(function(l){return l.id===livId;})||{prenom:'',nom:''};
-  var payEl=document.querySelector('input[name="liv-pay"]:checked');
-  _livClient={name:name,phone:phone,addr:addr,livId:livId||null,livName:livId?((lObj.prenom||'')+' '+(lObj.nom||'')).trim():'',pay:payEl?payEl.value:'cash'};
-  cartType='livraison';
-  cartTbl={id:'tel_'+Date.now(),name:'Livraison '+name};
-  var sub=document.getElementById('cart-sub');if(sub)sub.textContent='Livraison - '+name+(phone?' - '+phone:'');
-  var title=document.getElementById('cart-title');if(title)title.textContent='Commande telephonique';
-  closeMd('md-livraison');
-  toast('Client: '+name+' - mode livraison','ok');
-}
-function sendKitchen(){
-  if(cartType==='livraison'){_sendLivraisonTel();}else{_sendKitchenInternal();}
-}
-function _sendLivraisonTel(){
-  if(!CART.length){toast('Panier vide','err');return;}
-  if(!_livClient.name||!_livClient.phone){toast('Infos client manquantes','err');return;}
-  var num='VLZ-TEL-'+Date.now().toString().slice(-6);
-  var items=CART.map(function(c){return{name:c.p.name,price:c.p.price,qty:c.q};});
-  var sub=cartTot();
-  POST('veraluz_food_orders',{order_number:num,customer_name:_livClient.name,customer_phone:_livClient.phone,
-    address:_livClient.addr,delivery_type:'delivery',payment_method:_livClient.pay,payment_status:'pay_on_delivery',
-    items:JSON.stringify(items),subtotal:sub,delivery_fee:1000,total:sub+1000,status:'preparing',source:'restaurant-tel',
-    notes:document.getElementById('cnote').value.trim()||null,livreur_id:_livClient.livId||null,assigned_to:_livClient.livName||null
-  }).then(function(res){
-    var saved=res&&res[0]?res[0]:{};
-    if(!FOOD_ORDERS)FOOD_ORDERS=[];FOOD_ORDERS.unshift(saved);
-    clearCart();cartType='table';_livClient={name:'',phone:'',addr:'',livId:null,livName:'',pay:'cash'};
-    var s=document.getElementById('cart-sub');if(s)s.textContent='Aucune table';
-    var t=document.getElementById('cart-title');if(t)t.textContent='Nouvelle commande';
-    updateBdg();renderKDS();toast('Livraison #'+num+' en cuisine','ok');
-  }).catch(function(e){toast('Erreur: '+e,'er');});
-}
-
-/* ══════════════════════════════════════════════════════════
-   REÇU IMPRIMABLE — Cuisine / KDS
-   Déclenché quand commande = ready / handed / done
-   Accessible aussi depuis l'onglet Ventes
-══════════════════════════════════════════════════════════ */
-function printKdsReceipt(oid,tbl){
-  // Récupérer la commande complète depuis Supabase
-  var table=tbl==='food'?'veraluz_food_orders':'veraluz_restaurant_orders';
-  GET('/rest/v1/'+table+'?id=eq.'+oid+'&select=*')
-    .then(function(rows){
-      if(!rows||!rows.length){toast('Commande introuvable','err');return;}
-      openReceiptWindow(rows[0],tbl);
-    }).catch(function(){
-      // Fallback: chercher dans les données en mémoire
-      var o=(tbl==='food'?FOOD_ORDERS:ORDERS).find(function(x){return String(x.id)===String(oid);});
-      if(o)openReceiptWindow(o,tbl);
-      else toast('Impossible de charger le reçu','err');
-    });
-}
-
-function openReceiptWindow(o,tbl){
-  var now=new Date();
-  var dateStr=now.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
-  var timeStr=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  var orderNum=o.order_number||o.id||'—';
-  var clientName=o.customer_name||o.client_name||'Client sur place';
-  var clientPhone=o.customer_phone||o.client_phone||'';
-  var mode=(function(){
-    var m={delivery:'Livraison',room:'Room Service',lounge:'Lounge',pickup:'À emporter',place:'Sur Place'};
-    return m[o.delivery_type]||m[o.type]||'Sur Place';
-  })();
-  var zone=o.delivery_zone||'';
-  var address=o.address||'';
-  var payMethod=o.payment_method||'cash';
-  var payStatus=o.payment_status||'pay_on_delivery';
-  var payLabels={cash:'Espèces',mobile_money:'Mobile Money',card:'Carte',cinetpay:'CinetPay',pay_on_delivery:'À la livraison'};
-  var payStatusLabels={paid:'✓ PAYÉ','pay_on_delivery':'À payer','pending':'En attente','failed':'Échec'};
-  var notes=o.notes||'';
-  var assignedTo=o.assigned_to||'';
-
-  // Items
-  var items=[];
-  try{
-    var raw=o.items_json||o.items||'[]';
-    items=typeof raw==='string'?JSON.parse(raw):raw;
-  }catch(e){}
-  var subtotal=o.subtotal||0;
-  var deliveryFee=o.delivery_fee||0;
-  var total=o.total||(subtotal+deliveryFee);
-
-  var itemsHtml=items.map(function(it){
-    var qty=it.qty||it.quantity||1;
-    var name=it.name||it.product_name||'Article';
-    var price=it.price||it.unit_price||0;
-    var lineTotal=qty*(price||0);
-    return '<tr>'
-      +'<td style="padding:4px 0;font-size:12px">'+escHtml(name)+'</td>'
-      +'<td style="text-align:center;padding:4px 6px;font-size:12px;color:#666">'+qty+'</td>'
-      +(price?'<td style="text-align:right;padding:4px 0;font-size:12px">'+fmtF(price)+'</td>':'<td></td>')
-      +(price?'<td style="text-align:right;padding:4px 0;font-size:12px;font-weight:600">'+fmtF(lineTotal)+'</td>':'<td></td>')
-      +'</tr>';
-  }).join('');
-  if(!itemsHtml)itemsHtml='<tr><td colspan="4" style="color:#999;font-style:italic;padding:6px 0">Détails non disponibles</td></tr>';
-
-  function fmtF(n){return Number(n).toLocaleString('fr-FR')+' F';}
-  function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-  var html='<!DOCTYPE html><html lang="fr"><head>'
-    +'<meta charset="UTF-8">'
-    +'<title>Reçu '+escHtml(orderNum)+' — Veraluz Food</title>'
-    +'<style>'
-    +'*{box-sizing:border-box;margin:0;padding:0}'
-    +'body{font-family:system-ui,Arial,sans-serif;background:#f5f5f5;padding:20px}'
-    +'.receipt{max-width:320px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.15)}'
-    +'.rcp-header{background:#1a1a0f;color:#f0c040;text-align:center;padding:18px 16px}'
-    +'.rcp-logo{font-size:16px;font-weight:900;letter-spacing:2px}'
-    +'.rcp-sub{font-size:10px;opacity:.7;margin-top:3px;letter-spacing:1px}'
-    +'.rcp-body{padding:16px}'
-    +'.rcp-num{text-align:center;font-size:22px;font-weight:900;letter-spacing:3px;color:#1a1a0f;margin:10px 0 4px}'
-    +'.rcp-date{text-align:center;font-size:10px;color:#999;margin-bottom:14px}'
-    +'.divider{border:none;border-top:1px dashed #ddd;margin:12px 0}'
-    +'.row{display:flex;justify-content:space-between;font-size:11px;color:#555;padding:2px 0}'
-    +'.row strong{color:#1a1a0f}'
-    +'table{width:100%;border-collapse:collapse;margin:8px 0}'
-    +'th{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#999;padding:4px 0;border-bottom:1px solid #eee}'
-    +'th:nth-child(2),th:nth-child(3),th:nth-child(4){text-align:right}'
-    +'.total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;color:#555}'
-    +'.grand-total{display:flex;justify-content:space-between;padding:10px 0 6px;font-size:15px;font-weight:900;color:#1a1a0f;border-top:2px solid #1a1a0f;margin-top:4px}'
-    +'.pay-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;margin-top:8px}'
-    +'.pay-paid{background:#d1fae5;color:#065f46}'
-    +'.pay-pending{background:#fef3c7;color:#92400e}'
-    +'.rcp-footer{background:#f9f9f9;border-top:1px solid #eee;text-align:center;padding:12px;font-size:10px;color:#aaa}'
-    +'.rcp-footer strong{display:block;color:#666;margin-bottom:3px}'
-    +'@media print{body{background:none;padding:0}.receipt{box-shadow:none}}'
-    +'</style></head><body>'
-    +'<div class="receipt">'
-    +'<div class="rcp-header">'
-      +'<div class="rcp-logo">VERALUZ</div>'
-      +'<div class="rcp-sub">Food &amp; Lounge · Kribi, Cameroun</div>'
-    +'</div>'
-    +'<div class="rcp-body">'
-      +'<div class="rcp-num">'+escHtml(String(orderNum))+'</div>'
-      +'<div class="rcp-date">'+dateStr+' à '+timeStr+'</div>'
-      +'<hr class="divider">'
-      +'<div class="row"><span>Client</span><strong>'+escHtml(clientName)+'</strong></div>'
-      +(clientPhone?'<div class="row"><span>Téléphone</span><strong>'+escHtml(clientPhone)+'</strong></div>':'')
-      +'<div class="row"><span>Mode</span><strong>'+escHtml(mode)+'</strong></div>'
-      +(zone?'<div class="row"><span>Zone</span><strong>'+escHtml(zone)+'</strong></div>':'')
-      +(address?'<div class="row"><span>Adresse</span><strong style="max-width:160px;overflow:hidden;text-overflow:ellipsis">'+escHtml(address)+'</strong></div>':'')
-      +(assignedTo?'<div class="row"><span>Livreur</span><strong>'+escHtml(assignedTo)+'</strong></div>':'')
-      +'<hr class="divider">'
-      +'<table><thead><tr>'
-        +'<th style="text-align:left">Article</th><th>Qté</th><th style="text-align:right">P.U.</th><th style="text-align:right">Total</th>'
-      +'</tr></thead><tbody>'+itemsHtml+'</tbody></table>'
-      +'<hr class="divider">'
-      +(subtotal&&deliveryFee?'<div class="total-row"><span>Sous-total</span><span>'+fmtF(subtotal)+'</span></div>':'')
-      +(deliveryFee?'<div class="total-row"><span>Frais livraison</span><span>'+fmtF(deliveryFee)+'</span></div>':'')
-      +'<div class="grand-total"><span>TOTAL</span><span>'+fmtF(total)+'</span></div>'
-      +'<div style="text-align:center;margin-top:8px">'
-        +'<span class="pay-badge '+(payStatus==='paid'?'pay-paid':'pay-pending')+'">'
-          +(payStatusLabels[payStatus]||payStatus)+' · '+(payLabels[payMethod]||payMethod)
-        +'</span>'
-      +'</div>'
-      +(notes?'<hr class="divider"><div style="font-size:11px;color:#666;background:#fffbeb;border:1px solid #fef3c7;border-radius:4px;padding:8px;margin-top:8px">📝 '+escHtml(notes)+'</div>':'')
-    +'</div>'
-    +'<div class="rcp-footer">'
-      +'<strong>Merci de votre visite !</strong>'
-      +'Résidence Veraluz · Vue sur la mer · Kribi<br>'
-      +'Conserver ce re&#231;u comme preuve d&#39;achat'
-    +'</div>'
-    +'</div>'
-    +'<div style="text-align:center;margin-top:12px">'
-      +'<button onclick="window.print()" style="background:#1a1a0f;color:#f0c040;border:none;padding:10px 28px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">🖨️ Imprimer</button>'
-    +'</div>'
-    +'</body></html>';
-
-  var w=window.open('','_blank','width=380,height=680,scrollbars=yes');
-  if(w){w.document.write(html);w.document.close();}
-  else toast('Autorisez les pop-ups pour imprimer le reçu','err');
 }
 
 /* Update restaurant order status */
@@ -2574,16 +2398,12 @@ function openProdMd(id){
   document.getElementById('prod-cat').innerHTML=CATS.filter(function(c){return c.id!=='all';})
     .map(function(c){return'<option value="'+c.id+'"'+(p&&p.category===c.id?' selected':'')+'>'+c.ico+' '+c.n+'</option>';}).join('');
   if(p)document.getElementById('prod-cat').value=p.category;
-  // Image
-  var imgEl=document.getElementById('prod-img');if(imgEl)imgEl.value=p&&p.image_url?p.image_url:'';
-  var prevEl=document.getElementById('prod-img-preview');var thumbEl=document.getElementById('prod-img-thumb');
-  if(prevEl&&thumbEl){if(p&&p.image_url){thumbEl.src=p.image_url;prevEl.style.display='block';}else{prevEl.style.display='none';thumbEl.src='';}}
   document.getElementById('prod-del').style.display=p?'':'none';
   openMd('md-prod');
 }
 function saveProd(){
   var id=document.getElementById('prod-id').value;
-  var imgUrl=(document.getElementById('prod-img')||{value:''}).value.trim();var d={name:document.getElementById('prod-n').value.trim(),price:parseFloat(document.getElementById('prod-p').value)||0,station:document.getElementById('prod-st').value,category:document.getElementById('prod-cat').value,available:document.getElementById('prod-av').value==='true',image_url:imgUrl||null};
+  var d={name:document.getElementById('prod-n').value.trim(),price:parseFloat(document.getElementById('prod-p').value)||0,station:document.getElementById('prod-st').value,category:document.getElementById('prod-cat').value,available:document.getElementById('prod-av').value==='true'};
   if(!d.name){toast('Nom requis','er');return;}
   if(id){PATCH('veraluz_restaurant_products',id,d).then(function(){var p=PRODS.find(function(x){return x.id===id;});if(p)Object.assign(p,d);closeMd('md-prod');renderMenu();renderAdmMnu();toast('Mis &#224; jour','ok');});}
   else{d.id=gid();POST('veraluz_restaurant_products',d).then(function(r){PRODS.push(r[0]||d);closeMd('md-prod');renderMenu();renderAdmMnu();toast('Cr&#233;&#233;','ok');});}
@@ -2680,69 +2500,47 @@ function goVnt(t,btn){
 }
 function renderVentes(){
   var el=document.getElementById('vnt-body');
-  if(!el)return;
   var now=new Date();var todayStr=now.toISOString().slice(0,10);
-  var restPaid=ORDERS.filter(function(o){return o.status==='paye';}).map(function(o){
-    var tbl=TABLES.find(function(t){return t.id===o.table_id;});
-    return {_src:'restaurant',
-      ref:o.type==='room'?'🏨 Room '+(o.room_number||'?'):tbl?tbl.name:'Sur Place',
-      client:o.client_name||'',items:o.items_json||o.items||[],
-      total:o.total||o.total_amount||0,payment_method:o.payment_method||'cash',
-      date:o.paid_at||o.created_at||''};
-  });
-  var foodPaid=(FOOD_ORDERS||[]).filter(function(o){
-    return o.status==='delivered'||(o.payment_status==='paid'&&o.status!=='cancelled');
-  }).map(function(o){
-    var modeIco={delivery:'🚚',room:'🏨',lounge:'🍸',pickup:'🥡'}[o.delivery_type]||'🚚';
-    var items=[];try{items=typeof o.items==='string'?JSON.parse(o.items):o.items||[];}catch(e){}
-    var srcLbl=o.source==='restaurant-tel'?'📞 Tél':'🌐 App';
-    return {_src:'food',
-      ref:modeIco+' Livraison '+srcLbl+(o.order_number?' #'+o.order_number:''),
-      client:o.customer_name||'',items:items,
-      total:o.total||0,payment_method:o.payment_method||'cash',
-      date:o.delivered_at||o.created_at||''};
-  });
-  var allPaid=restPaid.concat(foodPaid).sort(function(a,b){return b.date.localeCompare(a.date);});
-  var list=curVnt==='today'?allPaid.filter(function(o){return o.date.slice(0,10)===todayStr;}):allPaid;
-  if(!list.length){el.innerHTML='<div class="empty">Aucune vente'+(curVnt==='today'?' aujourd\'hui':'')+' 📭</div>';return;}
-  var total=list.reduce(function(s,o){return s+o.total;},0);
-  var restTot=list.filter(function(o){return o._src==='restaurant';}).reduce(function(s,o){return s+o.total;},0);
-  var foodTot=list.filter(function(o){return o._src==='food';}).reduce(function(s,o){return s+o.total;},0);
-  var byCash=list.filter(function(o){return o.payment_method==='cash';}).reduce(function(s,o){return s+o.total;},0);
-  var byMomo=list.filter(function(o){return['momo','orange','mtn','mobile_money'].indexOf(o.payment_method)>=0;}).reduce(function(s,o){return s+o.total;},0);
-  var byCard=list.filter(function(o){return['card','carte'].indexOf(o.payment_method)>=0;}).reduce(function(s,o){return s+o.total;},0);
-  var html='<div style="background:var(--bg3);border-radius:12px;padding:14px;margin-bottom:14px;">'
-    +'<div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">📈 '+(curVnt==='today'?'CA aujourd\'hui':'Historique total')+'</div>'
-    +'<div style="font-size:28px;font-weight:900;color:var(--accent);">'+fmt(total)+'</div>'
-    +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'
-    +(restTot?'<span style="font-size:11px;background:rgba(201,168,76,.15);color:var(--accent);padding:3px 9px;border-radius:20px">🍽️ Restaurant: <b>'+fmt(restTot)+'</b></span>':'')
-    +(foodTot?'<span style="font-size:11px;background:rgba(34,197,94,.12);color:#4ade80;padding:3px 9px;border-radius:20px">🚚 Livraison: <b>'+fmt(foodTot)+'</b></span>':'')
+  var paid=ORDERS.filter(function(o){return o.status==='paye';});
+  var list=curVnt==='today'?paid.filter(function(o){return(o.paid_at||o.created_at||'').slice(0,10)===todayStr;}):paid;
+
+  if(!list.length){el.innerHTML='<div class="empty">Aucune vente'+(curVnt==='today'?' Aujourd\'hui':'')+' </div>';return;}
+
+  var total=list.reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
+  var byCash=list.filter(function(o){return o.payment_method==='cash';}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
+  var byMomo=list.filter(function(o){return o.payment_method==='momo';}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
+  var byCard=list.filter(function(o){return o.payment_method==='card';}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
+
+  var html='<div style="background:var(--bg3);border-radius:12px;padding:14px;margin-bottom:12px;">'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:6px;">&#128200; '+(curVnt==='today'?'CHIFFRE D\'AFFAIRES AUJOURD\'HUI':'TOTAL HISTORIQUE')+'</div>'
+    +'<div style="font-size:24px;font-weight:800;color:var(--accent);">'+fmt(total)+'</div>'
+    +'<div style="display:flex;gap:12px;margin-top:10px;font-size:12px;">'
+    +(byCash?'<span style="color:var(--text2)">&#128181; Cash: <b>'+fmt(byCash)+'</b></span>':'')
+    +(byMomo?'<span style="color:var(--acc2)">&#128242; MoMo: <b>'+fmt(byMomo)+'</b></span>':'')
+    +(byCard?'<span style="color:var(--warn)">&#128179; Carte: <b>'+fmt(byCard)+'</b></span>':'')
     +'</div>'
-    +'<div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;font-size:11px;color:var(--text3);">'
-    +(byCash?'<span>💵 Cash: <b style="color:var(--text2)">'+fmt(byCash)+'</b></span>':'')
-    +(byMomo?'<span>📱 MoMo: <b style="color:var(--acc2)">'+fmt(byMomo)+'</b></span>':'')
-    +(byCard?'<span>💳 Carte: <b style="color:var(--warn)">'+fmt(byCard)+'</b></span>':'')
-    +'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:6px;">'+list.length+' vente'+(list.length>1?'s':'')+' · '+restPaid.length+' resto · '+foodPaid.length+' livraison</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:6px;">'+list.length+' commande'+(list.length>1?'s':'')+'</div>'
     +'</div>';
+
   html+=list.map(function(o){
-    var items=o.items.map(function(it){return (it.qty||it.quantity||1)+'×'+esc(it.name||it.product_name||'?');}).join(', ');
-    var payIco={cash:'💵',orange:'📱',mtn:'📱',momo:'📱',mobile_money:'📱',card:'💳',carte:'💳'}[o.payment_method]||'💰';
-    var brd=o._src==='food'?'#4ade80':'var(--ok)';
-    return '<div style="background:var(--bg3);border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid '+brd+';">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
-      +'<span style="font-weight:700;font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(o.ref)+'</span>'
-      +'<span style="font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap">'+fmt(o.total)+'</span>'
+    var tbl=TABLES.find(function(t){return t.id===o.table_id;});
+    var tnm=o.type==='room'?'&#128718; Room '+(o.room_number||'?'):tbl?esc(tbl.name):'Emporter';
+    var items=(o.items||o.items_json||[]).map(function(it){return it.qty+'&#215;'+esc(it.name);}).join(', ');
+    var dt=fdt(o.paid_at||o.created_at);
+    return '<div style="background:var(--bg3);border-radius:10px;padding:10px;margin-bottom:8px;border-left:3px solid var(--ok);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+      +'<span style="font-weight:700;font-size:13px;">'+tnm+'</span>'
+      +'<span style="font-size:13px;font-weight:700;color:var(--accent);">'+fmt(o.total||o.total_amount)+'</span>'
       +'</div>'
-      +(o.client?'<div style="font-size:11px;color:var(--text3);margin-top:2px;">👤 '+esc(o.client)+'</div>':'')
-      +(items?'<div style="font-size:11px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(items.slice(0,80))+'</div>':'')
-      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:5px;">'
-      +'<span>'+payIco+' '+esc(o.payment_method||'?')+'</span><span>'+fdt(o.date)+'</span>'
-      +'</div></div>';
+      +'<div style="font-size:11px;color:var(--text3);margin-top:3px;">'+items.slice(0,80)+'</div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;">'
+      +'<span>'+(o.payment_method==='cash'?'&#128181;':'o.payment_method'==='momo'?'&#128242;':'&#128179;')+' '+(o.payment_method||'?')+'</span>'
+      +'<span>'+dt+'</span>'
+      +'</div>'
+      +'</div>';
   }).join('');
   el.innerHTML=html;
 }
-
 
 /* ═══════════════════════════════════════════
    RÉSERVATIONS SALLE (Supabase)
@@ -3259,37 +3057,6 @@ function openPromoMd(id){
   document.getElementById('promo-md-title').textContent=p?'Modifier':'Nouvelle promo / comm';
   openMd('md-promo');
 }
-
-function loadProdImgFile(input){
-  if(!input.files||!input.files[0])return;
-  var file=input.files[0];
-  if(file.size>800000){toast('Image trop grande (max 800KB)','err');return;}
-  var reader=new FileReader();
-  reader.onload=function(e){
-    var b64=e.target.result;
-    var imgEl=document.getElementById('prod-img');if(imgEl)imgEl.value=b64;
-    var prevEl=document.getElementById('prod-img-preview');var thumbEl=document.getElementById('prod-img-thumb');
-    if(prevEl&&thumbEl){thumbEl.src=b64;prevEl.style.display='block';}
-    // Live preview in input
-    var inp=document.getElementById('prod-img');
-    if(inp){inp.addEventListener('input',function(){
-      var src=inp.value.trim();
-      if(prevEl&&thumbEl){if(src){thumbEl.src=src;prevEl.style.display='block';}else prevEl.style.display='none';}
-    });}
-  };
-  reader.readAsDataURL(file);
-}
-function deletePromo(){
-  var id=document.getElementById('promo-id').value;
-  if(!id)return;
-  if(!confirm('Supprimer cette promo ?'))return;
-  var url='/rest/v1/veraluz_food_promotions?id=eq.'+id;
-  fetch(SB_URL+url,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})
-    .then(function(){
-      APP_PROMOS=APP_PROMOS.filter(function(p){return p.id!==id;});
-      closeMd('md-promo');renderAdmApp();toast('Supprimé','ok');
-    }).catch(function(){toast('Erreur','er');});
-}
 function savePromo(){
   var id=document.getElementById('promo-id').value;
   var d={
@@ -3385,93 +3152,32 @@ function saveAppCfg(){
 <!-- Receipt Verification Modal -->
 <div class="ov" id="md-recv">
   <div class="md" style="max-width:520px;">
-    <div class="md-hdr">
-      <span class="md-ttl">🧾 Vérification reçu</span>
-      <button class="md-cls" onclick="document.getElementById('md-recv').classList.remove('on')">✕</button>
+    <div class="mdh"><span class="mdt">&#9745; Vérification de réception</span><button class="mdc" onclick="closeMd('md-recv')">&#10005;</button></div>
+    <div class="mdb" id="rcv-body" style="max-height:60vh;overflow-y:auto;"></div>
+    <div style="display:flex;gap:10px;padding:10px 16px;background:var(--bg2);border-top:1px solid var(--brd);font-size:13px;">
+      <span>Commandé: <b id="rcv-tot-ordered">0</b></span>
+      <span style="margin-left:auto;">Reçu: <b id="rcv-tot-received" style="color:var(--accent);">0</b></span>
     </div>
-    <div style="padding:16px">
-      <div id="recv-content" style="font-size:.82rem;line-height:1.7;white-space:pre-wrap"></div>
+    <div class="mdf">
+      <button class="btn bg" onclick="closeMd('md-recv')" style="flex:1">Annuler</button>
+      <button class="btn bp" onclick="saveReceipt()" style="flex:2">&#128190; Confirmer réception</button>
     </div>
   </div>
 </div>
 
-
-<!-- MODAL LIVRAISON TELEPHONIQUE -->
-<div class="ov" id="md-livraison">
+<!-- Room Charge Guest Selector Modal -->
+<div class="ov" id="md-room-charge">
   <div class="md" style="max-width:400px;">
-    <div class="mdh"><span class="mdt">&#128666; Commande Livraison T&#233;l&#233;phonique</span><button class="mdc" onclick="closeMd('md-livraison')">&#10005;</button></div>
-    <div class="mdb" style="display:flex;flex-direction:column;gap:12px;">
-      <div style="font-size:11px;color:var(--text3);padding:8px;background:rgba(201,168,76,.08);border-radius:6px;border-left:3px solid var(--accent)">&#128222; Commande re&#231;ue par t&#233;l&#233;phone</div>
-      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Nom du client *</label><input id="liv-client-name" class="inp" type="text" placeholder="Pr&#233;nom Nom" style="width:100%"></div>
-      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">T&#233;l&#233;phone *</label><input id="liv-client-phone" class="inp" type="tel" placeholder="6XX XXX XXX" style="width:100%"></div>
-      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Adresse / Quartier</label><input id="liv-client-addr" class="inp" type="text" placeholder="Quartier, point de rep&#232;re..." style="width:100%"></div>
-      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Livreur (optionnel)</label><select id="liv-livreur-sel" class="inp" style="width:100%"><option value="">&#8212; Assigner plus tard &#8212;</option></select></div>
-      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:6px">Paiement</label>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="radio" name="liv-pay" value="cash" checked> &#128181; Cash</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="radio" name="liv-pay" value="orange"> &#128242; Orange Money</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="radio" name="liv-pay" value="mtn"> &#128242; MTN MoMo</label>
-        </div></div>
-      <button class="btn bp" style="width:100%;margin-top:4px" onclick="confirmPickLivraison()">&#10003; Valider et pr&#233;parer</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL PROMO & COMM -->
-<div class="ov" id="md-promo">
-  <div class="md" style="max-width:440px;">
-    <div class="mdh">
-      <span class="mdt" id="promo-md-title">Nouvelle promo / comm</span>
-      <button class="mdc" onclick="closeMd('md-promo')">&#10005;</button>
-    </div>
-    <div class="mdb" style="display:flex;flex-direction:column;gap:10px;">
-      <input type="hidden" id="promo-id">
-      <div class="fr">
-        <div class="fg" style="flex:1">
-          <label class="fl">Type</label>
-          <select class="fs" id="promo-type">
-            <option value="promo">&#127881; Promotion</option>
-            <option value="comm">&#128172; Communication</option>
-            <option value="banner">&#127384; Bandeau</option>
-          </select>
-        </div>
-        <div class="fg" style="flex:0 0 80px">
-          <label class="fl">Emoji</label>
-          <input class="fi" id="promo-emoji" type="text" maxlength="4" placeholder="&#127881;" style="text-align:center;font-size:1.3rem">
-        </div>
-      </div>
-      <div class="fg">
-        <label class="fl">Titre *</label>
-        <input class="fi" id="promo-title" type="text" placeholder="Ex: -20% sur les grillades ce soir">
-      </div>
-      <div class="fg">
-        <label class="fl">Message / Corps</label>
-        <textarea class="fi" id="promo-body" rows="3" placeholder="Détails de la promo ou du message..." style="resize:vertical"></textarea>
-      </div>
-      <div class="fr">
-        <div class="fg" style="flex:1">
-          <label class="fl">Date début</label>
-          <input class="fi" id="promo-start" type="date">
-        </div>
-        <div class="fg" style="flex:1">
-          <label class="fl">Date fin</label>
-          <input class="fi" id="promo-end" type="date">
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
-        <label class="vlz-toggle">
-          <input type="checkbox" id="promo-active" checked>
-          <span class="vlz-slider"></span>
-        </label>
-        <span style="font-size:12px;color:var(--text2)">Active (visible dans l'app)</span>
+    <div class="mdh"><span class="mdt">&#127974; Facturer à la chambre</span><button class="mdc" onclick="closeMd('md-room-charge')">&#10005;</button></div>
+    <div class="mdb">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Sélectionnez le client hôtel :</div>
+      <div id="room-charge-guests"></div>
+      <div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:8px;">
+        <div style="font-size:13px;font-weight:700;text-align:center;">Total: <span id="rc-total">0 FCFA</span></div>
       </div>
     </div>
     <div class="mdf">
-      <button class="btn bd bs" id="promo-del-btn" onclick="deletePromo()" style="display:none">&#128465;</button>
-      <button class="btn bg" onclick="closeMd('md-promo')" style="flex:1">Annuler</button>
-      <button class="btn bp" onclick="savePromo()" style="flex:2">&#128190; Enregistrer</button>
+      <button class="btn bg" onclick="closeMd('md-room-charge')" style="flex:1">Annuler</button>
+      <button class="btn bp" onclick="confirmRoomCharge()" style="flex:2" id="rc-confirm-btn">Facturer</button>
     </div>
-  </div>
-</div>
-</body>
-</html>
+  <
