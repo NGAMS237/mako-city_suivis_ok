@@ -1524,8 +1524,16 @@ var _lastHkRezSync = 0;
 document.addEventListener('DOMContentLoaded',function(){
   goTab('dash');
   loadAll(function(){
-    syncWithReservations();
+    try{ syncWithReservations(); }catch(e){ console.warn('[HK] syncWithReservations:', e); }
     refresh();
   });
 
-  // Poll localStorage every 5s for reservation chang
+  // Poll localStorage every 5s for reservation changes (checkout, checkin, new booking)
+  setInterval(function(){
+    try{
+      var ts = parseInt(localStorage.getItem('vlz_rez_updated')||'0');
+      if(ts > _lastHkRezSync){
+        _lastHkRezSync = ts;
+        loadAll(function(){
+          try{ syncWithReservations(); }catch(e){}
+          refres

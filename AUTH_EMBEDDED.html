@@ -464,7 +464,7 @@ window.addEventListener('message', function(ev){
   if(ev.data.type==='navigate-tab'&&ev.data.data&&ev.data.data.tab)
     goTab(document.querySelector('.tab[data-tab="'+ev.data.data.tab+'"]'));
 });
-window.addEventListener('load', function(){
+document.addEventListener('DOMContentLoaded', function(){
   emit('module-ready',{module:'auth',version:MODULE_VER});
   renderTab('profil');
 });
@@ -1062,4 +1062,114 @@ function renderSessions(){
       +'<div style="flex:1;">'
       +'<div style="font-weight:600;">'+esc(s.user_name)+'</div>'
       +'<div style="font-size:12px;color:var(--text2);margin-top:2px;">'
-      +'🖥 '+esc(s.device)+' &nbsp;&middot;&nbsp; 🌐 '+esc(s.ip)+'</di
+      +'🖥 '+esc(s.device)+' &nbsp;&middot;&nbsp; 🌐 '+esc(s.ip)+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-top:2px);">'
+      +'Début: '+fmt_ts(s.created)+' &nbsp;&middot;&nbsp; Actif: '+fmt_ago(s.last_active)+'</div>'
+      +'</div>'
+      +(s.active
+        ?'<button class="btn btn-danger btn-sm" data-sid="'+esc(s.id)+'" onclick="killSession(this.dataset.sid)">✕</button>'
+        :'<span class="bdg bdg-gray">Expirée</span>')
+      +'</div>';
+  });
+  return html;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB: AUDIT
+═══════════════════════════════════════════════════════════════ */
+var _auditFilter='all';
+var AUDIT_ACTIONS={
+  'user-invite':'Invitation',
+  'user-edit':'Modification',
+  'user-delete':'Suppression',
+  'user-disabled':'Désactivation',
+  'user-enabled':'Activation',
+  'user-perms':'Permissions',
+  'profile-update':'Profil',
+  'password-change':'Mot de passe',
+  'role-create':'Rôle créé',
+  'role-edit':'Rôle modifié',
+  'role-delete':'Rôle supprimé',
+  'role-perms':'Permissions rôle',
+  'session-kill':'Session terminée',
+  'invite-resent':'Invitation renvoyée',
+  'logout':'Déconnexion'
+};
+function setAuditFilter(f){ _auditFilter=f; renderTab('audit'); }
+function renderAudit(){
+  var entries=getAudit();
+  var filters=['all','user-invite','user-edit','user-delete','profile-update','password-change','role-create','session-kill'];
+  var html='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">';
+  filters.forEach(function(f){
+    var lbl=f==='all'?'Tous':(AUDIT_ACTIONS[f]||f);
+    html+='<button class="fchip'+(_auditFilter===f?' on':'')+'" data-f="'+f+'" onclick="setAuditFilter(this.dataset.f)">'+lbl+'</button>';
+  });
+  html+='</div>';
+  var filtered=entries.filter(function(e){
+    return _auditFilter==='all'||e.action===_auditFilter;
+  });
+  if(!filtered.length){
+    html+='<div class="empty"><div class="empty-ico">📋</div>Aucune entrée dans l’audit</div>';
+    return html;
+  }
+  filtered.forEach(function(e){
+    var lbl=AUDIT_ACTIONS[e.action]||e.action;
+    html+='<div class="audit-entry">'
+      +'<div style="font-size:11px;color:var(--text3);flex-shrink:0;">'+fmt_ts(e.ts)+'</div>'
+      +'<div style="flex:1;">'
+      +'<span class="bdg bdg-acc">'+esc(lbl)+'</span> '
+      +'<span style="font-size:13px;">'+esc(e.user_name)+'</span>'
+      +(e.data&&e.data.name?' → '+esc(e.data.name):'')
+      +(e.data&&e.data.email?' ('+esc(e.data.email)+')':'')
+      +'</div>'
+      +'</div>';
+  });
+  return html;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB: SECURITY
+═══════════════════════════════════════════════════════════════ */
+function saveSecurityPolicy(){
+  var pol={
+    session_timeout: parseInt((document.getElementById('pol-timeout')||{}).value)||480,
+    max_sessions:    parseInt((document.getElementById('pol-max-sess')||{}).value)||3,
+    password_min_length: parseInt((document.getElementById('pol-pw-len')||{}).value)||8,
+    require_2fa:    (document.getElementById('pol-2fa')||{}).checked||false,
+    invite_expiry_days: parseInt((document.getElementById('pol-invite')||{}).value)||7,
+    log_retention_days: parseInt((document.getElementById('pol-logs')||{}).value)||90,
+    auto_lock:      (document.getElementById('pol-autolock')||{}).checked||false
+  };
+  savePolicy(pol);
+  audit('security-policy-update',{});
+  toast('🔒 Politique de sécurité enregistrée');
+}
+function renderSecurite(){
+  var pol=getPolicy();
+  return '<div class="card"><div class="card-hdr"><div class="card-title">🔒 Politique de sécurité</div></div>'
+    +'<div class="pol-row"><span>Timeout session (minutes)</span>'
+    +'<input class="fi" id="pol-timeout" type="number" value="'+pol.session_timeout+'" style="width:80px;"></div>'
+    +'<div class="pol-row"><span>Sessions simultanées max</span>'
+    +'<input class="fi" id="pol-max-sess" type="number" value="'+pol.max_sessions+'" style="width:80px;"></div>'
+    +'<div class="pol-row"><span>Longueur min. mot de passe</span>'
+    +'<input class="fi" id="pol-pw-len" type="number" value="'+pol.password_min_length+'" style="width:80px;"></div>'
+    +'<div class="pol-row"><span>Expiration invitation (jours)</span>'
+    +'<input class="fi" id="pol-invite" type="number" value="'+pol.invite_expiry_days+'" style="width:80px;"></div>'
+    +'<div class="pol-row"><span>Rétention logs (jours)</span>'
+    +'<input class="fi" id="pol-logs" type="number" value="'+pol.log_retention_days+'" style="width:80px;"></div>'
+    +'<div class="pol-row"><span>Authentification 2FA obligatoire</span>'
+    +'<label class="switch"><input type="checkbox" id="pol-2fa"'+(pol.require_2fa?' checked':'')+' onchange="saveSecurityPolicy()"><span class="switch-sl"></span></label></div>'
+    +'<div class="pol-row"><span>Verrouillage auto après timeout</span>'
+    +'<label class="switch"><input type="checkbox" id="pol-autolock"'+(pol.auto_lock?' checked':'')+' onchange="saveSecurityPolicy()"><span class="switch-sl"></span></label></div>'
+    +'<div class="btn-row"><button class="btn btn-primary" onclick="saveSecurityPolicy()">💾 Enregistrer</button></div>'
+    +'</div>'
+    +'<div class="card"><div class="card-hdr"><div class="card-title">Intégrations à venir</div></div>'
+    +'<div style="color:var(--text2);font-size:13px;line-height:1.6;">'
+    +'🔧 Supabase Auth JWT — en cours<br>'
+    +'📱 Invitations SMS/WhatsApp — planifié<br>'
+    +'🔐 MFA (TOTP) — planifié<br>'
+    +'📊 SSO OAuth2 — planifié</div></div>';
+}
+
+</script>
+<

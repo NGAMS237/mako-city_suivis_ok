@@ -301,7 +301,7 @@ form-select{background:var(--bg3);border:1px solid var(--border);border-radius:v
       </button>
     </div>
     <div class="tabs-bar">
-      <button class="tab-btn" id="tab-dash" onclick="goTab('dash')">📊 Dashboard</button>
+      <button class="tab-btn active" id="tab-dash" onclick="goTab('dash')">📊 Dashboard</button>
       <button class="tab-btn" id="tab-planning" onclick="goTab('planning')">📅 Planning</button>
       <button class="tab-btn" id="tab-chambres" onclick="goTab('chambres')">
         🛏 Chambres <span class="tbadge" id="avail-badge">0</span>
@@ -318,7 +318,7 @@ form-select{background:var(--bg3);border:1px solid var(--border);border-radius:v
   <div class="mod-body">
 
     <!-- DASHBOARD -->
-    <div class="tab-pane" id="pane-dash">
+    <div class="tab-pane active" id="pane-dash">
       <div class="stat-row">
         <div class="stat-card"><div class="stat-num" id="st-arrivals">—</div><div class="stat-lbl">Arrivées aujourd'hui</div></div>
         <div class="stat-card"><div class="stat-num" id="st-departures">—</div><div class="stat-lbl">Départs aujourd'hui</div></div>
@@ -1833,4 +1833,14 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 });
-  // Auto-refresh when Booking Engine creates
+  // Auto-refresh when Booking Engine creates a reservation
+  var _lastRezSync=0;
+  setInterval(function(){
+    try{
+      var ts=parseInt(localStorage.getItem('vlz_rez_updated')||'0');
+      if(ts>_lastRezSync){ _lastRezSync=ts; loadAll(function(){enrichStatuses();refresh();}); toast('Nouvelle réservation reçue du Booking Engine ✓','success'); }
+    }catch(e){}
+  },5000);
+});
+</script>
+<
