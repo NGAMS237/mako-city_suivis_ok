@@ -1066,6 +1066,27 @@ var WA  = '237600000000';
 /* ── Veraluz Core — référence globale + fallback ── */
 var VC  = window.VeraluzCore || {};
 
+/* PROMPT 007 — SÉCURITÉ XSS ─────────────────────────────────
+   esc(s)     : échappe données utilisateur/Supabase avant innerHTML
+   safeUrl(u) : valide les URLs dynamiques (whiteliste schémas)
+   safeAttr(s): valide les attributs HTML (data-*, onclick valeurs)
+────────────────────────────────────────────────────────────── */
+function esc(s){
+  if(VC&&typeof VC.esc==='function') return VC.esc(s);
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function safeUrl(url){
+  var s=String(url||'').trim();
+  if(!s)return '#';
+  if(s.startsWith('data:image/')||s.startsWith('http://')||s.startsWith('https://')||s.startsWith('/')) return s;
+  return '#';
+}
+function safeAttr(s){
+  return esc(String(s||'')).replace(/"/g,'&quot;');
+}
+
 /* ── State ── */
 var _prods  = [];    /* live from Supabase */
 var _cats   = [];    /* derived from products */
@@ -1482,14 +1503,15 @@ function renderProds(){
       :('<button class="add-btn" id="ab-'+p.id+'" onclick="event.stopPropagation();addToCart(\''+p.id+'\')" data-id="'+p.id+'">'+plusSvg+'</button>');
     var color=getProdColor(p);
     var img=getProdImg(p);
-    return '<div class="prod-card" onclick="addToCart(\''+p.id+'\')">'+
+    // SECURITY: p.name vient de Supabase — échappé avec esc(), img via safeUrl()
+    return '<div class="prod-card" onclick="addToCart(\''+safeAttr(p.id)+'\')">'+
       '<div class="prod-img">'+
-      '<img src="'+img+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">'+
+      '<img src="'+safeUrl(img)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">'+
       '<div class="prod-ico">'+getCatIcon(p.category)+'</div>'+
       '</div>'+
       '<div class="prod-cat-bar" style="background:'+color+';opacity:.5"></div>'+
       '<div class="prod-body">'+
-      '<div class="prod-name">'+p.name+'</div>'+
+      '<div class="prod-name">'+esc(p.name)+'</div>'+
       '<div class="prod-cat-lbl">'+getCatName(p.category)+'</div>'+
       '<div class="prod-foot">'+
       '<div class="prod-price">'+fmt(p.price)+'</div>'+
@@ -1518,8 +1540,9 @@ function renderCartBody(){
   }
   foot.style.display='block';
   var items=_cart.map(function(x){
-    return '<div class="cart-item"><div class="ci-img"><img src="'+x.img+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3v7"/></svg></div>'
-      +'<div class="ci-info"><div class="ci-name">'+x.name+'</div><div class="ci-sub">'+fmt(x.price)+' / unité</div></div>'
+    // SECURITY: x.name/x.img viennent de Supabase via _prods — échappés
+    return '<div class="cart-item"><div class="ci-img"><img src="'+safeUrl(x.img)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3v7"/></svg></div>'
+      +'<div class="ci-info"><div class="ci-name">'+esc(x.name)+'</div><div class="ci-sub">'+fmt(x.price)+' / unité</div></div>'
       +'<div class="ci-qty"><button class="qty-btn" onclick="removeFromCart(\''+x.id+'\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>'
       +'<span class="qty-n">'+x.qty+'</span>'
       +'<button class="qty-btn" onclick="addToCart(\''+x.id+'\');renderCartBody()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div></div>';
@@ -1590,7 +1613,8 @@ function closeCheckout(){
 function renderCheckout(){
   var sub=cartSub(),fee=FEES[_svc]||0,total=sub+fee;
   var body=document.getElementById('coBody');if(!body)return;
-  var items=_cart.map(function(x){return '<div class="om-row"><span>'+x.name+' ×'+x.qty+'</span><span>'+fmt(x.price*x.qty)+'</span></div>';}).join('');
+  // SECURITY: x.name de Supabase — échappé avec esc()
+  var items=_cart.map(function(x){return '<div class="om-row"><span>'+esc(x.name)+' ×'+x.qty+'</span><span>'+fmt(x.price*x.qty)+'</span></div>';}).join('');
   var room=_svc==='room'?'<div class="fg"><label class="fl">Numéro de chambre</label><input class="fi" id="co-room" type="text" placeholder="Ex: 12 ou Studio Horizon…"></div>':'';
   var addr=_svc==='delivery'?'<div class="fg"><label class="fl">Adresse de livraison</label><input class="fi" id="co-addr" type="text" placeholder="Quartier, rue, point de repère…"></div>':'';
   body.innerHTML='<div class="order-mini">'+items
@@ -1717,7 +1741,8 @@ function submitOrder(){
     var now=new Date();
     var ds=now.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
     var ts=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    var rows=_cart.map(function(x){return '<div class="rcp-row"><span>'+x.name+' ×'+x.qty+'</span><span>'+fmt(x.price*x.qty)+' F</span></div>';}).join('');
+    // SECURITY: x.name de Supabase — échappé avec esc()
+    var rows=_cart.map(function(x){return '<div class="rcp-row"><span>'+esc(x.name)+' ×'+x.qty+'</span><span>'+fmt(x.price*x.qty)+' F</span></div>';}).join('');
     var chipCls=payStatus==='pending'?'ps-pending':payStatus==='pay_on_delivery'?'ps-delivery':'ps-paid';
     var chipLbl=payStatus==='pending'?'⏳ En attente paiement':payStatus==='pay_on_delivery'?'🚚 Paiement à la livraison':'✓ Payé';
     rcpDiv.innerHTML='<div class="rcp-wrap">'
@@ -1824,51 +1849,28 @@ function renderTrackOrder(o){
   var pChip=pmap[o.payment_status||'pending']||'';
   /* Info card */
   var infoHtml='<div class="track-info-card">';
-  infoHtml+='<div class="track-info-row"><span class="lbl">Client</span><span class="val">'+(o.customer_name||'—')+'</span></div>';
-  infoHtml+='<div class="track-info-row"><span class="lbl">Mode</span><span class="val">'+(SVC_LBLS[o.delivery_type]||o.delivery_type||'—')+'</span></div>';
-  if(o.delivery_zone)infoHtml+='<div class="track-info-row"><span class="lbl">Zone</span><span class="val">'+o.delivery_zone+'</span></div>';
-  if(o.address)infoHtml+='<div class="track-info-row"><span class="lbl">Adresse</span><span class="val" style="max-width:160px;overflow:hidden;text-overflow:ellipsis">'+o.address+'</span></div>';
+  // SECURITY: o.customer_name, o.delivery_zone, o.address, o.order_number viennent de Supabase — échappés
+  infoHtml+='<div class="track-info-row"><span class="lbl">Client</span><span class="val">'+esc(o.customer_name||'—')+'</span></div>';
+  infoHtml+='<div class="track-info-row"><span class="lbl">Mode</span><span class="val">'+(SVC_LBLS[o.delivery_type]||esc(o.delivery_type||'—'))+'</span></div>';
+  if(o.delivery_zone)infoHtml+='<div class="track-info-row"><span class="lbl">Zone</span><span class="val">'+esc(o.delivery_zone)+'</span></div>';
+  if(o.address)infoHtml+='<div class="track-info-row"><span class="lbl">Adresse</span><span class="val" style="max-width:160px;overflow:hidden;text-overflow:ellipsis">'+esc(o.address)+'</span></div>';
   infoHtml+='<div class="track-info-row"><span class="lbl">Total</span><span class="val">'+(o.total?fmt(o.total)+' F':'—')+'</span></div>';
   if(pChip)infoHtml+='<div class="track-info-row"><span class="lbl">Paiement</span><span class="val">'+pChip+'</span></div>';
   infoHtml+='<div class="track-info-row"><span class="lbl">Il y a</span><span class="val">'+timeStr+'</span></div>';
   infoHtml+='</div>';
-  body.innerHTML='<div class="track-order-box"><div class="track-order-num">'+o.order_number+'</div><div class="track-order-sub">'+TRACK_STATUSES[sidx].lbl+(o.delivery_type==='delivery'?' · Livraison en cours':o.delivery_type==='room'?' · Service en chambre':' · Sur place')+'</div></div>'
+  body.innerHTML='<div class="track-order-box"><div class="track-order-num">'+esc(String(o.order_number||''))+'</div><div class="track-order-sub">'+TRACK_STATUSES[sidx].lbl+(o.delivery_type==='delivery'?' · Livraison en cours':o.delivery_type==='room'?' · Service en chambre':' · Sur place')+'</div></div>'
     +progHtml
     +infoHtml
     +'<div class="track-refresh-row" id="trackRefBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Actualiser</div>';
   var rbtn=document.getElementById('trackRefBtn');if(rbtn){rbtn.dataset.num=o.order_number;rbtn.onclick=function(){loadTrackOrder(this.dataset.num);};}
 }
 function renderTrackNotFound(num){
-  document.getElementById('trackBody').innerHTML='<div class="track-not-found"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Commande <strong>'+num+'</strong> introuvable.<br><small>Vérifiez le numéro et réessayez.</small></p></div>';
+  // SECURITY: num vient de la saisie utilisateur — échappé avec esc()
+  document.getElementById('trackBody').innerHTML='<div class="track-not-found"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Commande <strong>'+esc(String(num||''))+'</strong> introuvable.<br><small>Vérifiez le numéro et réessayez.</small></p></div>';
 }
 /* ═══ PRINT RECEIPT ═══ */
 function printReceipt(){
   var rcp=document.getElementById('confirm-receipt');
   if(!rcp||!rcp.innerHTML)return toast('Aucun reçu disponible');
   var w=window.open('','_blank','width=360,height=600');
-  w.document.write('<html><head><title>Reçu Veraluz</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:13px;max-width:320px;margin:0 auto}.rcp-wrap{border:1px solid #ddd;border-radius:8px;padding:16px}.rcp-top{text-align:center;border-bottom:1px dashed #ddd;padding-bottom:10px}.rcp-logo{font-weight:800;font-size:14px;color:#b8860b;letter-spacing:1px}.rcp-sub{color:#999;font-size:11px;margin-top:3px}.rcp-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#555}.rcp-tot{font-weight:800;font-size:14px;padding-top:8px;border-top:1px dashed #ddd;margin-top:5px;display:flex;justify-content:space-between}.rcp-pay{color:#999;font-size:11px;padding-top:4px}.pay-status-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:8px}.ps-pending{background:#fef3c7;color:#d97706}.ps-paid{background:#dcfce7;color:#16a34a}.ps-delivery{background:#ede9fe;color:#7c3aed}@media print{button{display:none}}</style></head><body>');
-  w.document.write(rcp.innerHTML);
-  w.document.write('<br><button onclick="window.print()" style="width:100%;padding:10px;background:#b8860b;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px">🖨️ Imprimer</button></body></html>');
-  w.document.close();
-}
-
-/* ── Core integration ── */
-window.addEventListener('message',function(ev){
-  if(!ev.data)return;
-  if(ev.data.type==='hotel-config'&&ev.data.data&&ev.data.data.whatsapp)applyWA(ev.data.data.whatsapp);
-  /* Reload menu if admin changed products */
-  if(ev.data.type==='menu_updated'||ev.data.type==='products_updated')loadMenu();
-});
-
-/* ── Init ── */
-(function(){
-  /* Check for tracking hash */
-  (function(){
-    var h=window.location.hash;
-    if(h&&h.indexOf('#track=')===0){
-      var num=decodeURIComponent(h.slice(7));
-      if(num)setTimeout(function(){openTrack(num);},500);
-    }
-  })();
-  loadCart();
-  try{
+  w.document.write('<html><head><title>Reçu Veraluz</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:13px;max-width:320px;margin:0 auto}.rcp-wrap{border:1px solid #ddd;border-radius:8px;padding:16px}.rcp-top{text-align:center;border-bottom:1px dashed #ddd;padding-bottom:10px}.rcp-logo{font-weight:800;font-size:14px;color:#b8860b;letter-spacing:
