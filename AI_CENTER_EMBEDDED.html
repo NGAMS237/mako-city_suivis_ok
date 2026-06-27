@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VERALUZ Intelligence IA</title>
+<style>
+:root{
+  --bg:#0d0d1a;--bg2:#12121f;--bg3:#1a1a2e;--bg4:#22223a;--bg5:#2a2a45;
+  --accent:#22d3a5;--acc2:#818cf8;--acc3:#a855f7;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --border:rgba(255,255,255,.07);--border2:rgba(34,211,165,.2);
+  --warn:#f59e0b;--err:#f43f5e;--ok:#22d3a5;--info:#3b82f6;
+  --red:#ef4444;--green:#10b981;--blue:#3b82f6;--yellow:#f59e0b;
+  --orange:#f97316;--purple:#8b5cf6;--cyan:#06b6d4;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);display:flex;flex-direction:column;font-size:13px;}
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:10px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.tb-icon{font-size:20px;}
+.tb-title{font-size:15px;font-weight:700;flex:1;}
+.tb-sub{font-size:11px;color:var(--text3);}
+.mode-badge{padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.5px;}
+.mode-mock{background:rgba(245,158,11,.15);color:var(--yellow);border:1px solid rgba(245,158,11,.3);}
+.mode-edge{background:rgba(34,211,165,.15);color:var(--accent);border:1px solid rgba(34,211,165,.3);}
+/* TABS */
+.tabs{background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;padding:0 12px;overflow-x:auto;flex-shrink:0;gap:2px;}
+.tab{padding:10px 14px;font-size:12px;color:var(--text2);cursor:pointer;
+  border-bottom:2px solid transparent;white-space:nowrap;transition:.15s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-badge{background:var(--red);color:#fff;font-size:9px;padding:1px 5px;
+  border-radius:8px;margin-left:4px;font-weight:700;}
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:16px;}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sec-title{font-size:13px;font-weight:700;color:var(--text);}
+.sec-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px;}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px;position:relative;}
+.kpi-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.kpi-val{font-size:24px;font-weight:700;}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.kpi-icon{position:absolute;top:12px;right:12px;font-size:20px;opacity:.4;}
+/* CARDS GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+.agent-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.agent-card:hover{border-color:var(--border2);}
+.ac-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
+.ac-icon{font-size:22px;width:40px;height:40px;border-radius:10px;background:var(--bg3);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ac-name{font-size:13px;font-weight:700;}
+.ac-cat{font-size:10px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:.4px;}
+.ac-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+.ac-desc{font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:12px;min-height:32px;}
+.ac-meta{font-size:10px;color:var(--text3);margin-bottom:10px;}
+.ac-actions{display:flex;gap:6px;flex-wrap:wrap;}
+/* BADGES */
+.bdg{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;}
+.bdg-active{background:rgba(16,185,129,.12);color:var(--green);}
+.bdg-draft{background:rgba(100,116,139,.12);color:var(--text2);}
+.bdg-paused{background:rgba(245,158,11,.12);color:var(--yellow);}
+.bdg-archived{background:rgba(239,68,68,.08);color:var(--red);}
+.bdg-low{background:rgba(16,185,129,.1);color:var(--green);}
+.bdg-medium{background:rgba(245,158,11,.1);color:var(--yellow);}
+.bdg-high{background:rgba(239,68,68,.1);color:var(--red);}
+.bdg-critical{background:rgba(168,85,247,.1);color:var(--purple);}
+.bdg-pending{background:rgba(59,130,246,.1);color:var(--blue);}
+.bdg-approved{background:rgba(16,185,129,.1);color:var(--green);}
+.bdg-rejected{background:rgba(239,68,68,.1);color:var(--red);}
+.bdg-done{background:rgba(100,116,139,.1);color:var(--text3);}
+.bdg-info{background:rgba(59,130,246,.1);color:var(--blue);}
+/* BUTTONS */
+.btn{padding:6px 12px;border-radius:7px;border:none;cursor:pointer;font-size:11px;font-weight:600;transition:.15s;}
+.btn-primary{background:var(--accent);color:#0d0d1a;}
+.btn-primary:hover{opacity:.9;}
+.btn-sec{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.btn-sec:hover{color:var(--text);background:var(--bg4);}
+.btn-warn{background:rgba(245,158,11,.15);color:var(--yellow);border:1px solid rgba(245,158,11,.3);}
+.btn-warn:hover{background:rgba(245,158,11,.25);}
+.btn-danger{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);}
+.btn-danger:hover{background:rgba(239,68,68,.22);}
+.btn-ok{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25);}
+.btn-ok:hover{background:rgba(16,185,129,.22);}
+.btn-sm{padding:4px 9px;font-size:10px;}
+.btn-lg{padding:10px 20px;font-size:13px;}
+/* REPORT CARD */
+.report-card{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:16px;margin-bottom:16px;}
+.report-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.report-title{font-size:14px;font-weight:700;}
+.report-sub{font-size:11px;color:var(--text3);}
+.report-section{margin-bottom:14px;}
+.report-section-title{font-size:11px;font-weight:700;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;
+  display:flex;align-items:center;gap:5px;}
+.metric-row{display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;border-bottom:1px solid var(--bg4);}
+.metric-row:last-child{border-bottom:none;}
+.metric-lbl{font-size:12px;color:var(--text2);}
+.metric-val{font-size:12px;font-weight:600;}
+.alert-row{display:flex;align-items:center;gap:8px;padding:7px 10px;
+  border-radius:7px;margin-bottom:5px;font-size:12px;}
+.alert-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:var(--yellow);}
+.alert-info{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);color:var(--blue);}
+.alert-ok{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);color:var(--green);}
+.rec-row{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;
+  border-radius:7px;margin-bottom:5px;background:var(--bg3);border:1px solid var(--border);}
+.rec-icon{font-size:14px;margin-top:1px;}
+.rec-content{flex:1;}
+.rec-title{font-size:12px;font-weight:600;}
+.rec-desc{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4;}
+/* TABLE */
+.tbl-wrap{overflow-x:auto;background:var(--bg2);border:1px solid var(--border);border-radius:11px;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:9px 12px;font-size:10px;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--bg3);}
+td{padding:10px 12px;border-bottom:1px solid var(--bg4);font-size:12px;vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg3);}
+/* PROMPT EDITOR */
+.prompt-editor{width:100%;min-height:200px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:'Courier New',monospace;font-size:12px;
+  padding:12px;resize:vertical;line-height:1.6;}
+.prompt-editor:focus{outline:none;border-color:var(--border2);}
+/* FORM */
+.form-group{margin-bottom:14px;}
+.form-label{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;display:block;}
+.form-input{width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:7px;color:var(--text);font-size:12px;}
+.form-input:focus{outline:none;border-color:var(--border2);}
+select.form-input option{background:var(--bg3);}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;
+  width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;}
+.modal-hdr{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.modal-title{font-size:14px;font-weight:700;flex:1;}
+.modal-body{padding:20px;overflow-y:auto;flex:1;}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+/* EMPTY STATE */
+.empty{padding:40px;text-align:center;color:var(--text3);}
+.empty-icon{font-size:36px;margin-bottom:10px;}
+.empty-title{font-size:14px;font-weight:600;margin-bottom:6px;}
+.empty-sub{font-size:12px;line-height:1.5;}
+/* LOADER */
+.spin{animation:spin .8s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* TOAST */
+.toast{position:fixed;bottom:16px;right:16px;background:var(--bg3);border:1px solid var(--border2);
+  border-radius:10px;padding:10px 16px;font-size:12px;z-index:9999;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);animation:toastIn .2s ease;}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+/* GRID 2 */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:600px){
+  .g2,.kpi-grid,.cards-grid{grid-template-columns:1fr;}
+  .tabs{padding:0 6px;}
+  .tab{padding:8px 10px;font-size:11px;}
+}
+/* SECURITY BOX */
+.sec-rule{display:flex;align-items:flex-start;gap:10px;padding:10px;
+  background:var(--bg3);border-radius:8px;margin-bottom:6px;}
+.sec-rule-icon{font-size:14px;margin-top:1px;flex-shrink:0;}
+.sec-rule-text{font-size:12px;color:var(--text2);line-height:1.4;}
+/* OVERVIEW GENERATE AREA */
+.generate-area{background:linear-gradient(135deg,rgba(34,211,165,.06),rgba(129,140,248,.06));
+  border:1px solid var(--border2);border-radius:12px;padding:20px;margin-bottom:16px;
+  display:flex;align-items:center;gap:16px;}
+.generate-icon{font-size:36px;flex-shrink:0;}
+.generate-text{flex:1;}
+.generate-title{font-size:14px;font-weight:700;margin-bottom:4px;}
+.generate-sub{font-size:12px;color:var(--text3);line-height:1.4;}
+/* VERSION TAG */
+.vtag{background:var(--bg4);color:var(--text3);padding:1px 6px;border-radius:4px;font-size:10px;font-family:monospace;}
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:16px 0;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="tb-icon">🧠</span>
+  <div style="flex:1">
+    <div class="tb-title">VERALUZ Intelligence IA</div>
+    <div class="tb-sub">Agents configurables · Mode mock · Validation humaine obligatoire</div>
+  </div>
+  <span class="mode-badge mode-mock" id="mode-badge">⚙ MOCK</span>
+  <div id="tb-user" style="font-size:11px;color:var(--text3);"></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs" id="tabs-bar"></div>
+
+<!-- CONTENT -->
+<div class="content" id="content">
+  <div class="tab-pane active" id="pane-overview"></div>
+  <div class="tab-pane" id="pane-agents"></div>
+  <div class="tab-pane" id="pane-reports"></div>
+  <div class="tab-pane" id="pane-recommendations"></div>
+  <div class="tab-pane" id="pane-prompts"></div>
+  <div class="tab-pane" id="pane-history"></div>
+  <div class="tab-pane" id="pane-settings"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" style="display:none;" onclick="closeModal(event)">
+  <div class="modal" id="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-hdr">
+      <span class="modal-title" id="modal-title">—</span>
+      <button class="btn btn-sec btn-sm" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   PROMPT 013 — AI Center VERALUZ
+   Mode mock : zéro clé IA, zéro appel OpenAI/Claude
+   Validation humaine obligatoire pour toute action sensible
+══════════════════════════════════════════════════════════════ */
+
+/* ── Config ──────────────────────────────────────────────────── */
+var VERALUZ_AI_MODE = 'mock'; /* 'mock' | 'edge' — Ne jamais passer en 'edge' sans Edge Function configurée */
+var SB = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+
+/* ── Règles sécurité IA ────────────────────────────────────────
+   1. Aucun agent ne peut modifier une donnée critique directement
+   2. Aucun agent ne peut envoyer un message client sans validation
+   3. Paiement / salaire / prix / réservation → validation humaine
+   4. Aucun secret IA dans le frontend
+   5. Toute future API IA passe par Edge Function
+   6. Prompts versionnés — toute modif incrémente version
+   7. Recommandations approuvables/rejetables manuellement
+   8. Agents désactivables (pause)
+─────────────────────────────────────────────────────────────── */
+
+/* ── State ─────────────────────────────────────────────────── */
+var _currentUser = { username:'—', role:'admin', name:'Utilisateur' };
+var _currentTab  = 'overview';
+var _agents      = [];
+var _runs        = [];
+var _recs        = [];
+var _reportData  = null;
+var _loadingReport = false;
+
+/* ── 10 Agents par défaut (fallback si Supabase indisponible) ─ */
+var AI_AGENTS_DEFAULT = [
+  { agent_key:'daily_director',   name:'Directeur Quotidien',       category:'direction',
+    icon:'📋', risk_level:'medium', status:'active', version:1, approval_required:true,
+    description:'Analyse l\'activité globale et produit un rapport quotidien pour Blaise / manager.',
+    system_prompt:'Tu es l\'Agent Directeur Quotidien de la résidence VERALUZ Kribi. Analyse les données de la journée et produis un rapport structuré avec résumé, alertes et recommandations. Tu ne peux pas modifier de données. Toute recommandation nécessite une validation humaine.',
+    data_sources_json:{sources:['analytics_snapshot','reservations','payments','expenses','housekeeping','food','rh','alerts']},
+    allowed_actions_json:{actions:['résumer','recommander','classer_priorités','créer_recommandation_pending']},
+    forbidden_actions_json:{actions:['modifier_prix','confirmer_réservation','annuler_réservation','modifier_paiement','supprimer_donnée','modifier_salaire','envoyer_message_client']}},
+
+  { agent_key:'reception_crm',    name:'Réception / CRM',           category:'réservations',
+    icon:'🛎️', risk_level:'high',   status:'active', version:1, approval_required:true,
+    description:'Aide à gérer les demandes clients, réservations, relances et suivi CRM.',
+    system_prompt:'Tu es l\'Agent Réception CRM de VERALUZ. Tu proposes des réponses clients, génères des messages WhatsApp modèles et signales les impayés. Tu ne confirmes jamais une réservation sans validation humaine. Tu ne peux pas encaisser ni modifier les prix.',
+    data_sources_json:{sources:['reservations','clients','units','payments','demandes_speciales','historique_client']},
+    allowed_actions_json:{actions:['proposer_réponse','générer_message_whatsapp','proposer_relance','signaler_impayé','classer_demande']},
+    forbidden_actions_json:{actions:['confirmer_réservation_sans_validation','encaisser','rembourser','modifier_prix','promettre_disponibilité_non_vérifiée']}},
+
+  { agent_key:'housekeeping_ai',  name:'Housekeeping',              category:'opérations',
+    icon:'🧹', risk_level:'medium', status:'active', version:1, approval_required:true,
+    description:'Priorise les chambres à nettoyer, détecte les retards et organise les tâches.',
+    system_prompt:'Tu es l\'Agent Housekeeping de VERALUZ. Tu analyses les tâches de nettoyage, priorises les urgences (départs/arrivées) et signalas les retards. Tu ne modifies pas les plannings sans validation. Tu ne supprimes pas de tâches.',
+    data_sources_json:{sources:['reservations','checkin_checkout','units','housekeeping_tasks','employees','incidents']},
+    allowed_actions_json:{actions:['proposer_planning','classer_urgences','signaler_retard','créer_recommandation']},
+    forbidden_actions_json:{actions:['modifier_planning_sans_validation','supprimer_tâche','changer_statut_chambre_sans_confirmation']}},
+
+  { agent_key:'maintenance_ai',   name:'Maintenance',               category:'technique',
+    icon:'🔧', risk_level:'medium', status:'draft',  version:1, approval_required:true,
+    description:'Suit les incidents techniques : climatisation, plomberie, Wi-Fi, serrures.',
+    system_prompt:'Tu es l\'Agent Maintenance de VERALUZ. Tu classes les incidents par urgence, recommandes les interventions et proposes des fournisseurs. Tu n\'engages jamais de dépense sans validation. Tu ne clôtures pas un incident critique sans preuve.',
+    data_sources_json:{sources:['incidents','housekeeping','reservations','units','fournisseurs','historique_interventions']},
+    allowed_actions_json:{actions:['classer_urgence','recommander_intervention','générer_fiche_incident','proposer_fournisseur']},
+    forbidden_actions_json:{actions:['engager_dépense_sans_validation','clôturer_incident_critique_sans_preuve']}},
+
+  { agent_key:'food_restaurant_ai',name:'Food / Restaurant',        category:'restauration',
+    icon:'🍽️', risk_level:'medium', status:'active', version:1, approval_required:true,
+    description:'Analyse commandes, stocks, ruptures, marges et performance restaurant.',
+    system_prompt:'Tu es l\'Agent Food & Restaurant de VERALUZ. Tu identifies les ruptures de stock, les produits populaires et proposes des promotions. Tu ne passes pas de commandes fournisseur sans validation. Tu ne changes pas les prix.',
+    data_sources_json:{sources:['food_orders','restaurant_orders','stock','fournisseurs','produits','payments_restaurant','livraisons']},
+    allowed_actions_json:{actions:['signaler_rupture','recommander_réapprovisionnement','identifier_produits_populaires','proposer_promotion']},
+    forbidden_actions_json:{actions:['passer_commande_fournisseur_sans_validation','changer_prix','supprimer_produit']}},
+
+  { agent_key:'delivery_ai',      name:'Livreur',                   category:'livraison',
+    icon:'🛵', risk_level:'medium', status:'active', version:1, approval_required:true,
+    description:'Aide le livreur et manager à suivre les livraisons, retards, preuves photo.',
+    system_prompt:'Tu es l\'Agent Livreur de VERALUZ. Tu signales les retards, proposes des messages clients et résumes la journée du livreur. Tu ne marques jamais une livraison comme "livrée" sans action du livreur. Tu ne supprimes pas de commandes.',
+    data_sources_json:{sources:['food_orders','statuts_livraison','livreurs','pointage','historique_retards','adresses','preuves_photo']},
+    allowed_actions_json:{actions:['proposer_message_client','signaler_retard','classer_livraison_problématique','recommander_itinéraire','résumer_journée_livreur']},
+    forbidden_actions_json:{actions:['marquer_livré_sans_action_livreur','modifier_preuve_photo','supprimer_commande','changer_paiement']}},
+
+  { agent_key:'finance_ai',       name:'Finance / Comptabilité',    category:'finance',
+    icon:'📊', risk_level:'critical',status:'draft', version:1, approval_required:true,
+    description:'Analyse revenus, dépenses, paie, impayés et prépare rapports comptables.',
+    system_prompt:'Tu es l\'Agent Finance de VERALUZ. Tu analyses les revenus, signales les anomalies et prépares des brouillons de rapports. Tu ne modifies jamais un paiement, une dépense ou un salaire. Toute écriture comptable définitive nécessite validation humaine.',
+    data_sources_json:{sources:['payments','reservations','restaurant','food','expenses','payroll','caisse','remboursements','factures']},
+    allowed_actions_json:{actions:['produire_rapport_financier','signaler_anomalie','comparer_périodes','proposer_réduction_coûts','préparer_brouillon_rapport']},
+    forbidden_actions_json:{actions:['modifier_paiement','supprimer_dépense','valider_remboursement','créer_écriture_comptable_sans_validation']}},
+
+  { agent_key:'marketing_ai',     name:'Marketing / CM',            category:'marketing',
+    icon:'📣', risk_level:'medium', status:'draft',  version:1, approval_required:true,
+    description:'Prépare calendrier éditorial, publications, campagnes et idées visuels.',
+    system_prompt:'Tu es l\'Agent Marketing de VERALUZ Kribi. Tu proposes des publications pour les réseaux sociaux, des calendriers éditoriaux et des briefings design. Tu ne publies jamais automatiquement. Tu ne promets pas de tarif non validé. Tu n\'utilises pas de photos clients sans autorisation.',
+    data_sources_json:{sources:['taux_occupation','saisons','événements','offres','avis_clients','photos_disponibles','crm']},
+    allowed_actions_json:{actions:['proposer_posts','générer_textes','proposer_calendrier','proposer_briefing_canva','générer_idées_vidéos']},
+    forbidden_actions_json:{actions:['publier_sans_validation','promettre_tarif_non_validé','utiliser_photo_client_sans_autorisation']}},
+
+  { agent_key:'legal_docs_ai',    name:'Juridique / Documents',     category:'juridique',
+    icon:'⚖️', risk_level:'critical',status:'draft', version:1, approval_required:true,
+    description:'Organise contrats, documents, assurances et rappels administratifs.',
+    system_prompt:'Tu es l\'Agent Juridique de VERALUZ. Tu rappelles les échéances, classes les documents et signales les manquants. Tu ne donnes jamais d\'avis juridique définitif. Tu ne signes pas de documents. Tu ne remplaces pas un avocat, notaire ou fiscaliste.',
+    data_sources_json:{sources:['contrats_employés','documents_rh','factures','statuts','assurances','fournisseurs','documents_résidence']},
+    allowed_actions_json:{actions:['rappeler_échéance','classer_document','préparer_brouillon','signaler_document_manquant']},
+    forbidden_actions_json:{actions:['donner_avis_juridique_définitif','signer_document','remplacer_professionnel_juridique','modifier_statuts_sans_validation']}},
+
+  { agent_key:'security_ai',      name:'Sécurité / Caméras',        category:'sécurité',
+    icon:'🔒', risk_level:'critical',status:'draft', version:1, approval_required:true,
+    description:'Prépare l\'intégration future caméras, alertes sécurité et résumés incidents.',
+    system_prompt:'Tu es l\'Agent Sécurité de VERALUZ. Tu génères des alertes, résumes les incidents et recommandes des vérifications humaines. Tu n\'identifies jamais une personne de façon certaine. Tu ne prends pas de décision sécuritaire seule. Tu n\'exposes pas de flux caméra publiquement.',
+    data_sources_json:{sources:['incidents','logs','sécurité_bâtiment','réseau_starlink','accès_portail']},
+    allowed_actions_json:{actions:['générer_alerte','résumer_incident','recommander_vérification_humaine']},
+    forbidden_actions_json:{actions:['identifier_personne','décision_sécuritaire_autonome','exposer_flux_caméra','désactiver_caméra']}}
+];
+
+/* ── Tabs config ─────────────────────────────────────────────── */
+var TABS = [
+  { id:'overview',       label:'Vue d\'ensemble', icon:'🏠' },
+  { id:'agents',        label:'Agents',          icon:'🤖' },
+  { id:'reports',       label:'Rapports',        icon:'📋' },
+  { id:'recommendations',label:'Recommandations',icon:'💡', badge:'_recs' },
+  { id:'prompts',       label:'Prompts',         icon:'📝' },
+  { id:'history',       label:'Historique',      icon:'🕐' },
+  { id:'settings',      label:'Paramètres IA',   icon:'⚙️' }
+];
+
+/* ── Supabase helpers ────────────────────────────────────────── */
+function sbGet(path) {
+  return fetch(SB + path, {
+    headers:{ apikey:KEY, Authorization:'Bearer '+KEY, Accept:'application/json' }
+  }).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; });
+}
+function sbPost(table, data) {
+  return fetch(SB+'/rest/v1/'+table, {
+    method:'POST', headers:{ apikey:KEY, Authorization:'Bearer '+KEY,
+      'Content-Type':'application/json', Prefer:'return=representation' },
+    body:JSON.stringify(data)
+  }).then(function(r){ return r.json(); }).catch(function(e){ console.warn('[AI]',e); return null; });
+}
+function sbPatch(table, filter, data) {
+  return fetch(SB+'/rest/v1/'+table+'?'+filter, {
+    method:'PATCH', headers:{ apikey:KEY, Authorization:'Bearer '+KEY,
+      'Content-Type':'application/json', Prefer:'return=representation' },
+    body:JSON.stringify(data)
+  }).then(function(r){ return r.json(); }).catch(function(e){ console.warn('[AI]',e); return null; });
+}
+
+/* ── Auth context from parent CORE ──────────────────────────── */
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.source === 'veraluz-core' && e.data.type === 'auth-context') {
+    _currentUser = e.data.data;
+    var el = document.getElementById('tb-user');
+    if (el) el.textContent = (_currentUser.roleIcon||'')+ ' ' + (_currentUser.name||_currentUser.username||'—');
+  }
+});
+
+/* ── Format helpers ──────────────────────────────────────────── */
+function fmtXAF(n){ n=Number(n)||0; return n>=1000000?(n/1000000).toFixed(1)+'M FCFA':n>=1000?(n/1000).toFixed(0)+'k FCFA':n+' FCFA'; }
+function fmtDate(s){ if(!s) return '—'; try{ return new Date(s).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return s; } }
+function esc(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function riskBdg(r){ return '<span class="bdg bdg-'+esc(r)+'">'+esc((r||'?').toUpperCase())+'</span>'; }
+function statusBdg(s){ return '<span class="bdg bdg-'+esc(s)+'">'+esc((s||'?').toUpperCase())+'</span>'; }
+function priBdg(p){ var c=p==='high'?'bdg-high':p==='urgent'?'bdg-critical':'bdg-info'; return '<span class="bdg '+c+'">'+esc((p||'normal').toUpperCase())+'</span>'; }
+function pendingCount(){ return _recs.filter(function(r){ return r.status==='pending'; }).length; }
+
+/* ── INIT ────────────────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', function() {
+  renderTabsBar();
+  showTab('overview');
+  loadAll();
+});
+
+function loadAll() {
+  loadAgents();
+  loadRuns();
+  loadRecs();
+}
+
+/* ── Tab rendering ───────────────────────────────────────────── */
+function renderTabsBar() {
+  var bar = document.getElementById('tabs-bar');
+  bar.innerHTML = TABS.map(function(t) {
+    var cnt = (t.badge && t.badge==='_recs') ? pendingCount() : 0;
+    return '<div class="tab'+(t.id==='overview'?' active':'')+'" data-tab="'+t.id+'" onclick="showTab(\''+t.id+'\')">'
+      +t.icon+' '+t.label+(cnt>0?'<span class="tab-badge" id="badge-'+t.id+'">'+cnt+'</span>':'')+'</div>';
+  }).join('');
+}
+
+function showTab(id) {
+  _currentTab = id;
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('active', t.dataset.tab===id); });
+  document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.toggle('active', p.id==='pane-'+id); });
+  renderCurrentTab();
+}
+
+function renderCurrentTab() {
+  var fns = {
+    overview:        renderOverview,
+    agents:          renderAgents,
+    reports:         renderReports,
+    recommendations: renderRecommendations,
+    prompts:         renderPrompts,
+    history:         renderHistory,
+    settings:        renderSettings
+  };
+  if (fns[_currentTab]) fns[_currentTab]();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB 1 — VUE D'ENSEMBLE
+══════════════════════════════════════════════════════════════ */
+function renderOverview() {
+  var activeCount  = _agents.filter(function(a){ return a.status==='active'; }).length;
+  var runsCount    = _runs.length;
+  var pendingRecs  = pendingCount();
+  var pane = document.getElementById('pane-overview');
+  pane.innerHTML = [
+    '<div class="kpi-grid">',
+      kpiCard('Agents actifs',   activeCount  || AI_AGENTS_DEFAULT.filter(function(a){return a.status==='active';}).length, '/', AI_AGENTS_DEFAULT.length+' configurés','🤖'),
+      kpiCard('Rapports générés', runsCount,   '','Depuis le démarrage','📋'),
+      kpiCard('Recommandations',  pendingRecs, '','En attente de validation','💡'),
+      kpiCard('Mode IA', 'MOCK','','Aucune clé IA — mode simulation','⚙️'),
+    '</div>',
+
+    '<div class="generate-area">',
+      '<div class="generate-icon">🧠</div>',
+      '<div class="generate-text">',
+        '<div class="generate-title">Agent Directeur Quotidien</div>',
+        '<div class="generate-sub">Génère un rapport structuré (réservations, revenus, housekeeping, alertes, recommandations) en mode simulation depuis les données Supabase.</div>',
+      '</div>',
+      '<button class="btn btn-primary btn-lg" onclick="runDirectorReport()" id="btn-generate">',
+        '🚀 Générer rapport',
+      '</button>',
+    '</div>',
+
+    '<div id="report-area">',
+      _reportData ? renderReportHTML(_reportData) : '<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">Aucun rapport généré</div><div class="empty-sub">Cliquez sur "Générer rapport" pour lancer le Directeur Quotidien.</div></div>',
+    '</div>',
+
+    _runs.length > 0 ? [
+      '<div class="divider"></div>',
+      '<div class="sec-hdr"><div><div class="sec-title">Exécutions récentes</div></div></div>',
+      '<div class="tbl-wrap"><table><thead><tr>',
+        '<th>Date</th><th>Agent</th><th>Type</th><th>Statut</th><th>Par</th>',
+      '</tr></thead><tbody>',
+      _runs.slice(0,5).map(function(r){
+        return '<tr><td>'+fmtDate(r.created_at)+'</td><td>'+esc(r.agent_key)+'</td><td>'+esc(r.run_type||'—')+'</td><td>'+statusBdg(r.status)+'</td><td>'+esc(r.created_by||'—')+'</td></tr>';
+      }).join(''),
+      '</tbody></table></div>'
+    ].join('') : ''
+  ].join('');
+}
+
+function kpiCard(lbl, val, unit, sub, icon) {
+  return '<div class="kpi-card"><div class="kpi-lbl">'+esc(lbl)+'</div><div class="kpi-val">'+esc(String(val))+(unit?'<span style="font-size:14px;color:var(--text2)">'+esc(unit)+'</span>':'')+'</div><div class="kpi-sub">'+esc(sub)+'</div><div class="kpi-icon">'+icon+'</div></div>';
+}
+
+/* ── Mock Report Generation ──────────────────────────────────── */
+function runDirectorReport() {
+  if (_loadingReport) return;
+  _loadingReport = true;
+  var btn = document.getElementById('btn-generate');
+  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span> Génération…'; }
+  var reportArea = document.getElementById('report-area');
+  if (reportArea) reportArea.innerHTML = '<div class="empty"><div class="empty-icon"><span class="spin" style="font-size:32px;">⟳</span></div><div class="empty-title">Analyse en cours…</div><div class="empty-sub">Chargement des données Supabase · Mode MOCK</div></div>';
+
+  /* SÉCURITÉ : Mode mock — aucun appel OpenAI/Claude/Anthropic ici */
+  if (VERALUZ_AI_MODE !== 'mock') {
+    showToast('Mode edge non configuré.','warn');
+    _loadingReport=false; if(btn){btn.disabled=false;btn.innerHTML='🚀 Générer rapport';} return;
+  }
+
+  /* Essai snapshot parent */
+  var parentSnap = null;
+  try { parentSnap = window.parent.VeraluzAnalyticsSnapshot; } catch(e){}
+
+  /* Charger données Supabase */
+  Promise.all([
+    sbGet('/rest/v1/veraluz_reservations?select=id,status,check_in,check_out,client_name,unit_id&order=created_at.desc&limit=100'),
+    sbGet('/rest/v1/veraluz_payments?select=id,status,amount,client_name&order=created_at.desc&limit=200'),
+    sbGet('/rest/v1/veraluz_employees?select=id,status,full_name,role&limit=100'),
+    sbGet('/rest/v1/veraluz_housekeeping_tasks?select=id,status,unit_id&limit=200').catch(function(){ return []; }),
+    sbGet('/rest/v1/veraluz_food_orders?select=id,status,total_amount&order=created_at.desc&limit=100').catch(function(){ return []; }),
+    sbGet('/rest/v1/veraluz_units?select=id,status,name&limit=50').catch(function(){ return []; })
+  ]).then(function(results) {
+    var reservations = Array.isArray(results[0]) ? results[0] : [];
+    var payments     = Array.isArray(results[1]) ? results[1] : [];
+    var employees    = Array.isArray(results[2]) ? results[2] : [];
+    var housekeeping = Array.isArray(results[3]) ? results[3] : [];
+    var foodOrders   = Array.isArray(results[4]) ? results[4] : [];
+    var units        = Array.isArray(results[5]) ? results[5] : [];
+
+    var report = buildMockReport(parentSnap, reservations, payments, employees, housekeeping, foodOrders, units);
+    _reportData = report;
+
+    /* Enregistrer dans veraluz_ai_agent_runs */
+    return sbPost('veraluz_ai_agent_runs', {
+      agent_key: 'daily_director',
+      run_type: 'daily_report',
+      status: 'completed',
+      input_snapshot_json: parentSnap || { source:'direct_supabase' },
+      output_json: report,
+      output_text: report.summary,
+      recommendations_json: report.recommendations || [],
+      created_by: _currentUser.username || 'ai_center'
+    }).then(function(savedRun) {
+      /* Enregistrer recommandations dans veraluz_ai_recommendations */
+      var recs = report.recommendations || [];
+      if (recs.length > 0) {
+        return Promise.all(recs.map(function(rec) {
+          return sbPost('veraluz_ai_recommendations', {
+            agent_key: 'daily_director',
+            category: rec.category || 'general',
+            title: rec.title,
+            description: rec.description,
+            priority: rec.priority || 'normal',
+            status: 'pending',
+            requires_approval: true,
+            related_module: rec.module || 'dashboard',
+            suggested_action: rec.action || null
+          });
+        }));
+      }
+      return null;
+    });
+  }).then(function() {
+    var ra = document.getElementById('report-area');
+    if (ra) ra.innerHTML = renderReportHTML(_reportData);
+    loadRuns(); loadRecs();
+    showToast('Rapport généré avec succès ✓','ok');
+  }).catch(function(err) {
+    console.error('[AI Director]', err);
+    showToast('Erreur lors de la génération','err');
+  }).finally(function() {
+    _loadingReport = false;
+    var b = document.getElementById('btn-generate');
+    if (b) { b.disabled=false; b.innerHTML='🚀 Générer rapport'; }
+  });
+}
+
+function buildMockReport(snap, reservations, payments, employees, housekeeping, foodOrders, units) {
+  var now = new Date();
+  var todayStr = now.toISOString().slice(0,10);
+  reservations = reservations||[]; payments=payments||[]; employees=employees||[];
+  housekeeping=housekeeping||[]; foodOrders=foodOrders||[]; units=units||[];
+
+  var checkedIn    = reservations.filter(function(r){ return r.status==='checkedin'; }).length;
+  var arrivalsToday= reservations.filter(function(r){ return r.check_in===todayStr; }).length;
+  var departures   = reservations.filter(function(r){ return r.check_out===todayStr; }).length;
+  var pendingPays  = payments.filter(function(p){ return p.status==='pending'; });
+  var pendingAmt   = pendingPays.reduce(function(s,p){ return s+Number(p.amount||0); }, 0);
+  var validatedRev = payments.filter(function(p){ return p.status==='validated'; }).reduce(function(s,p){ return s+Number(p.amount||0); }, 0);
+  var activeEmp    = employees.filter(function(e){ return e.status==='actif'; }).length;
+  var pendingTasks = housekeeping.filter(function(h){ return ['pending','in_progress'].includes(h.status); }).length;
+  var doneTasks    = housekeeping.filter(function(h){ return h.status==='done'; }).length;
+  var unitsTotal   = units.length || (snap && snap.occupancy ? snap.occupancy.units_total : 0);
+  var unitsOcc     = snap ? (snap.occupancy ? snap.occupancy.units_occupied : checkedIn) : checkedIn;
+  var occPct       = unitsTotal > 0 ? Math.round(unitsOcc/unitsTotal*100) : 0;
+
+  /* Override avec snapshot si disponible */
+  if (snap && snap.occupancy) { unitsOcc=snap.occupancy.units_occupied; occPct=snap.occupancy.current_pct; }
+  if (snap && snap.revenues)  { validatedRev=snap.revenues.all_time_validated||validatedRev; }
+
+  /* Alertes */
+  var alerts = [];
+  if (pendingPays.length > 0) alerts.push({ level:'warn', icon:'⚠', text: pendingPays.length+' paiement(s) en attente — '+fmtXAF(pendingAmt) });
+  if (arrivalsToday > 0)      alerts.push({ level:'info', icon:'🛬', text: arrivalsToday+' arrivée(s) prévue(s) aujourd\'hui' });
+  if (departures > 0)         alerts.push({ level:'info', icon:'🛫', text: departures+' départ(s) prévu(s) aujourd\'hui' });
+  if (pendingTasks > 3)       alerts.push({ level:'warn', icon:'🧹', text: pendingTasks+' tâches housekeeping en cours/attente' });
+  if (activeEmp === 0)        alerts.push({ level:'warn', icon:'👥', text: 'Aucun employé actif détecté dans Supabase' });
+  if (alerts.length === 0)    alerts.push({ level:'ok',   icon:'✅', text: 'Aucune alerte critique détectée' });
+
+  /* Recommandations */
+  var recs = [];
+  if (pendingPays.length >= 2) recs.push({ title:'Relancer les paiements en attente', description:pendingPays.length+' paiements représentent '+fmtXAF(pendingAmt)+' non encaissés.', priority:'high', category:'finance', module:'paiements', action:'Contacter les clients avec paiements en attente' });
+  if (arrivalsToday > 0)       recs.push({ title:'Préparer les arrivées du jour', description:arrivalsToday+' client(s) attendu(s). Vérifier disponibilité et propreté des unités.', priority:'high', category:'operations', module:'reservations', action:'Vérifier le statut des unités avant 14h' });
+  if (pendingTasks > 5)        recs.push({ title:'Accélérer le housekeeping', description:pendingTasks+' tâches non terminées. Prioriser les unités avec arrivée aujourd\'hui.', priority:'normal', category:'housekeeping', module:'housekeeping', action:'Contacter le responsable ménage' });
+  if (occPct < 30 && unitsTotal > 0) recs.push({ title:'Taux d\'occupation faible', description:'Occupation actuelle : '+occPct+'%. Envisager une campagne promotionnelle.', priority:'normal', category:'marketing', module:'analytics', action:'Activer l\'agent Marketing pour proposer une promotion' });
+
+  var summaryParts = [
+    now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) + '.',
+    unitsOcc > 0 ? unitsOcc+' chambre(s) occupée(s)'+(occPct>0?' ('+occPct+'%)':'')+'.' : '',
+    validatedRev > 0 ? 'Revenus validés : '+fmtXAF(validatedRev)+'.' : '',
+    pendingPays.length > 0 ? pendingPays.length+' paiement(s) en attente.' : '',
+    activeEmp > 0 ? activeEmp+' employé(s) actif(s).' : '',
+    snap ? 'Données Analytics disponibles.' : 'Données chargées directement depuis Supabase.'
+  ].filter(Boolean).join(' ');
+
+  return {
+    title: 'Rapport Directeur Quotidien',
+    agent: 'daily_director',
+    generated_at: now.toISOString(),
+    mode: 'mock',
+    using_analytics_snapshot: !!snap,
+    summary: summaryParts,
+    metrics: {
+      reservations: { checked_in:checkedIn, arrivals_today:arrivalsToday, departures_today:departures, total:reservations.length },
+      finance: { validated_revenue:validatedRev, pending_payments:pendingPays.length, pending_amount:pendingAmt },
+      occupancy: { units_occupied:unitsOcc, units_total:unitsTotal, pct:occPct },
+      hr: { active_employees:activeEmp, total_employees:employees.length },
+      housekeeping: { pending_tasks:pendingTasks, done_tasks:doneTasks },
+      food: { orders_today:foodOrders.length }
+    },
+    alerts: alerts,
+    recommendations: recs,
+    decisions_required: recs.filter(function(r){ return r.priority==='high'; }).map(function(r){ return { action:r.title, module:r.module }; })
+  };
+}
+
+function renderReportHTML(r) {
+  if (!r) return '';
+  var m = r.metrics||{};
+  var res=m.reservations||{}; var fin=m.finance||{}; var occ=m.occupancy||{};
+  var hr=m.hr||{}; var hk=m.housekeeping||{}; var food=m.food||{};
+  return [
+    '<div class="report-card">',
+    '<div class="report-hdr">',
+      '<div style="font-size:24px;">📋</div>',
+      '<div style="flex:1"><div class="report-title">'+esc(r.title)+'</div>',
+      '<div class="report-sub">Généré le '+fmtDate(r.generated_at)+' · Mode '+esc(r.mode||'mock').toUpperCase()+(r.using_analytics_snapshot?' · Snapshot Analytics':'')+'</div></div>',
+      '<span class="bdg bdg-draft">MOCK</span>',
+    '</div>',
+
+    '<div class="report-section"><div class="report-section-title">📝 Résumé</div>',
+    '<div style="background:var(--bg3);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;color:var(--text2);">'+esc(r.summary)+'</div></div>',
+
+    '<div class="g2">',
+    '<div class="report-section"><div class="report-section-title">🛏 Réservations</div>',
+    metricRow('Occupées maintenant', res.checked_in||0),
+    metricRow('Arrivées aujourd\'hui', res.arrivals_today||0),
+    metricRow('Départs aujourd\'hui', res.departures_today||0),
+    metricRow('Total réservations', res.total||0),
+    '</div>',
+    '<div class="report-section"><div class="report-section-title">💰 Finance</div>',
+    metricRow('Revenus validés', fmtXAF(fin.validated_revenue||0)),
+    metricRow('Paiements en attente', (fin.pending_payments||0)+' ('+fmtXAF(fin.pending_amount||0)+')'),
+    metricRow('Taux occupation', (occ.pct||0)+'% ('+( occ.units_occupied||0)+'/'+( occ.units_total||0)+')'),
+    metricRow('Commandes food', food.orders_today||0),
+    '</div></div>',
+
+    '<div class="g2">',
+    '<div class="report-section"><div class="report-section-title">👥 RH</div>',
+    metricRow('Employés actifs', (hr.active_employees||0)+'/'+( hr.total_employees||0)),
+    '</div>',
+    '<div class="report-section"><div class="report-section-title">🧹 Housekeeping</div>',
+    metricRow('Tâches en cours', hk.pending_tasks||0),
+    metricRow('Tâches terminées', hk.done_tasks||0),
+    '</div></div>',
+
+    r.alerts&&r.alerts.length ? [
+      '<div class="report-section"><div class="report-section-title">⚠ Alertes</div>',
+      r.alerts.map(function(a){ return '<div class="alert-row alert-'+esc(a.level||'info')+'">'+esc(a.icon||'•')+' '+esc(a.text)+'</div>'; }).join(''),
+      '</div>'
+    ].join('') : '',
+
+    r.recommendations&&r.recommendations.length ? [
+      '<div class="report-section"><div class="report-section-title">💡 Recommandations</div>',
+      r.recommendations.map(function(rc){ return [
+        '<div class="rec-row"><div class="rec-icon">'+priBdg(rc.priority)+'</div>',
+        '<div class="rec-content"><div class="rec-title">'+esc(rc.title)+'</div>',
+        '<div class="rec-desc">'+esc(rc.description)+'</div></div></div>'
+      ].join(''); }).join(''),
+      '<div style="font-size:11px;color:var(--text3);margin-top:6px;">💾 Recommandations enregistrées dans veraluz_ai_recommendations</div>',
+      '</div>'
+    ].join('') : '',
+
+    r.decisions_required&&r.decisions_required.length ? [
+      '<div class="report-section" style="background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.15);border-radius:8px;padding:12px;">',
+      '<div class="report-section-title" style="color:var(--red);">🚨 Décisions requises</div>',
+      r.decisions_required.map(function(d){ return '<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--bg4);">→ '+esc(d.action)+' <span style="color:var(--text3);">['+esc(d.module)+']</span></div>'; }).join(''),
+      '</div>'
+    ].join('') : '',
+
+    '<div style="font-size:10px;color:var(--text3);margin-top:12px;padding-top:8px;border-top:1px solid var(--border);">',
+    '⚠ Rapport généré en mode MOCK — Aucune IA externe utilisée — Toute action nécessite validation humaine',
+    '</div>',
+    '</div>'
+  ].join('');
+}
+
+function metricRow(lbl,val){ return '<div class="metric-row"><span class="metric-lbl">'+esc(String(lbl))+'</span><span class="metric-val">'+esc(String(val))+'</span></div>'; }
+
+/* ══════════════════════════════════════════════════════════════
+   TAB 2 — AGENTS
+══════════════════════════════════════════════════════════════ */
+function renderAgents() {
+  var list = _agents.length > 0 ? _agents : AI_AGENTS_DEFAULT;
+  var pane = document.getElementById('pane-agents');
+  pane.innerHTML = [
+    '<div class="sec-hdr"><div><div class="sec-title">Registre des Agents IA</div><div class="sec-sub">'+list.length+' agents configurés — Validation humaine obligatoire pour toute action</div></div></div>',
+    '<div class="cards-grid">',
+    list.map(renderAgentCard).join(''),
+    '</div>'
+  ].join('');
+}
+
+function renderAgentCard(a) {
+  return [
+    '<div class="agent-card" id="ac-'+esc(a.agent_key)+'">',
+    '<div class="ac-header">',
+      '<div class="ac-icon">'+esc(a.icon||'🤖')+'</div>',
+      '<div><div class="ac-name">'+esc(a.name)+'</div><div class="ac-cat">'+esc(a.category||'—')+'</div></div>',
+    '</div>',
+    '<div class="ac-badges">',
+      statusBdg(a.status), riskBdg(a.risk_level),
+      '<span class="vtag">v'+esc(String(a.version||1))+'</span>',
+      a.approval_required ? '<span class="bdg bdg-pending">✓ VALIDATION</span>' : '',
+    '</div>',
+    '<div class="ac-desc">'+esc(a.description||'—')+'</div>',
+    '<div class="ac-meta">Clé : <code>'+esc(a.agent_key)+'</code></div>',
+    '<div class="ac-actions">',
+      '<button class="btn btn-sec btn-sm" onclick="viewAgentDetail(\''+esc(a.agent_key)+'\')">👁 Voir</button>',
+      a.status==='active'
+        ? '<button class="btn btn-warn btn-sm" onclick="toggleAgentStatus(\''+esc(a.agent_key)+'\',\'paused\')">⏸ Pause</button>'
+        : '<button class="btn btn-ok btn-sm" onclick="toggleAgentStatus(\''+esc(a.agent_key)+'\',\'active\')">▶ Activer</button>',
+      '<button class="btn btn-sec btn-sm" onclick="openPromptEditor(\''+esc(a.agent_key)+'\')">✏ Prompt</button>',
+    '</div>',
+    '</div>'
+  ].join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB 3 — RAPPORTS
+══════════════════════════════════════════════════════════════ */
+function renderReports() {
+  var pane = document.getElementById('pane-reports');
+  if (_runs.length === 0) {
+    pane.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">Aucun rapport</div><div class="empty-sub">Générez votre premier rapport depuis l\'onglet Vue d\'ensemble.</div></div>';
+    return;
+  }
+  pane.innerHTML = [
+    '<div class="sec-hdr"><div><div class="sec-title">Rapports générés</div></div></div>',
+    _runs.map(function(r) {
+      var out = r.output_json || {};
+      return [
+        '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:10px;">',
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">',
+          '<div style="flex:1"><b>'+esc(out.title||r.run_type||'Rapport')+'</b> <span class="vtag">'+esc(r.agent_key)+'</span></div>',
+          statusBdg(r.status),
+          '<span style="font-size:11px;color:var(--text3);">'+fmtDate(r.created_at)+'</span>',
+        '</div>',
+        '<div style="font-size:12px;color:var(--text2);line-height:1.5;">'+esc(r.output_text||out.summary||'—')+'</div>',
+        '<div style="margin-top:8px;font-size:11px;color:var(--text3);">Par : '+esc(r.created_by||'—')+'</div>',
+        '</div>'
+      ].join('');
+    }).join(''),
+  ].join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB 4 — RECOMMANDATIONS
+══════════════════════════════════════════════════════════════ */
+function renderRecommendations() {
+  var pane = document.getElementById('pane-recommendations');
+  var pending = _recs.filter(function(r){ return r.status==='pending'; });
+  var others  = _recs.filter(function(r){ return r.status!=='pending'; });
+  if (_recs.length === 0) {
+    pane.innerHTML = '<div class="empty"><div class="empty-icon">💡</div><div class="empty-title">Aucune recommandation</div><div class="empty-sub">Les recommandations apparaîtront ici après la génération d\'un rapport.</div></div>';
+    return;
+  }
+  var html = [
+    '<div class="sec-hdr"><div><div class="sec-title">Recommandations IA</div><div class="sec-sub">'+pending.length+' en attente · Approbation/rejet ne déclenche aucune action automatique critique</div></div></div>',
+    '<div class="tbl-wrap"><table><thead><tr>',
+      '<th>Agent</th><th>Priorité</th><th>Catégorie</th><th>Titre</th><th>Statut</th><th>Date</th><th>Actions</th>',
+    '</tr></thead><tbody>',
+    _recs.map(function(r) {
+      var actionBtns = r.status==='pending' ? [
+        '<button class="btn btn-ok btn-sm" onclick="approveRec(\''+esc(r.id)+'\')">✓ Approuver</button>',
+        '<button class="btn btn-danger btn-sm" onclick="rejectRec(\''+esc(r.id)+'\')">✕ Rejeter</button>',
+        '<button class="btn btn-sec btn-sm" onclick="doneRec(\''+esc(r.id)+'\')">☑ Fait</button>'
+      ].join(' ') : '—';
+      return '<tr><td><code>'+esc(r.agent_key)+'</code></td><td>'+priBdg(r.priority)+'</td><td>'+esc(r.category||'—')+'</td><td>'+esc(r.title||'—')+'</td><td>'+statusBdg(r.status)+'</td><td>'+fmtDate(r.created_at)+'</td><td>'+actionBtns+'</td></tr>';
+    }).join(''),
+    '</tbody></table></div>'
+  ].join('');
+  pane.innerHTML = html;
+}
+
+function approveRec(id) {
+  sbPatch('veraluz_ai_recommendations','id=eq.'+id,{
+    status:'approved', approved_by:_currentUser.username||'admin', approved_at:new Date().toISOString()
+  }).then(function(){ loadRecs(); showToast('Recommandation approuvée ✓','ok'); });
+}
+function rejectRec(id) {
+  sbPatch('veraluz_ai_recommendations','id=eq.'+id,{
+    status:'rejected', rejected_by:_currentUser.username||'admin', rejected_at:new Date().toISOString()
+  }).then(function(){ loadRecs(); showToast('Recommandation rejetée','warn'); });
+}
+function doneRec(id) {
+  sbPatch('veraluz_ai_recommendations','id=eq.'+id,{status:'done'})
+    .then(function(){ loadRecs(); showToast('Marquée comme faite ✓','ok'); });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB 5 — PROMPTS
+══════════════════════════════════════════════════════════════ */
+function renderPrompts() {
+  var list = _agents.length > 0 ? _agents : AI_AGENTS_DEFAULT;
+  var pane = document.getElementById('pane-prompts');
+  pane.innerHTML = [
+    '<div class="sec-hdr"><div><div class="sec-title">Prompts Systèmes</div><div class="sec-sub">Toute modification incrémente la version · Versioning obligatoire</div></div></div>',
+    list.map(function(a) { return [
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:10px;">',
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">',
+        '<span style="font-size:18px;">'+esc(a.icon||'🤖')+'</span>',
+        '<div><b>'+esc(a.name)+'</b> <span class="vtag">v'+esc(String(a.version||1))+'</span></div>',
+        statusBdg(a.status), riskBdg(a.risk_level),
+        '<button class="btn btn-sec btn-sm" style="margin-left:auto;" onclick="openPromptEditor(\''+esc(a.agent_key)+'\')">✏ Modifier</button>',
+      '</div>',
+      '<div style="margin-bottom:8px;">',
+        '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Prompt système</div>',
+        '<div style="background:var(--bg3);border-radius:7px;padding:10px;font-size:11px;color:var(--text2);font-family:monospace;line-height:1.5;max-height:80px;overflow:hidden;">'+esc(a.system_prompt||'—')+'</div>',
+      '</div>',
+      '<div class="g2" style="gap:8px;margin-top:8px;">',
+        '<div><div style="font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">✓ Actions autorisées</div>',
+        '<div style="font-size:11px;color:var(--text3);">'+
+          ((a.allowed_actions_json&&a.allowed_actions_json.actions)||[]).map(function(x){ return '<span class="bdg bdg-active" style="margin:1px;">'+esc(x)+'</span>'; }).join(' ')+'</div></div>',
+        '<div><div style="font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">✗ Actions interdites</div>',
+        '<div style="font-size:11px;color:var(--text3);">'+
+          ((a.forbidden_actions_json&&a.forbidden_actions_json.actions)||[]).map(function(x){ return '<span class="bdg bdg-rejected" style="margin:1px;">'+esc(x)+'</span>'; }).join(' ')+'</div></div>',
+      '</div>',
+      '</div>'
+    ].join(''); }).join('')
+  ].join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB 6 — HISTORIQUE
+══════════════════════════════════════════════════════════════ */
+function renderHistory() {
+  var pane = document.getElementById('pane-history');
+  if (_runs.length === 0) {
+    pane.innerHTML = '<div class="empty"><div class="empty-icon">🕐</div><div class="empty-title">Aucune exécution</div><div class="empty-sub">L\'historique des runs apparaîtra ici.</div></div>';
+    return;
+  }
+  pane.innerHTML = [
+    '<div class="sec-hdr"><div><div class="sec-title">Historique des exécutions</div><div class="sec-sub">'+_runs.length+' run(s) enregistré(s)</div></div></div>',
+    '<div class="tbl-wrap"><table><thead><tr>',
+      '<th>Date</th><th>Agent</th><th>Type</th><th>Statut</th><th>Résumé</th><th>Par</th><th>Détail</th>',
+    '</tr></thead><tbody>',
+    _runs.map(function(r) {
+      var out = r.output_json || {};
+      var summary = r.output_text || out.summary || '—';
+      return '<tr><td>'+fmtDate(r.created_at)+'</td><td><code>'+esc(r.agent_key)+'</code></td><td>'+esc(r.run_type||'—')+'</td><td>'+statusBdg(r.status)+'</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(summary)+'">'+esc(summary.substring(0,80)+'...')+'</td><td>'+esc(r.created_by||'—')+'</td><td><button class="btn btn-sec btn-sm" onclick="viewRunDetail(\''+esc(r.id)+'\')">👁</button></td></tr>';
+    }).join(''),
+    '</tbody></table></div>'
+  ].join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB 7 — PARAMÈTRES IA
+══════════════════════════════════════════════════════════════ */
+function renderSettings() {
+  var pane = document.getElementById('pane-settings');
+  pane.innerHTML = [
+    '<div class="sec-hdr"><div><div class="sec-title">Paramètres Intelligence IA</div></div></div>',
+
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;margin-bottom:14px;">',
+    '<div style="font-size:12px;font-weight:700;margin-bottom:10px;">Mode IA actuel</div>',
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">',
+      '<div class="mode-badge '+(VERALUZ_AI_MODE==='mock'?'mode-mock':'mode-edge')+'" style="font-size:12px;padding:6px 16px;">',
+        VERALUZ_AI_MODE==='mock' ? '⚙ MODE MOCK — Simulation contrôlée' : '🌐 MODE EDGE — Edge Function',
+      '</div>',
+      '<div style="font-size:11px;color:var(--text3);">',
+        VERALUZ_AI_MODE==='mock' ? 'Aucun appel IA externe · Aucune clé API · Données Supabase uniquement' : 'Edge Function configurée · Clé IA côté serveur uniquement',
+      '</div>',
+    '</div>',
+    VERALUZ_AI_MODE==='mock' ? '<div style="margin-top:10px;font-size:11px;color:var(--yellow);background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-radius:7px;padding:8px;">⚠ Pour activer le mode edge, une Edge Function <code>veraluz-ai-runner</code> doit être déployée avec la clé IA côté serveur.</div>' : '',
+    '</div>',
+
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;margin-bottom:14px;">',
+    '<div style="font-size:12px;font-weight:700;margin-bottom:12px;">🔒 Règles de sécurité IA — VERALUZ</div>',
+    [
+      ['🚫','Aucun agent ne peut modifier directement une donnée critique (paiement, salaire, prix, réservation).'],
+      ['🚫','Aucun agent ne peut envoyer un message client sans validation humaine explicite.'],
+      ['🚫','Aucune clé IA (OpenAI, Claude, Anthropic…) dans le frontend.'],
+      ['✅','Toute future API IA passera uniquement par une Edge Function sécurisée.'],
+      ['✅','Tous les prompts sont versionnés — toute modification incrémente la version.'],
+      ['✅','Toutes les recommandations peuvent être approuvées, rejetées ou ignorées.'],
+      ['✅','Chaque agent peut être mis en pause individuellement.'],
+      ['✅','Validation humaine obligatoire pour toute action métier sensible.']
+    ].map(function(r){ return '<div class="sec-rule"><div class="sec-rule-icon">'+r[0]+'</div><div class="sec-rule-text">'+esc(r[1])+'</div></div>'; }).join(''),
+    '</div>',
+
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;">',
+    '<div style="font-size:12px;font-weight:700;margin-bottom:10px;">Edge Function future</div>',
+    '<div style="font-size:11px;color:var(--text3);font-family:monospace;background:var(--bg3);padding:10px;border-radius:7px;line-height:1.7;">',
+      'supabase/functions/veraluz-ai-runner/index.ts<br>',
+      '// Placeholder — retourne {ok:false, message:"AI runner not configured yet"}<br>',
+      '// FUTURE: appeler OpenAI / Claude via secret serveur uniquement<br>',
+      '// Ne jamais exposer la clé IA dans le frontend',
+    '</div>',
+    '</div>'
+  ].join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MODAL — Détail agent / Éditeur prompt / Détail run
+══════════════════════════════════════════════════════════════ */
+function openModal(title, bodyHTML, footerHTML) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHTML;
+  document.getElementById('modal-footer').innerHTML = footerHTML||'<button class="btn btn-sec" onclick="closeModal()">Fermer</button>';
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').style.display = 'none';
+}
+
+function viewAgentDetail(key) {
+  var list = _agents.length > 0 ? _agents : AI_AGENTS_DEFAULT;
+  var a = list.find(function(x){ return x.agent_key===key; });
+  if (!a) return;
+  openModal('Agent : '+a.name, [
+    '<div class="ac-badges" style="margin-bottom:12px;">'+statusBdg(a.status)+riskBdg(a.risk_level)+'<span class="vtag">v'+esc(String(a.version||1))+'</span>'+(a.approval_required?'<span class="bdg bdg-pending">VALIDATION</span>':'')+'</div>',
+    '<div class="form-group"><div class="form-label">Mission</div><div style="background:var(--bg3);border-radius:7px;padding:10px;font-size:12px;color:var(--text2);">'+esc(a.description||'—')+'</div></div>',
+    '<div class="form-group"><div class="form-label">Sources de données</div><div style="font-size:11px;color:var(--text3);">'+((a.data_sources_json&&a.data_sources_json.sources)||[]).map(function(s){ return '<span class="bdg bdg-info" style="margin:2px;">'+esc(s)+'</span>'; }).join(' ')+'</div></div>',
+    '<div class="form-group"><div class="form-label" style="color:var(--green);">Actions autorisées</div><div>'+((a.allowed_actions_json&&a.allowed_actions_json.actions)||[]).map(function(x){ return '<span class="bdg bdg-active" style="margin:2px;">'+esc(x)+'</span>'; }).join(' ')+'</div></div>',
+    '<div class="form-group"><div class="form-label" style="color:var(--red);">Actions interdites</div><div>'+((a.forbidden_actions_json&&a.forbidden_actions_json.actions)||[]).map(function(x){ return '<span class="bdg bdg-rejected" style="margin:2px;">'+esc(x)+'</span>'; }).join(' ')+'</div></div>',
+  ].join(''),
+  '<button class="btn btn-sec" onclick="closeModal()">Fermer</button><button class="btn btn-warn" onclick="closeModal();openPromptEditor(\''+esc(key)+'\')">✏ Modifier prompt</button>');
+}
+
+function openPromptEditor(key) {
+  var list = _agents.length > 0 ? _agents : AI_AGENTS_DEFAULT;
+  var a = list.find(function(x){ return x.agent_key===key; });
+  if (!a) return;
+  openModal('Modifier Prompt — '+a.name, [
+    '<div style="font-size:11px;color:var(--yellow);background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-radius:7px;padding:8px;margin-bottom:12px;">⚠ Toute modification incrémente la version (actuellement v'+esc(String(a.version||1))+' → v'+(esc(String((a.version||1)+1)))+').</div>',
+    '<div class="form-group"><div class="form-label">Statut</div>',
+    '<select class="form-input" id="edit-status" style="width:160px;">',
+      ['draft','active','paused','archived'].map(function(s){ return '<option value="'+s+'"'+(a.status===s?' selected':'')+'>'+s+'</option>'; }).join(''),
+    '</select></div>',
+    '<div class="form-group"><div class="form-label">Prompt système</div>',
+    '<textarea class="prompt-editor" id="edit-prompt" rows="10">'+esc(a.system_prompt||'')+'</textarea></div>',
+  ].join(''),
+  '<button class="btn btn-sec" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="savePrompt(\''+esc(key)+'\','+esc(String(a.version||1))+')">💾 Enregistrer + v'+(Number(a.version||1)+1)+'</button>');
+}
+
+function savePrompt(key, curVersion) {
+  var newPrompt = document.getElementById('edit-prompt').value;
+  var newStatus = document.getElementById('edit-status').value;
+  var newVersion = (Number(curVersion)||1) + 1;
+  var data = { system_prompt:newPrompt, status:newStatus, version:newVersion, updated_at:new Date().toISOString() };
+
+  var list = _agents.length > 0 ? _agents : AI_AGENTS_DEFAULT;
+  var a = list.find(function(x){ return x.agent_key===key; });
+  var agentId = a ? a.id : null;
+
+  var savePromise;
+  if (agentId) {
+    savePromise = sbPatch('veraluz_ai_agents','id=eq.'+agentId, data);
+  } else {
+    /* Agent local seulement — mise à jour locale */
+    if (a) { a.system_prompt=newPrompt; a.status=newStatus; a.version=newVersion; }
+    savePromise = Promise.resolve(null);
+  }
+
+  /* Enregistrer dans l'historique feedback */
+  sbPost('veraluz_ai_feedback',{
+    agent_key:key, rating:null,
+    feedback_text:'Prompt modifié — version '+newVersion,
+    created_by:_currentUser.username||'admin'
+  });
+
+  savePromise.then(function() {
+    closeModal();
+    showToast('Prompt mis à jour — v'+newVersion+' ✓','ok');
+    loadAgents();
+  });
+}
+
+function toggleAgentStatus(key, newStatus) {
+  var list = _agents.length > 0 ? _agents : AI_AGENTS_DEFAULT;
+  var a = list.find(function(x){ return x.agent_key===key; });
+  if (!a) return;
+  if (a.id) {
+    sbPatch('veraluz_ai_agents','id=eq.'+a.id,{status:newStatus}).then(function(){ loadAgents(); showToast('Agent '+newStatus+' ✓','ok'); });
+  } else {
+    a.status = newStatus;
+    renderAgents();
+    showToast('Agent '+newStatus+' (local) ✓','ok');
+  }
+}
+
+function viewRunDetail(id) {
+  var r = _runs.find(function(x){ return x.id===id; });
+  if (!r) return;
+  var out = r.output_json || {};
+  openModal('Run : '+r.agent_key, [
+    '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">'+fmtDate(r.created_at)+' · Par '+esc(r.created_by||'—')+'</div>',
+    statusBdg(r.status),
+    '<div class="divider"></div>',
+    '<div class="form-group"><div class="form-label">Résumé</div><div style="background:var(--bg3);border-radius:7px;padding:10px;font-size:12px;color:var(--text2);line-height:1.5;">'+esc(r.output_text||out.summary||'—')+'</div></div>',
+    out.alerts&&out.alerts.length ? '<div class="form-group"><div class="form-label">Alertes</div>'+out.alerts.map(function(a){ return '<div class="alert-row alert-'+(a.level||'info')+'">'+esc(a.icon||'•')+' '+esc(a.text)+'</div>'; }).join('')+'</div>' : '',
+  ].join(''));
+}
+
+/* ── Supabase data loaders ───────────────────────────────────── */
+function loadAgents() {
+  sbGet('/rest/v1/veraluz_ai_agents?select=*&order=created_at.asc').then(function(data) {
+    if (Array.isArray(data) && data.length > 0) {
+      _agents = data;
+    } else {
+      _agents = AI_AGENTS_DEFAULT; /* Fallback vers agents par défaut */
+    }
+    if (_currentTab === 'agents' || _currentTab === 'prompts') renderCurrentTab();
+  });
+}
+function loadRuns() {
+  sbGet('/rest/v1/veraluz_ai_agent_runs?select=*&order=created_at.desc&limit=50').then(function(data) {
+    _runs = Array.isArray(data) ? data : [];
+    updateBadges();
+    if (_currentTab === 'history' || _currentTab === 'reports' || _currentTab === 'overview') renderCurrentTab();
+  });
+}
+function loadRecs() {
+  sbGet('/rest/v1/veraluz_ai_recommendations?select=*&order=created_at.desc&limit=100').then(function(data) {
+    _recs = Array.isArray(data) ? data : [];
+    updateBadges();
+    if (_currentTab === 'recommendations') renderCurrentTab();
+  });
+}
+
+function updateBadges() {
+  var cnt = pendingCount();
+  var bdg = document.getElementById('badge-recommendations');
+  if (!bdg) {
+    var tab = document.querySelector('[data-tab="recommendations"]');
+    if (tab && cnt > 0) {
+      var s = document.createElement('span');
+      s.className='tab-badge'; s.id='badge-recommendations'; s.textContent=cnt;
+      tab.appendChild(s);
+    }
+  } else {
+    if (cnt > 0) { bdg.textContent=cnt; bdg.style.display=''; }
+    else bdg.style.display='none';
+  }
+}
+
+/* ── Toast ───────────────────────────────────────────────────── */
+function showToast(msg, type) {
+  var colors = { ok:'var(--green)', warn:'var(--yellow)', err:'var(--red)', info:'var(--blue)' };
+  var t = document.createElement('div');
+  t.className='toast';
+  t.style.borderLeftColor = colors[type]||colors.info;
+  t.style.borderLeftWidth = '3px';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(function(){ t.remove(); },300); }, 3000);
+}
+</script>
+</body>
+</html>

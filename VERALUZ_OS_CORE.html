@@ -578,6 +578,8 @@ var MODULES = [
     file:'APPRO_EMBEDDED.html',     desc:'Inventaire · Achats · Fournisseurs' },
   { id:'integrations', label:'Intégrations', icon:'🔗',
     file:'INTEGRATIONS_EMBEDDED.html', desc:'WhatsApp · CinetPay · Journal' },
+  { id:'ai_center',   label:'Intelligence IA', icon:'🧠',
+    file:'AI_CENTER_EMBEDDED.html',   desc:'Agents IA · Rapports · Recommandations' },
 ];
 
 /* ── Monochrome SVG icons for sidebar ─────────────────────────────── */
@@ -601,7 +603,8 @@ var SVG_ICONS = {
   pointage:      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
   notif_bell:    '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>',
   logout:        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
-  refresh:       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>'
+  refresh:       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>',
+  ai_center:     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 014 4v1h1a3 3 0 013 3v6a3 3 0 01-3 3H7a3 3 0 01-3-3v-6a3 3 0 013-3h1V6a4 4 0 014-4z"/><circle cx="9" cy="13" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.5" fill="currentColor" stroke="none"/><path d="M9 17c1 1 5 1 6 0"/></svg>'
 };
 
 
@@ -898,10 +901,10 @@ var ROLE_MAP = {
 var ROLES = {
   superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
-             'notifications','analytics','audit','settings','eventbus','auth','contacts','appro','integrations'] },
+             'notifications','analytics','audit','settings','eventbus','auth','contacts','appro','integrations','ai_center'] },
   manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
-             'notifications','analytics','contacts','appro'] },
+             'notifications','analytics','contacts','appro','ai_center'] },
   reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981', primaryModule:'employee_home',
     modules:['reservations','paiements','notifications','contacts','housekeeping'] },
   rh:          { label:'RH',               icon:'👥',  color:'#f59e0b', primaryModule:'employee_home',
