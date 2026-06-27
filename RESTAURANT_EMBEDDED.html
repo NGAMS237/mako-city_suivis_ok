@@ -858,10 +858,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);
   </div>
 </div>
 
+<script src="veraluz-core.js?v=0.3.0"></script>
 <script>
 'use strict';
 var SB='https://dfdmasejsoibxrvubegu.supabase.co';
 var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+/* ── Veraluz Core — référence globale + fallback ── */
+var VC = window.VeraluzCore || {};
 function H(x){return Object.assign({apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},x||{});}
 function GET(p){return fetch(SB+p,{headers:H({Accept:'application/json'})}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
 function POST(t,d){return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:H({Prefer:'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
@@ -892,69 +895,45 @@ var APP_PROMOS=[], _appSub='promos';
 var LIVREURS=[], _assignOid=null;
 
 /* ══════════════════════════════════════════
-   NORMALIZE UTILS — P0 FIX
+   NORMALIZE UTILS — VERALUZ CORE v0.3.0
+   Déléguées à veraluz-core.js.
+   Fallback minimal intégré si bibliothèque non disponible.
+   NB: normalizeOrderStatus NE concerne QUE les food orders
+   (veraluz_food_orders). Les restaurant orders ont leur propre
+   système de statuts français (ouvert/en_preparation/pret/paye/annule).
 ══════════════════════════════════════════ */
-/* Mappe veraluz_employees → format prenom/nom attendu par kdsAssignLivreur() */
-function normalizeEmployee(row) {
-  var parts = (row.full_name || '').trim().split(' ');
-  return {
-    id:        row.id,
-    prenom:    parts[0] || '',
-    nom:       parts.slice(1).join(' ') || '',
-    full_name: row.full_name || '',
-    pin_code:  row.pin_code || '',
-    poste:     row.role || '',
-    vehicule:  row.vehicule || '',
-    phone:     row.phone || '',
-    email:     row.email || ''
-  };
-}
-/* Compatibilité ascendante statuts food — anciens statuts français → statuts canoniques.
-   NE concerne QUE les food orders (veraluz_food_orders).
-   Les restaurant orders (veraluz_restaurant_orders) ont leur propre système de statuts. */
-function normalizeOrderStatus(status) {
-  var map = {
-    /* pending */
-    'attente':         'pending',          'pending':          'pending',
-    /* confirmed — NE PAS mapper vers pending */
-    'confirme':        'confirmed',        'confirmé':         'confirmed',        'confirmed':  'confirmed',
-    /* preparing */
-    'preparing':       'preparing',        'preparation':      'preparing',
-    'préparation':     'preparing',        'en_preparation':   'preparing',
-    /* ready */
-    'pret':            'ready',            'prêt':             'ready',            'ready':      'ready',
-    /* out_for_delivery — statut canonique (remplace l'ancien "delivering") */
-    'en_livraison':    'out_for_delivery', 'out_for_delivery': 'out_for_delivery',
-    'delivering':      'out_for_delivery', /* legacy interne → canonique */
-    /* delivered */
-    'delivered':       'delivered',        'livre':            'delivered',        'livré':      'delivered',
-    /* LEGACY READ ONLY — ne jamais écrire ces valeurs comme status operationnel */
-    'recu':            'delivered',        /* reçu = livré */
-    'paye':            'delivered',        'payé':             'delivered',        'paid':       'delivered',
-    /* cancelled */
-    'cancelled':       'cancelled',        'annule':           'cancelled',
-    'annulé':          'cancelled',        'canceled':         'cancelled'
-  };
-  return map[String(status || '').toLowerCase()] || 'pending';
-}
-/* Détecte si un employé est livreur (équipe OU rôle).
-   Requiert le join team:veraluz_teams dans la requête veraluz_employees. */
-function isDeliveryEmployee(emp) {
-  var team = String((emp.team && emp.team.name) || emp.team_name || '').toLowerCase();
-  var role = String(emp.role || emp.poste || emp.position || '').toLowerCase();
-  return (
-    team.includes('livr')    || team.includes('delivery') ||
-    role.includes('livreur') || role.includes('delivery') ||
-    role.includes('driver')  || role.includes('coursier')
-  );
-}
+var normalizeEmployee = VC.normalizeEmployee || function(row) {
+  /* Fallback minimal — veraluz-core.js absent */
+  var p = (row.full_name || '').trim().split(' ');
+  return Object.assign({
+    prenom: p[0] || '', nom: p.slice(1).join(' ') || '',
+    pin_code: row.pin_code || '', poste: row.role || ''
+  }, row);
+};
+var normalizeOrderStatus = VC.normalizeOrderStatus || function(s) {
+  /* Fallback minimal */
+  return String(s || 'pending');
+};
+var isDeliveryEmployee = VC.isDeliveryEmployee || function(emp) {
+  /* Fallback minimal */
+  var t = String((emp && emp.team && emp.team.name) || emp.team_name || '').toLowerCase();
+  var r = String((emp && (emp.role || emp.poste)) || '').toLowerCase();
+  return t.includes('livr') || r.includes('livreur');
+};
 
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function fmt(n){return Number(n||0).toLocaleString('fr-FR')+' FCFA';}
+/* VERALUZ CORE v0.3.0 — esc déléguée (neutralise & < > " ' `) */
+var esc = VC.esc || function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+/* VERALUZ CORE v0.3.0 — fmt déléguée à VC.fmtMoney (format FCFA) */
+var fmt = VC.fmtMoney || function(n){ return Number(n||0).toLocaleString('fr-FR')+' FCFA'; };
+/* TODO VERALUZ CORE: gid() conservé local — UUID v4 utilisé pour les IDs DB.
+   VC.gid() génère un format différent (ts_rand) — ne pas migrer sans validation.  */
 function gid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c=='x'?r:(r&0x3|0x8)).toString(16);});}
 function fdt(iso){if(!iso)return'';var d=new Date(iso);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
 function elapsed(iso){var m=Math.floor((Date.now()-new Date(iso))/60000);return m<60?m+'min':Math.floor(m/60)+'h'+String(m%60).padStart(2,'0');}
 
+/* TODO VERALUZ CORE: toast local conservé — classe CSS 'on' spécifique à ce module.
+   VC.toast() utilise 'show' et crée son propre conteneur — incompatible direct.
+   Migration possible dans PROMPT 004 si CSS unifié. */
 function toast(msg,type){
   var el=document.getElementById('toast');
   el.textContent=msg;el.className='on '+(type||'');
@@ -3177,4 +3156,21 @@ function saveAppCfg(){
 
 </script>
 
-<!-- Receipt V
+<!-- Receipt Verification Modal -->
+<div class="ov" id="md-recv">
+  <div class="md" style="max-width:520px;">
+    <div class="mdh"><span class="mdt">&#9745; Vérification de réception</span><button class="mdc" onclick="closeMd('md-recv')">&#10005;</button></div>
+    <div class="mdb" id="rcv-body" style="max-height:60vh;overflow-y:auto;"></div>
+    <div style="display:flex;gap:10px;padding:10px 16px;background:var(--bg2);border-top:1px solid var(--brd);font-size:13px;">
+      <span>Commandé: <b id="rcv-tot-ordered">0</b></span>
+      <span style="margin-left:auto;">Reçu: <b id="rcv-tot-received" style="color:var(--accent);">0</b></span>
+    </div>
+    <div class="mdf">
+      <button class="btn bg" onclick="closeMd('md-recv')" style="flex:1">Annuler</button>
+      <button class="btn bp" onclick="saveReceipt()" style="flex:2">&#128190; Confirmer réception</button>
+    </div>
+  </div>
+</div>
+
+<!-- Room Charge Guest Selector Modal -->
+<div cla
