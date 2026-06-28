@@ -1192,7 +1192,8 @@ function goTab(t){
   document.querySelectorAll('.pane,.pane-flex').forEach(function(p){p.classList.remove('on');});
   var pane=document.getElementById('pane-'+t);if(pane)pane.classList.add('on');
   /* KDS polling lifecycle */
-  if(t==='kds'){loadKDS();startKdsPoll();}else{stopKdsPoll();}
+  if(t==='kds'){checkMigration029();
+  loadKDS();startKdsPoll();}else{stopKdsPoll();}
   if(t==='rs')renderRS();
   if(t==='ventes')goVnt(curVnt,null);
   if(t==='resa')renderResa();
@@ -1913,7 +1914,11 @@ function kdsFoodUpd(oid,st){
           .catch(function(e2){toast('Erreur Supabase: '+(e2&&e2.message||'mise &#224; jour'),'er');});
         return;
       }
-      console.warn('[Restaurant] PATCH erreur:',e&&e.message,e&&e.sbCode,e&&e.sbDetails);
+      console.warn('[Restaurant] PATCH erreur:',{
+  message:e&&e.message, code:e&&e.sbCode,
+  details:e&&e.sbDetails, http:e&&e.httpStatus,
+  payload:patchData, orderId:oid
+});
       toast('Erreur: '+(e&&e.message||'mise &#224; jour'),'er');
     });
 }
@@ -2001,6 +2006,55 @@ function pickLivreur(btn){
       }
       toast('Erreur assignation: '+(e&&e.message||'?'),'er');
     });
+}
+
+/* PROMPT 029 : Vérification colonnes migration au démarrage */
+var _migrationOk = null; /* null=inconnu, true=ok, false=manquante */
+
+function checkMigration029(){
+  /* Vérifier qu'au moins delivery_status existe dans une commande */
+  fetch(SB+'/rest/v1/veraluz_food_orders?select=id,delivery_status&limit=1',
+    {headers:H()}
+  ).then(function(r){
+    if(!r.ok){
+      _migrationOk=false;
+      showMigrationAlert();
+      return;
+    }
+    return r.json().then(function(data){
+      /* PGRST204 = colonne inexistante dans les données */
+      if(Array.isArray(data)){
+        _migrationOk=true;
+        var b=document.getElementById('migration-alert-banner');
+        if(b)b.style.display='none';
+      } else {
+        _migrationOk=false;
+        showMigrationAlert();
+      }
+    });
+  }).catch(function(e){
+    console.warn('[Restaurant] checkMigration:', e.message||e);
+  });
+}
+
+function showMigrationAlert(){
+  var b=document.getElementById('migration-alert-banner');
+  if(b)b.style.display='block';
+  console.warn('[Restaurant] MIGRATION REQUISE — Exécutez MIGRATION_SQL_PROMPT_028.sql dans Supabase');
+}
+
+var _MIGRATION_SQL = `-- Exécuter dans Supabase SQL Editor\nALTER TABLE veraluz_food_orders\n  ADD COLUMN IF NOT EXISTS delivery_status text DEFAULT 'not_required',\n  ADD COLUMN IF NOT EXISTS assigned_at timestamptz,\n  ADD COLUMN IF NOT EXISTS accepted_at timestamptz,\n  ADD COLUMN IF NOT EXISTS picked_up_at timestamptz,\n  ADD COLUMN IF NOT EXISTS out_for_delivery_at timestamptz,\n  ADD COLUMN IF NOT EXISTS arrived_at timestamptz,\n  ADD COLUMN IF NOT EXISTS delivered_at timestamptz,\n  ADD COLUMN IF NOT EXISTS livreur_id text,\n  ADD COLUMN IF NOT EXISTS assigned_to text,\n  ADD COLUMN IF NOT EXISTS driver_photo_url text,\n  ADD COLUMN IF NOT EXISTS proof_photo_url text;`;
+
+function copyMigrationSQL(){
+  if(navigator.clipboard&&_MIGRATION_SQL){
+    navigator.clipboard.writeText(_MIGRATION_SQL).then(function(){
+      toast('SQL copié dans le presse-papier','ok');
+    }).catch(function(){
+      prompt('Copiez ce SQL dans Supabase:', _MIGRATION_SQL);
+    });
+  } else {
+    prompt('Copiez ce SQL dans Supabase:', _MIGRATION_SQL);
+  }
 }
 
 /* PROMPT 028 : log événement livraison côté Restaurant */
@@ -3501,6 +3555,12 @@ function saveAppCfg(){
   </div>
 </div>
 <!-- PROMPT 027 — Bannière alerte nouvelle commande Food -->
+<!-- PROMPT 029 : Bannière alerte migration SQL -->
+<div id='migration-alert-banner' style='display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:#7c3aed;color:#fff;padding:10px 16px;font-size:13px;font-weight:600;display:none;align-items:center;gap:10px;'>
+  <span>&#9888;&#65039; Migration Restaurant incomplète. Colonnes livraison manquantes.</span>
+  <button onclick='copyMigrationSQL()' style='background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;'>Copier SQL migration</button>
+  <button onclick='document.getElementById("migration-alert-banner").style.display="none"' style='background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:16px;margin-left:auto;'>&#10005;</button>
+</div>
 <div class="order-alert-banner" id="order-alert-banner"><span style="font-size:18px;animation:orderAlertPulse 1s infinite">&#128276;</span>&nbsp;<span id="order-alert-txt">Nouvelle commande Food !</span>&nbsp;<button onclick="document.getElementById('kds-flt-food')&&kdsFilter(document.getElementById('kds-flt-food'),'all')" style="background:rgba(255,255,255,.25);border:none;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer;font-weight:700;">Voir</button>&nbsp;<button class="order-alert-close" onclick="dismissOrderAlert()">&#10005;</button></div>
 </body>
 </html>

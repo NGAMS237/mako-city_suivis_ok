@@ -73,6 +73,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .tb-menu{display:none;width:32px;height:32px;border-radius:7px;
   border:1px solid var(--border);background:var(--bg3);color:var(--text2);
   cursor:pointer;font-size:16px;align-items:center;justify-content:center;}
+/* PROMPT 029 : sidebar cachée sur mobile — visible seulement desktop */
+@media(max-width:768px){
+  #sidebar{display:none;}
+  .tb-menu{display:flex!important;}
+  body{overflow-x:hidden;}
+}
+
+/* PROMPT 029 : sidebar cachée sur mobile */
+@media(max-width:768px){
+  #sidebar{display:none;}
+  .tb-menu{display:flex!important;}
+  body{overflow-x:hidden;}
+}
+
 .tb-title{font-size:15px;font-weight:700;flex:1;}
 .tb-sub{font-size:11px;color:var(--text3);}
 .tb-actions{display:flex;gap:8px;margin-left:auto;align-items:center;}
@@ -324,6 +338,176 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .emp-mod-icon{font-size:20px;margin-bottom:4px;}.emp-mod-lbl{font-size:11px;font-weight:600;}
 .emp-empty{font-size:12px;color:var(--text3);text-align:center;padding:12px;font-style:italic;}
 
+
+/* ═══════════════════════════════════════════════════════════════
+   PROMPT 029 — CSS RESPONSIVE GLOBAL VERALUZ OS
+   Breakpoints : 1024 / 768 / 600 / 430 / 390 / 375px + dvh + PWA
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── PWA / iOS safe-area ──────────────────────────────────────── */
+@supports (height: 100dvh) {
+  html, body { height: 100dvh; min-height: 100dvh; }
+}
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  #topbar   { padding-top: max(var(--sat), env(safe-area-inset-top,0px)); }
+  #bottom-nav { padding-bottom: max(var(--sab), env(safe-area-inset-bottom,0px)); }
+  .sb-bottom  { padding-bottom: calc(12px + max(var(--sab), env(safe-area-inset-bottom,0px))); }
+}
+
+/* ── Tablette 1024px ─────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  :root { --sb-w: 200px; }
+  .tb-title { font-size: 14px; }
+}
+
+/* ── Mobile large 768px ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  :root { --tb-h: 50px; }
+
+  /* Header */
+  #topbar { padding-left: 10px; padding-right: 10px; gap: 6px; }
+  .tb-actions { gap: 5px; }
+  .tb-btn { height: 28px; padding: 0 8px; font-size: 11px; }
+  .tb-tag { display: none; } /* masquer LIVE badge sur mobile */
+
+  /* Content frame */
+  #content-frame { width: 100% !important; }
+
+  /* Bottom nav accessible */
+  #bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: var(--bg2); border-top: 1px solid var(--border); height: var(--bn-h); }
+
+  /* Modules */
+  .module-page, .page-content, [id$="-page"] {
+    padding: 10px 8px !important; overflow-x: hidden;
+  }
+
+  /* Cards en 1 colonne */
+  .cards-grid, .stat-grid, .kpi-grid, .summary-grid,
+  [class*="grid-"]:not(.kds-grid),
+  .dash-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+
+  /* Tableaux scrollables */
+  table, .table-wrap { display: block; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; max-width: 100%; }
+
+  /* Onglets scrollables */
+  .tabs, .tab-bar, [class*="tabs-"], .emp-tabs, .kds-filters,
+  .filter-bar { overflow-x: auto; -webkit-overflow-scrolling: touch;
+    display: flex; flex-wrap: nowrap; white-space: nowrap; gap: 6px;
+    padding-bottom: 4px; }
+
+  /* Boutons tactiles min 44px */
+  button, .btn, .sb-btn, .tb-btn { min-height: 36px; }
+
+  /* Modales */
+  .modal, .modal-box, .md-box, [id^="md-"] > div {
+    width: calc(100vw - 20px) !important; max-width: none !important;
+    max-height: 90dvh; overflow-y: auto; margin: 10px; border-radius: 16px;
+  }
+  .overlay { align-items: flex-end !important; padding-bottom: env(safe-area-inset-bottom,0px); }
+
+  /* Formulaires */
+  input, select, textarea { width: 100% !important; font-size: 16px !important; /* évite zoom iOS */ }
+  label { display: block; margin-bottom: 4px; }
+  .form-row, .field-row { flex-direction: column !important; gap: 8px !important; }
+
+  /* Footer module */
+  .page-footer, .module-footer { padding-bottom: calc(var(--bn-h) + env(safe-area-inset-bottom,10px)); }
+}
+
+/* ── Mobile 600px ────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .tb-title { font-size: 13px; }
+  .tb-sub { display: none; }
+  .notif-badge-btn { font-size: 14px; }
+
+  /* Restaurant KDS */
+  .kds-grid { grid-template-columns: 1fr !important; }
+  .kds-card { min-height: unset; }
+
+  /* RH / Auth liste */
+  .emp-list-item, .user-list-item, .contact-card {
+    flex-direction: column !important; align-items: flex-start !important; gap: 8px !important;
+  }
+
+  /* Housekeeping tâches */
+  .hk-task-card, .task-row { flex-direction: column !important; }
+
+  /* AI cards */
+  .agent-card, .ai-card { padding: 10px 12px; }
+
+  /* Documents liste */
+  .doc-row { flex-direction: column !important; gap: 4px; }
+
+  /* Réservations */
+  .resa-card, .booking-row { flex-direction: column !important; }
+}
+
+/* ── iPhone 430px ────────────────────────────────────────────── */
+@media (max-width: 430px) {
+  :root { --tb-h: 46px; }
+  #topbar { padding-left: 8px; padding-right: 8px; }
+  .tb-menu { width: 32px; height: 32px; font-size: 16px; }
+  .tb-title { font-size: 12px; }
+  .tb-actions > *:not(.notif-badge-btn) { display: none; } /* garder seulement notif */
+
+  button, .btn { min-height: 40px; font-size: 13px; }
+  .bn-icon { font-size: 18px; }
+  .bn-label { font-size: 9px; }
+
+  /* Sidebar drawer plus étroite */
+  #sidebar.mobile-open { width: 260px !important; }
+}
+
+/* ── iPhone SE 375px ─────────────────────────────────────────── */
+@media (max-width: 375px) {
+  .bn-label { display: none; }
+  .bn-icon { font-size: 20px; }
+  .tb-title { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* ── Écrans courts (hauteur) ─────────────────────────────────── */
+@media (max-height: 700px) {
+  .sb-section { padding: 4px 16px 2px; }
+  .sb-btn { padding: 7px 10px; }
+  .sb-logo { padding: 12px 16px 8px; }
+  .auth-box { padding: 16px; }
+}
+
+/* ── Classes utilitaires responsive ─────────────────────────── */
+.mobile-only { display: none; }
+.desktop-only { display: initial; }
+@media (max-width: 768px) {
+  .mobile-only { display: initial; }
+  .desktop-only { display: none; }
+  .w-full-mobile { width: 100% !important; }
+  .flex-col-mobile { flex-direction: column !important; }
+  .hidden-mobile { display: none !important; }
+  .scroll-x-mobile { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+/* ── Responsive table helper ─────────────────────────────────── */
+.responsive-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.responsive-table table { min-width: 480px; }
+
+/* ── Mobile card (remplacement lignes tableau) ───────────────── */
+.mobile-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+}
+.mobile-card-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; }
+.mobile-card-label { color: var(--text3); font-size: 11px; }
+
+/* ── Fix overflow horizontal global ─────────────────────────── */
+@media (max-width: 768px) {
+  * { max-width: 100%; }
+  img, iframe, video { max-width: 100%; }
+  /* exception : les éléments positionnés en fixed/absolute */
+  .overlay, #auth-overlay, #topbar, #bottom-nav, #sb-ov,
+  #sidebar.mobile-open { max-width: unset; }
+}
+/* ═══════════════════════════════════════════════════════════════ */
 </style>
 </head>
 <body>
@@ -353,7 +537,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     <div class="sb-section">À venir</div>
     <div id="sb-coming"></div>
   </div>
-  <div class="sb-bottom">
+  <!-- PROMPT 029 : Bouton actualiser PWA -->
+<div id='pwa-refresh-wrap' style='display:none;padding:8px 16px 4px;'>
+  <button onclick="(function(){
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.getRegistrations().then(function(regs){
+        regs.forEach(function(r){r.update();});
+        setTimeout(function(){location.reload(true);},800);
+      });
+    } else { location.reload(true); }
+  })()" style='width:100%;padding:9px;border-radius:8px;border:none;
+    background:var(--bg3);color:var(--text2);cursor:pointer;font-size:12px;'>
+    &#8635; Actualiser l'application
+  </button>
+  <div style='font-size:10px;color:var(--text3);margin-top:4px;text-align:center;'>
+    Si la mise &agrave; jour ne s'applique pas (iPhone PWA), supprimez l'ic&ocirc;ne et r&eacute;installez.
+  </div>
+</div>
+<div class="sb-bottom">
     <div id="sb-pointage-wrap" style="display:none;padding:0 8px 10px;">
       <button class="sb-btn" id="sb-pointage-btn"
         style="background:rgba(34,211,165,.1);color:var(--accent);border:1px solid rgba(34,211,165,.2);"
@@ -964,17 +1165,37 @@ function initGreeting(){
 }
 
 /* ── Sidebar mobile ───────────────────────────────────────── */
+/* PROMPT 029 : sidebar drawer via classList */
 function toggleMobileSidebar(){
   var sb=document.getElementById('sidebar');
-  var ov=document.getElementById('sb-ov');
-  if(ov.style.display==='block'){ closeMobileSidebar(); return; }
-  sb.style.cssText='display:flex!important;position:fixed;top:0;left:0;bottom:0;z-index:210;width:260px;box-shadow:4px 0 20px rgba(0,0,0,.5);';
-  ov.style.display='block';
+  if(sb.classList.contains('mobile-open')) closeMobileSidebar();
+  else openMobileSidebar();
+}
+function openMobileSidebar(){
+  document.getElementById('sidebar').classList.add('mobile-open');
+  document.getElementById('sb-ov').classList.add('active');
+  document.body.style.overflow='hidden';
 }
 function closeMobileSidebar(){
-  document.getElementById('sidebar').style.cssText='';
-  document.getElementById('sb-ov').style.display='none';
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sb-ov').classList.remove('active');
+  document.body.style.overflow='';
 }
+
+/* PROMPT 029 */
+var OS_BUILD = 'v029-core-responsive-2026-06-28';
+/* Afficher build version */
+setTimeout(function(){
+  var el=document.getElementById('build-ver');
+/* PROMPT 029 : afficher bouton PWA après 2s */
+setTimeout(function(){
+  var pw=document.getElementById('pwa-refresh-wrap');
+  if(pw)pw.style.display='block';
+},2000);
+  if(el)el.textContent=OS_BUILD;
+  var el2=document.getElementById('sb-build');
+  if(el2)el2.textContent=OS_BUILD;
+},500);
 
 /* ================================================================
    INIT — DOMContentLoaded
