@@ -97,6 +97,23 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 /* ── Cart ── */
 .cart{width:250px;display:flex;flex-direction:column;background:var(--bg2);}
 @media(max-width:600px){.split{flex-direction:column;}.cart{width:100%;max-height:220px;border-top:1px solid var(--border);}}
+@media(max-width:430px){
+  #app{height:100dvh;height:100vh;}
+  #header{padding:5px 8px;flex-wrap:wrap;gap:4px;}
+  #tabs{padding:4px 6px;}
+  .tab{padding:6px 8px;font-size:11px;}
+  .tbl-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;padding:8px;}
+  .mitems{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
+  .kds-card{padding:9px;}
+  .kds-hdr-top{flex-wrap:wrap;}
+}
+@media(max-width:390px){
+  .tab{padding:5px 7px;font-size:10px;}
+  .mitems{grid-template-columns:repeat(auto-fill,minmax(95px,1fr));}
+  .tbl-grid{grid-template-columns:repeat(3,1fr);}
+  .kds-stat-n{font-size:13px;}
+  .kds-stat-l{font-size:7px;}
+}
 .ch{padding:9px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .ct{font-size:13px;font-weight:700;}
 .cs{font-size:10px;color:var(--text3);}
@@ -907,7 +924,7 @@ var normalizeEmployee = VC.normalizeEmployee || function(row) {
   var p = (row.full_name || '').trim().split(' ');
   return Object.assign({
     prenom: p[0] || '', nom: p.slice(1).join(' ') || '',
-    pin_code: row.pin_code || '', poste: row.role || ''
+    poste: row.role || '' /* PROMPT 025: code PIN retiré du select — jamais exposé */
   }, row);
 };
 var normalizeOrderStatus = VC.normalizeOrderStatus || function(s) {
@@ -1139,7 +1156,8 @@ function loadAll(){
     _safe(GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50')),
     _safe(GET('/rest/v1/veraluz_food_promotions?select=*&order=created_at.desc')),
     /* P0 FIX: veraluz_employees (table officielle) + join equipe */
-    _safe(GET('/rest/v1/veraluz_employees?select=id,full_name,role,pin_code,status,phone,email,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')),
+    /* PROMPT 025 SÉCURITÉ: code PIN retiré du select — jamais exposé côté frontend */
+    _safe(GET('/rest/v1/veraluz_employees?select=id,full_name,role,status,phone,email,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')),
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
     RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];APP_PROMOS=r[9]||[];
@@ -3168,4 +3186,64 @@ function saveAppCfg(){
     <div class="mdb" id="rcv-body" style="max-height:60vh;overflow-y:auto;"></div>
     <div style="display:flex;gap:10px;padding:10px 16px;background:var(--bg2);border-top:1px solid var(--brd);font-size:13px;">
       <span>Commandé: <b id="rcv-tot-ordered">0</b></span>
-      <span style="margin-left:auto;">Reçu: <b id="rcv-tot-received" style="color:var(--accent);">
+      <span style="margin-left:auto;">Reçu: <b id="rcv-tot-received" style="color:var(--accent);">0</b></span>
+    </div>
+    <div class="mdf">
+      <button class="btn bg" onclick="closeMd('md-recv')" style="flex:1">Annuler</button>
+      <button class="btn bp" onclick="saveReceipt()" style="flex:2">&#128190; Confirmer réception</button>
+    </div>
+  </div>
+</div>
+
+<!-- Room Charge Guest Selector Modal -->
+<div class="ov" id="md-room-charge">
+  <div class="md" style="max-width:400px;">
+    <div class="mdh"><span class="mdt">&#127974; Facturer à la chambre</span><button class="mdc" onclick="closeMd('md-room-charge')">&#10005;</button></div>
+    <div class="mdb">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Sélectionnez le client hôtel :</div>
+      <div id="room-charge-guests"></div>
+      <div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:8px;">
+        <div style="font-size:13px;font-weight:700;text-align:center;">Total: <span id="rc-total">0 FCFA</span></div>
+      </div>
+    </div>
+    <div class="mdf">
+      <button class="btn bg" onclick="closeMd('md-room-charge')" style="flex:1">Annuler</button>
+      <button class="btn bp" onclick="confirmRoomCharge()" style="flex:2" id="rc-confirm-btn">Facturer</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Promo/Comm Modal -->
+<div class="ov" id="md-promo">
+  <div class="md">
+    <div class="mdh"><span id="promo-md-title">Nouvelle promo</span><button class="mdc" onclick="closeMd('md-promo')">&#10005;</button></div>
+    <div class="mdb" style="display:flex;flex-direction:column;gap:10px;">
+      <input type="hidden" id="promo-id">
+      <div style="display:flex;gap:8px;">
+        <select id="promo-type" class="inp" style="flex:2">
+          <option value="promo">&#127881; Promotion</option>
+          <option value="comm">&#128172; Communication</option>
+          <option value="banner">&#127988; Bandeau</option>
+        </select>
+        <input id="promo-emoji" class="inp" placeholder="&#127881;" style="flex:1;font-size:18px;text-align:center" maxlength="4">
+      </div>
+      <input id="promo-title" class="inp" placeholder="Titre (ex: -20% ce weekend !)">
+      <textarea id="promo-body" class="inp" rows="3" placeholder="Message / description (optionnel)"></textarea>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1"><label class="fl">Début</label><input id="promo-start" class="inp" type="date" style="width:100%"></div>
+        <div style="flex:1"><label class="fl">Fin</label><input id="promo-end" class="inp" type="date" style="width:100%"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="promo-active" checked> Activer immédiatement
+      </label>
+    </div>
+    <div class="mdf" style="display:flex;gap:8px;">
+      <button class="btn bd bs" id="promo-del-btn" style="display:none" onclick="delPromo(document.getElementById('promo-id').value)">&#128465;</button>
+      <button class="btn bg" onclick="closeMd('md-promo')" style="flex:1">Annuler</button>
+      <button class="btn bp" onclick="savePromo()" style="flex:2">&#128190; Sauvegarder</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

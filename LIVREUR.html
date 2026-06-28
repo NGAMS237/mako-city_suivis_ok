@@ -207,8 +207,8 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
 .pin-label{font-size:.72rem;color:var(--dt2);font-weight:600;margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase}
 .pin-select{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:var(--dt);font-size:.88rem;font-weight:600;padding:11px 14px;margin-bottom:20px;font-family:'Inter',sans-serif;-webkit-appearance:none}
 .pin-select option{background:#1a1a18;color:#f5f5f0}
-.pin-dots{display:flex;gap:12px;justify-content:center;margin-bottom:16px}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.2);transition:all .15s}
+.pin-dots{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.2);transition:all .15s}
 .pin-dot.filled{background:var(--gold);border-color:var(--gold)}
 .pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
 .pin-key{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;height:58px;font-size:1.3rem;font-weight:700;color:var(--dt);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;-webkit-tap-highlight-color:transparent}
@@ -228,6 +228,10 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
   .stat-box{padding:10px 8px;}
   .modal{max-height:88vh;}
 }
+@media (max-width:430px){
+  #pin-screen{padding:env(safe-area-inset-top,24px) 16px env(safe-area-inset-bottom,16px);}
+  .pin-card{max-width:100%;}
+}
 @media (max-width:390px){
   .top-bar{padding:0 12px;height:52px;}
   .tb-title{font-size:.82rem;}
@@ -241,17 +245,41 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
   .oc-cp,.oc-addr-t,.oc-item{font-size:.69rem;}
   .punch-time{font-size:2rem;}
   .punch-btn{font-size:.82rem;padding:13px;}
-  .pin-key{height:54px;font-size:1.2rem;}
-  .pin-card{padding:20px 16px;}
+  .pin-key{height:50px;font-size:1.15rem;}
+  .pin-card{padding:16px 14px;}
+  .pin-dot{width:11px;height:11px;}
+  .pin-dots{gap:8px;}
   .stat-n{font-size:1.1rem;}
 }
-@media (orientation:landscape) and (max-height:500px){
-  #pin-screen{justify-content:flex-start;padding-top:16px;}
+@media (max-width:375px){
+  .pin-logo{font-size:2.2rem;margin-bottom:2px;}
+  .pin-brand{font-size:1.2rem;}
+  .pin-tagline{font-size:.72rem;margin-bottom:20px;}
+  .pin-key{height:46px;font-size:1.1rem;}
+  .pin-pad{gap:5px;}
+  .pin-dot{width:10px;height:10px;}
+  .pin-dots{gap:7px;margin-bottom:12px;}
+  .pin-card{padding:14px 12px;}
+}
+@media (max-height:700px){
+  #pin-screen{padding-top:12px;}
   .pin-logo{font-size:2rem;margin-bottom:0;}
-  .pin-tagline{margin-bottom:12px;}
-  .pin-card{padding:14px 18px;}
+  .pin-tagline{margin-bottom:16px;}
+  .pin-card{padding:16px 16px;}
   .pin-pad{gap:6px;}
-  .pin-key{height:46px;}
+  .pin-key{height:48px;}
+}
+@media (orientation:landscape) and (max-height:500px){
+  #pin-screen{justify-content:flex-start;padding-top:8px;}
+  .pin-logo{font-size:1.8rem;margin-bottom:0;}
+  .pin-tagline{margin-bottom:8px;}
+  .pin-card{padding:10px 16px;}
+  .pin-pad{gap:5px;}
+  .pin-key{height:40px;font-size:1rem;}
+}
+@supports (height:100dvh){
+  body{min-height:100dvh;}
+  #pin-screen{min-height:100dvh;}
 }
 
 /* ── OFFLINE / SYNC INDICATORS — PROMPT 005 ── */
@@ -309,6 +337,8 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
       <div class="pin-dot" id="pd1"></div>
       <div class="pin-dot" id="pd2"></div>
       <div class="pin-dot" id="pd3"></div>
+      <div class="pin-dot" id="pd4"></div>
+      <div class="pin-dot" id="pd5"></div>
     </div>
     <div class="pin-pad" id="pin-pad"></div>
     <div class="pin-err" id="pin-err"></div>
@@ -611,7 +641,7 @@ function buildPinPad(){
 }
 
 function renderPinDots(){
-  for(var i=0;i<4;i++){
+  for(var i=0;i<6;i++){
     var d=document.getElementById('pd'+i);
     if(d) d.className='pin-dot'+(i<_pinBuffer.length?' filled':'');
   }
@@ -621,9 +651,9 @@ function onPinKey(k){
   var err=document.getElementById('pin-err');
   err.textContent='';
   if(k==='⌫'){_pinBuffer=_pinBuffer.slice(0,-1);}
-  else if(_pinBuffer.length<4){_pinBuffer+=k;}
+  else if(_pinBuffer.length<6){_pinBuffer+=k;}
   renderPinDots();
-  if(_pinBuffer.length===4) validatePin();
+  if(_pinBuffer.length===6) validatePin();
 }
 
 /* PROMPT 009 — Appel Edge Function pour vérification PIN côté serveur
@@ -661,7 +691,7 @@ function validatePin(){
   if(!lid){err.textContent='Sélectionnez votre nom d\'abord.';_pinBuffer='';renderPinDots();return;}
   var lv=LIVREURS.find(function(l){return String(l.id)===String(lid);});
   if(!lv){err.textContent='Livreur introuvable.';_pinBuffer='';renderPinDots();return;}
-  if(_pinBuffer.length<4){err.textContent='Entrez 4 chiffres.';return;}
+  if(_pinBuffer.length<6){err.textContent='Entrez 6 chiffres.';return;}
 
   /* Bloquer le pad pendant la vérification */
   err.textContent='';
@@ -824,6 +854,13 @@ function loadOrders(){
       _orders = rows.map(function(o){
         var ns = normalizeOrderStatus(o.status);
         return ns !== o.status ? Object.assign({}, o, {status: ns}) : o;
+      }).filter(function(o){
+        /* PROMPT 025: chaque livreur ne voit que ses commandes assignées
+           + les commandes non encore assignées (prêtes à récupérer) */
+        if(!LIVREUR_ACTIF) return true;
+        var lid = String(LIVREUR_ACTIF.id||'');
+        var oid = String(o.livreur_id||'');
+        return !o.livreur_id || oid === lid;
       });
       /* PROMPT 005: sauvegarder dans localStorage */
       try { localStorage.setItem(LS_ORDERS, JSON.stringify({saved_at: new Date().toISOString(), orders: _orders})); } catch(e){}

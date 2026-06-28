@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Veraluz Food">
+<link rel="manifest" href="./manifest-food.webmanifest">
 <title>Veraluz Food &amp; Lounge</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
@@ -31,6 +32,30 @@
 }
 html,body{height:100%;background:var(--dk);color:var(--dt);font-family:'Inter',sans-serif;overflow-x:hidden;overscroll-behavior:none}
 body{max-width:480px;margin:0 auto;min-height:100vh;position:relative}
+@supports (height:100dvh){body{min-height:100dvh;}}
+/* ── Responsive iPhone ── */
+@media (max-width:430px){
+  body{max-width:100%;}
+  .bottom-nav{max-width:100%;}
+  .drawer,.modal,.sheet{max-width:100%;left:0;transform:none;right:0;}
+  .drawer.open,.sheet.open{transform:translateY(0);}
+}
+@media (max-width:390px){
+  .hero-title{font-size:1.5rem;}
+  .hero-sub{font-size:.72rem;max-width:220px;}
+  .card-name{font-size:.82rem;}
+  .card-price{font-size:.82rem;}
+  .bnav-item span{font-size:.58rem;}
+  .sheet-head h2{font-size:.9rem;}
+}
+@media (max-width:375px){
+  .hero-title{font-size:1.35rem;}
+  .promo-txt{font-size:.64rem;}
+  .card-name{font-size:.78rem;}
+}
+@media (max-height:700px) and (max-width:480px){
+  .confirm-screen{padding-top:env(safe-area-inset-top,20px);}
+}
 button{font-family:'Inter',sans-serif;cursor:pointer;border:none;outline:none;background:none}
 img{display:block;object-fit:cover}
 a{text-decoration:none;color:inherit}
@@ -1873,4 +1898,93 @@ function printReceipt(){
   var rcp=document.getElementById('confirm-receipt');
   if(!rcp||!rcp.innerHTML)return toast('Aucun reçu disponible');
   var w=window.open('','_blank','width=360,height=600');
-  w.document.write('<html><head><title>Reçu Veraluz</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:13px;max-width:320px;margin:0 auto}.rcp-wrap{border:1px solid #ddd;border-radius:8px;padding:16px}.rcp-top{text-align:center;border-bottom:1px dashed #ddd;padding-bottom:10px}.rcp-logo{font-weight:800;font-size:14px;color:#b8860b;letter-spacing:
+  w.document.write('<html><head><title>Reçu Veraluz</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:13px;max-width:320px;margin:0 auto}.rcp-wrap{border:1px solid #ddd;border-radius:8px;padding:16px}.rcp-top{text-align:center;border-bottom:1px dashed #ddd;padding-bottom:10px}.rcp-logo{font-weight:800;font-size:14px;color:#b8860b;letter-spacing:1px}.rcp-sub{color:#999;font-size:11px;margin-top:3px}.rcp-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#555}.rcp-tot{font-weight:800;font-size:14px;padding-top:8px;border-top:1px dashed #ddd;margin-top:5px;display:flex;justify-content:space-between}.rcp-pay{color:#999;font-size:11px;padding-top:4px}.pay-status-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:8px}.ps-pending{background:#fef3c7;color:#d97706}.ps-paid{background:#dcfce7;color:#16a34a}.ps-delivery{background:#ede9fe;color:#7c3aed}@media print{button{display:none}}</style></head><body>');
+  w.document.write(rcp.innerHTML);
+  w.document.write('<br><button onclick="window.print()" style="width:100%;padding:10px;background:#b8860b;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px">🖨️ Imprimer</button></body></html>');
+  w.document.close();
+}
+
+/* ── Core integration ── */
+window.addEventListener('message',function(ev){
+  if(!ev.data)return;
+  if(ev.data.type==='hotel-config'&&ev.data.data&&ev.data.data.whatsapp)applyWA(ev.data.data.whatsapp);
+  /* Reload menu if admin changed products */
+  if(ev.data.type==='menu_updated'||ev.data.type==='products_updated')loadMenu();
+});
+
+/* ── Init ── */
+(function(){
+  /* Check for tracking hash */
+  (function(){
+    var h=window.location.hash;
+    if(h&&h.indexOf('#track=')===0){
+      var num=decodeURIComponent(h.slice(7));
+      if(num)setTimeout(function(){openTrack(num);},500);
+    }
+  })();
+  loadCart();
+  try{var inf=JSON.parse(localStorage.getItem('vz_hotel_info')||'{}');if(inf.whatsapp)applyWA(inf.whatsapp);}catch(e){}
+  try{var o=localStorage.getItem('vlz_food_orders');if(o)_orders=JSON.parse(o);}catch(e){}
+  updateBadges();
+  _lastRefresh=Date.now();
+  loadMenu();
+})();
+</script>
+<!-- TRACKING OVERLAY -->
+<div class="track-overlay" id="trackOverlay">
+  <div class="track-hdr">
+    <div class="track-close" onclick="closeTrack()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+    <div class="track-hdr-title">Suivi de commande</div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="track-body" id="trackBody">
+    <div class="track-not-found"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Entrez votre numéro de commande</p></div>
+  </div>
+</div>
+
+<!-- PWA Install Banner iOS — PROMPT 025 -->
+<div id="pwa-ios-banner" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:440px;background:#1a1a18;border:1px solid rgba(201,168,76,.3);border-radius:16px;padding:14px 16px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <div style="font-size:.8rem;font-weight:700;color:#f5f5f0;">Installer l\'app</div>
+    <button onclick="document.getElementById('pwa-ios-banner').style.display='none'" style="background:none;border:none;color:#a0a09a;font-size:1.2rem;cursor:pointer;line-height:1;">×</button>
+  </div>
+  <div style="font-size:.72rem;color:#a0a09a;line-height:1.5;">Appuyez sur <strong style="color:#c9a84c;">Partager</strong> puis <strong style="color:#c9a84c;">Ajouter à l\'écran d\'accueil</strong> pour accéder rapidement au menu VERALUZ.</div>
+</div>
+<!-- PWA Install Button Android — PROMPT 025 -->
+<button id="pwa-install-btn" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#c9a84c;color:#0f0f0d;border:none;border-radius:40px;padding:12px 24px;font-size:.8rem;font-weight:700;cursor:pointer;z-index:500;box-shadow:0 4px 16px rgba(201,168,76,.4);" onclick="pwaInstall()">
+  + Installer l\'app
+</button>
+<script>
+(function(){
+  /* Service Worker — PROMPT 025 */
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  }
+  /* PWA install — Android/Chrome */
+  var _deferredPrompt=null;
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault(); _deferredPrompt=e;
+    var btn=document.getElementById('pwa-install-btn');
+    if(btn) btn.style.display='block';
+  });
+  window.pwaInstall=function(){
+    if(!_deferredPrompt) return;
+    _deferredPrompt.prompt();
+    _deferredPrompt.userChoice.then(function(){_deferredPrompt=null;
+      var btn=document.getElementById('pwa-install-btn');if(btn)btn.style.display='none';});
+  };
+  /* PWA install — iOS : afficher le banner si pas standalone */
+  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isStandalone=window.matchMedia('(display-mode:standalone)').matches||window.navigator.standalone;
+  if(isIOS&&!isStandalone){
+    /* Afficher après 3 secondes */
+    setTimeout(function(){
+      var b=document.getElementById('pwa-ios-banner');
+      var shown=localStorage.getItem('vlz_food_pwa_shown');
+      if(b&&!shown){b.style.display='block';try{localStorage.setItem('vlz_food_pwa_shown','1');}catch(e){}}
+    },3000);
+  }
+})();
+</script>
+</body>
+</html>

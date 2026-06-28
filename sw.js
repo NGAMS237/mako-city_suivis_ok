@@ -10,7 +10,7 @@
  * À chaque changement important des fichiers statiques, incrémenter CACHE_NAME.
  */
 
-var CACHE_NAME = 'veraluz-pwa-v016'; /* PROMPT 016A — Force invalidation cache AI Center */
+var CACHE_NAME = 'veraluz-pwa-v025'; /* PROMPT 025 — Food Lounge PWA + LIVREUR 6-chiffres */
 
 // Contrôle d'activation (mettre false pour désactiver en dev si besoin)
 var VERALUZ_PWA_ENABLED = true;
@@ -22,6 +22,8 @@ var STATIC_ASSETS = [
   './veraluz-core.js',
   './manifest-os.webmanifest',
   './manifest-livreur.webmanifest',
+  './FOOD_LOUNGE.html',
+  './manifest-food.webmanifest',
   './assets/pwa/icon-192.png',
   './assets/pwa/icon-512.png',
   './assets/pwa/icon-maskable-192.png',
