@@ -284,7 +284,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <div class="toast" id="msg-toast"></div>
 
 <script>
-var MESSAGES_BUILD = 'v031-final-day-2026-06-28'; /* PROMPT 031 */
+var MESSAGES_BUILD = 'v031c-b-msgfix-2026-06-28'; /* PROMPT 031 */
 var _migration030Status = 'pending'; /* sera verifie au demarrage */
 /* ──────────────────────────────────────────────────────────
    VERALUZ MESSAGES MODULE — PROMPT 030
@@ -311,7 +311,19 @@ function sbQ(path){
 }
 function sbIns(table,data){
   return fetch(SB+'/rest/v1/'+table,{method:'POST',headers:H({Prefer:'return=representation'}),body:JSON.stringify(data)})
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
+    .then(function(r){
+      if(!r.ok){
+        return r.text().then(function(body){
+          var detail='';
+          try{var j=JSON.parse(body);detail=j.message||j.hint||j.error||JSON.stringify(j);}
+          catch(e){detail=body?body.substring(0,120):'HTTP '+r.status;}
+          var err=new Error('HTTP '+r.status+': '+detail);
+          err.status=r.status; err.detail=detail;
+          throw err;
+        });
+      }
+      return r.json();
+    });
 }
 function sbUpd(table,filter,data){
   return fetch(SB+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:H({Prefer:'return=minimal'}),body:JSON.stringify(data)})
@@ -962,7 +974,11 @@ function submitNewMsg(){
     closeNewMsg();
     document.getElementById('nm-message').value='';
     loadTab(_activeTab);
-  }).catch(function(){toast('Erreur envoi','err');});
+  }).catch(function(e){
+    var msg=e&&(e.detail||e.message)||'Erreur inconnue';
+    toast('Erreur: '+msg.substring(0,80),'err');
+    console.error('[MSGS] Erreur envoi:',e);
+  });
 }
 
 /* ── createChloeMessage (appelable par AI_CENTER) ── */
