@@ -374,8 +374,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <select class="fi" id="param-irpp"><option value="false">Non &#8212; d&#233;sactiv&#233;</option><option value="true">Oui &#8212; activ&#233;</option></select>
 <div style="font-size:10px;color:var(--text3);margin-top:4px;">Bar&#232;me IRPP Cameroun&#160;: 10% jusqu&#8217;&#224;&#160;2M, 15% de 2&#8211;3M, 25% de 3&#8211;5M, 35% au-del&#224; (abattement 30%)</div>
 </div>
-<label class="fl">PIN par d&#233;faut (nouveaux employ&#233;s)</label>
-        <input class="fi" id="param-pin" type="text" maxlength="4" placeholder="1234">
+<!-- PROMPT 020C — M8 : label mis à jour, PIN géré via Edge Function reset -->
+<label class="fl">PIN initial par d&#233;faut <span style="color:var(--text3);font-size:10px;">(utilis&#233; si absent &mdash; conseill&#233; : r&#233;initialiser via Auth)</span></label>
+        <input class="fi" id="param-pin" type="text" maxlength="6" placeholder="000000">
         <label class="fl">Plafond avance (% du salaire)</label>
         <input class="fi" id="param-adv-limit" type="number" min="0" max="100" placeholder="50">
       </div>
@@ -409,7 +410,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div style="background:var(--bg3);border-radius:20px;padding:24px;width:100%;max-width:320px;border:1px solid var(--border);">
     <label class="fl">Votre nom</label>
     <select class="fi" id="login-emp-sel"></select>
-    <label class="fl" style="margin-top:8px;">Code PIN (4 chiffres)</label>
+    <!-- PROMPT 020C — M8 : label mis à jour compatibilité 4 chiffres -->
+    <label class="fl" style="margin-top:8px;">Code PIN employé <span style="font-size:10px;color:var(--text3);">(4 chiffres legacy / pointage local)</span></label>
     <div class="pin-dots" id="pin-dots">
       <div class="pin-dot" id="pd0"></div>
       <div class="pin-dot" id="pd1"></div>
@@ -485,10 +487,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="ep-pane" id="ep-pin">
       <div class="card">
         <div class="sec-title" style="margin-bottom:12px;">&#128274; Changer mon PIN</div>
-        <label class="fl">Nouveau PIN (4 chiffres)</label>
-        <input class="fi" id="new-pin1" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
-        <label class="fl">Confirmer le PIN</label>
-        <input class="fi" id="new-pin2" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
+        <!-- PROMPT 020C — M5 : PIN 6 chiffres -->
+        <div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Saisissez votre PIN actuel (4 ou 6 chiffres selon votre g&eacute;n&eacute;ration) puis choisissez un nouveau PIN &agrave; 6 chiffres.</div>
+        <label class="fl">PIN actuel (4 ou 6 chiffres)</label>
+        <input class="fi" id="cur-pin" type="password" maxlength="6" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;" autocomplete="current-password">
+        <label class="fl" style="margin-top:8px;">Nouveau PIN (6 chiffres)</label>
+        <input class="fi" id="new-pin1" type="password" maxlength="6" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" autocomplete="new-password">
+        <label class="fl" style="margin-top:8px;">Confirmer le nouveau PIN</label>
+        <input class="fi" id="new-pin2" type="password" maxlength="6" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" autocomplete="new-password">
         <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="changePin()">Enregistrer le nouveau PIN</button>
       </div>
     </div>
@@ -561,7 +567,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="height:8px;"></div>
     <div class="fg">
       <div><label class="fl">Num&#233;ro MoMo</label><input class="fi" id="emp-momo" type="tel" placeholder="+237 6xx..." style="margin-bottom:0"></div>
-      <div><label class="fl">PIN (4 chiffres)</label><input class="fi" id="emp-pin" type="text" maxlength="4" placeholder="1234" style="margin-bottom:0"></div>
+      <!-- PROMPT 020C — M8 : PIN initial à créer, reset recommandé via Auth après création -->
+      <div><label class="fl">PIN initial <span style="font-size:10px;color:var(--text3);">(r&#233;initialiser via Auth apr&#232;s cr&#233;ation)</span></label><input class="fi" id="emp-pin" type="text" maxlength="6" placeholder="000000" style="margin-bottom:0"></div>
     </div>
     <div style="height:8px;"></div>
     <label class="fl">Statut</label>
@@ -1151,7 +1158,9 @@ function renderDosProfil(e){
     +'<div><div style="color:var(--text3);font-size:10px;">Date embauche</div><div>'+fdate(e.hire_date)+'</div></div>'
     +'<div><div style="color:var(--text3);font-size:10px;">Statut</div><div><span class="bdg '+(e.status==='actif'?'ok':e.status==='conge'?'warn':'danger')+'">'+esc(e.status||'—')+'</span></div></div>'
     +'<div><div style="color:var(--text3);font-size:10px;">MoMo</div><div>'+maskMomo(e.momo_number)+'</div></div>'
-    +'<div><div style="color:var(--text3);font-size:10px;">PIN</div><div>&#9679;&#9679;&#9679;&#9679;</div></div>'
+    /* PROMPT 020C — M5 : supprimer PIN •••• — afficher statut */
+    +'<div><div style="color:var(--text3);font-size:10px;">PIN</div>'
+    +'<div style="font-size:12px;">'+(e.must_change_pin?'<span style="color:#f59e0b;font-weight:600;">&#9888; Temporaire actif &mdash; changement requis</span>':'<span style="color:var(--text3);">&#128274; Prot&eacute;g&eacute;</span>')+'</div></div>'
     +'</div>'
     +(e.notes?'<div style="margin-top:10px;font-size:12px;color:var(--text3);">'+esc(e.notes)+'</div>':'')
     +'</div>'
@@ -2080,17 +2089,36 @@ function renderEpPointages(){
       return '<tr><td>'+fdate(a.date)+'</td><td><span class="bdg '+(a.status==='present'?'ok':a.status==='retard'?'warn':'danger')+'">'+esc(a.status)+'</span></td><td>'+((a.check_in||a.time_in)||'—')+'</td><td>'+((a.check_out||a.time_out)||'—')+'</td><td>'+dur+'</td></tr>';
     }).join('')+'</tbody></table>';
 }
+/* PROMPT 020C — M5 : changePin appelle Edge Function change-employee-pin (6 chiffres) */
 function changePin(){
-  var p1=document.getElementById('new-pin1').value;
-  var p2=document.getElementById('new-pin2').value;
-  if(p1.length!==4||!/^\d{4}$/.test(p1)){toast('PIN doit &#234;tre 4 chiffres','err');return;}
-  if(p1!==p2){toast('PINs ne correspondent pas','err');return;}
-  PATCH('veraluz_employees',LOGGED_EMP.id,{pin_code:p1}).then(function(){
-    LOGGED_EMP.pin_code=p1;
-    var e=EMPS.find(function(x){return x.id===LOGGED_EMP.id;});if(e)e.pin_code=p1;
-    toast('PIN modifi&#233; &#9989;','ok');
-    document.getElementById('new-pin1').value='';document.getElementById('new-pin2').value='';
-  }).catch(function(e){toast('Erreur: '+e,'err');});
+  if(!LOGGED_EMP){toast('Session expirée — veuillez vous reconnecter','err');return;}
+  var curPin=document.getElementById('cur-pin')&&document.getElementById('cur-pin').value||'';
+  var p1=(document.getElementById('new-pin1').value||'').trim();
+  var p2=(document.getElementById('new-pin2').value||'').trim();
+  if(!/^\d{4}$/.test(curPin)&&!/^\d{6}$/.test(curPin)){toast('PIN actuel : 4 ou 6 chiffres requis','err');return;}
+  if(!/^\d{6}$/.test(p1)){toast('Le nouveau PIN doit avoir exactement 6 chiffres','err');return;}
+  if(p1!==p2){toast('Les deux nouveaux PIN ne correspondent pas','err');return;}
+  var EDGE_CHANGE='https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/change-employee-pin';
+  var SUPA_KEY_RH='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+  fetch(EDGE_CHANGE,{
+    method:'POST',mode:'cors',credentials:'omit',
+    headers:{'Content-Type':'application/json','apikey':SUPA_KEY_RH,'Authorization':'Bearer '+SUPA_KEY_RH},
+    body:JSON.stringify({employee_id:LOGGED_EMP.id,current_pin:curPin,new_pin:p1})
+  }).then(function(r){return r.json();}).then(function(result){
+    if(!result.ok){
+      var msg=(result.error==='invalid_credentials')?'PIN actuel incorrect.'
+        :(result.error==='new_pin_must_be_6_digits')?'Le nouveau PIN doit avoir exactement 6 chiffres.'
+        :(result.error==='weak_pin')?'PIN trop simple. Choisissez une combinaison moins évidente.'
+        :(result.error==='new_pin_same_as_current')?'Le nouveau PIN doit être différent de l\'actuel.'
+        :(result.error==='temporary_pin_expired')?'PIN temporaire expiré. Contactez votre responsable.'
+        :(result.error||'Erreur lors du changement de PIN.');
+      toast(msg,'err');return;
+    }
+    toast('PIN modifié ✅','ok');
+    if(document.getElementById('cur-pin'))document.getElementById('cur-pin').value='';
+    document.getElementById('new-pin1').value='';
+    document.getElementById('new-pin2').value='';
+  }).catch(function(){toast('Service indisponible. Vérifiez la connexion.','err');});
 }
 
 /* ═══════════════ INIT ═══════════════ */
@@ -2604,60 +2632,4 @@ window.addEventListener('message', function(ev) {
     </div>
     <div style="max-height:180px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;font-family:monospace;white-space:pre-wrap;margin-bottom:10px;" id="sign-contract-body"></div>
     <div style="margin-bottom:8px;font-size:12px;font-weight:700;">Signature :</div>
-    <canvas id="sign-pad" width="500" height="150" style="border:1px solid var(--border);border-radius:6px;cursor:crosshair;width:100%;background:#f8f8f8;touch-action:none;"></canvas>
-    <div class="btn-row" style="margin-top:10px;">
-      <button class="btn btn-primary" onclick="signContract()">&#9989; Valider la signature</button>
-      <button class="btn btn-sec" onclick="clearSignPad()">&#128465; Effacer</button>
-      <button class="btn btn-sec" onclick="closeMd('md-sign-contract')">Fermer</button>
-    </div>
-  </div>
-</div>
-</body></html>d,{status:'validated_manager'}).then(function(){item.status='validated_manager';});
-  });
-  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
-  .then(function(){
-    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
-    toast('Période validée par le manager ✅','ok');
-  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
-}
-
-/* ═══ Validation propriétaire (M12) ═══ */
-function validateOwnerPeriode(pid){
-  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
-  if(!period){toast('Période introuvable','err');return;}
-  if(period.status!=='validated_manager'){
-    toast('Impossible : la période doit être validée par le manager en premier','err');return;
-  }
-  var msg='Validation propriétaire\n\n"'+period.period_label+'"\n\nCette validation autorise la préparation future des bulletins et du fichier banque. Aucun paiement n\'est effectué.\n\nConfirmer ?';
-  if(!confirm(msg))return;
-  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
-  var who=sess.username||sess.email||'Propriétaire DEV';
-  var now=new Date().toISOString();
-  var updates={status:'validated_owner',validated_by_owner:who,validated_by_owner_at:now};
-  var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
-  var proms=its.map(function(item){
-    return PATCH('veraluz_payroll_items',item.id,{status:'validated_owner'}).then(function(){item.status='validated_owner';});
-  });
-  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
-  .then(function(){
-    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
-    toast('Période validée par le propriétaire ✅','ok');
-  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
-}
-
-/* ═══ Marquer payée (M13) ═══ */
-function markPeriodePaid(pid){
-  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
-  if(!period){toast('Période introuvable','err');return;}
-  if(period.status!=='validated_owner'){
-    toast('Impossible : la période doit être validée par le propriétaire','err');return;
-  }
-  var msg='Marquer comme payée\n\n"'+period.period_label+'"\n\nConfirmez uniquement si le paiement externe a réellement été effectué par la banque ou le moyen choisi.\n\nLE SYSTÈME NE PAIE JAMAIS AUTOMATIQUEMENT.\n\nConfirmer ?';
-  if(!confirm(msg))return;
-  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
-  var who=sess.username||sess.email||'DEV';
-  var now=new Date().toISOString();
-  var updates={status:'paid',paid_by:who,paid_at:now};
-  var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
-  var proms=its.map(function(item){
-    return PATCH('veraluz_payroll_items',item.i
+    <canvas id="sign-pad" width="500" height="150" style="border:1px solid var(--border);border-radius:6px;cursor:crosshair;width:100%;background:#f8f8f8;touch-action:n

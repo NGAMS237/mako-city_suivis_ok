@@ -245,13 +245,39 @@ function doResetPin(btn) {
     var exp = result.expires_at ? new Date(result.expires_at).toLocaleString('fr-FR') : '24h';
     document.getElementById('rp-exp').textContent = 'Expire le : ' + exp;
     document.getElementById('rp-btn-row').innerHTML
-      = '<button class="btn btn-primary" onclick="closeMd(\'md-reset-pin\')">✅ Fermé — PIN noté</button>';
+      = '<button class="btn btn-sec" onclick="copyTempPin()">📋 Copier le PIN</button>'
+      + '<button class="btn btn-primary" onclick="closeMd(\'md-reset-pin\')">✅ Fermé — PIN noté</button>';
     audit('reset_pin', { employee_id: empId, employee_name: empName, by: cuName });
   })
   .catch(function(e){
     toast('Erreur réseau : impossible de contacter le serveur', true);
     btn.disabled = false; btn.textContent = '🔑 Générer PIN temporaire';
   });
+}
+
+/* ── Copier PIN temporaire (PROMPT 020C — M6) ─────────────────────────────── */
+function copyTempPin() {
+  var el = document.getElementById('rp-pin');
+  if (!el) return;
+  var pin = el.textContent || '';
+  if (!pin) { toast('Aucun PIN à copier', true); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(pin).then(function() {
+      toast('PIN copié dans le presse-papier ✅');
+    }).catch(function() {
+      _copyTempPinFallback(pin);
+    });
+  } else {
+    _copyTempPinFallback(pin);
+  }
+}
+function _copyTempPinFallback(pin) {
+  var ta = document.createElement('textarea');
+  ta.value = pin; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast('PIN copié ✅'); }
+  catch(e) { toast('Copie impossible — notez le PIN manuellement', true); }
+  document.body.removeChild(ta);
 }
 
 /* ── Permission Schema ─────────────────────────────────────────────────────── */
@@ -581,7 +607,7 @@ function renderProfil(){
     +'<div class="card"><div class="card-hdr"><div class="card-title">Sécurité du compte</div></div>'
     +'<label class="fl">Mot de passe actuel</label><input class="fi" id="p-pw-old" type="password" placeholder="••••••">'
     +'<label class="fl">Nouveau mot de passe</label><input class="fi" id="p-pw-new" type="password" placeholder="••••••">'
-    +'<label class="fl">PIN (4 chiffres)</label><input class="fi" id="p-pin" type="text" maxlength="4" placeholder="1234">'
+    +'<div style="background:rgba(245,158,11,0.1);border:1px solid #f59e0b;border-radius:6px;padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:8px;">&#128274; Le PIN employé est géré via <strong>🔑 Réinitialiser le PIN</strong> dans l\'onglet Employés — il ne peut pas être changé ici.</div>'
     +'<div class="btn-row"><button class="btn btn-primary" data-uid="'+esc(u.id)+'" onclick="savePassword(this.dataset.uid)">Changer</button>'
     +'<button class="btn btn-danger" onclick="doLogout()">🚪 Déconnexion</button></div></div>';
 }

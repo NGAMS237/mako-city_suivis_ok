@@ -210,9 +210,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 
 /* PIN display */
 .auth-pin-lbl { font-size:11px; font-weight:600; color:var(--fg2);
-  text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; display:block; }
+  text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; display:block; }
+/* PROMPT 020C — sous-titre explicatif 4/6 chiffres */
+.auth-pin-sub { font-size:11px; color:var(--fg2); text-align:center;
+  margin-bottom:10px; line-height:1.4; opacity:.75; }
+/* PROMPT 020C — message d'aide contextuel par longueur */
+.auth-pin-hint { font-size:11px; text-align:center; min-height:16px;
+  margin:4px 0 8px; transition:opacity .2s; }
+.auth-pin-hint.warn { color:#f59e0b; }
+.auth-pin-hint.ok   { color:#10b981; }
+.auth-pin-hint.info { color:var(--fg2); }
 .auth-pin-display {
-  display:flex; gap:10px; justify-content:center; margin-bottom:16px;
+  display:flex; gap:10px; justify-content:center; margin-bottom:8px;
 }
 .auth-pin-dot {
   width:18px; height:18px; border-radius:50%;
@@ -472,6 +481,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
         </select>
       </div>
       <span class="auth-pin-lbl">Votre NIP / PIN employé</span>
+      <!-- PROMPT 020C — sous-titre 4/6 chiffres -->
+      <div class="auth-pin-sub">Les anciens PIN ont 4 chiffres · Les nouveaux PIN ont 6 chiffres</div>
       <div class="auth-pin-display">
         <div class="auth-pin-dot" id="pin-dot-0"></div>
         <div class="auth-pin-dot" id="pin-dot-1"></div>
@@ -480,6 +491,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
         <div class="auth-pin-dot" id="pin-dot-4"></div>
         <div class="auth-pin-dot" id="pin-dot-5"></div>
       </div>
+      <!-- PROMPT 020C — hint contextuel -->
+      <div id="pin-hint" class="auth-pin-hint"></div>
       <div class="auth-pin-pad">
         <button class="auth-pin-btn" onclick="pinKey('1')">1</button>
         <button class="auth-pin-btn" onclick="pinKey('2')">2</button>
@@ -1002,13 +1015,19 @@ function getUsers() {
 }
 
 /* PIN input state */
+/* PROMPT 020C — _pinMax passe à 6 (anciens PIN 4 chiffres tolérés pour migration) */
 var _pinBuffer = '';
-var _pinMax = 4;
+var _pinMax = 6;
+
+/* PROMPT 020C — alias manquant : HTML appelle pinKey(), JS définissait pinPress() */
+function pinKey(d) { pinPress(d); }
 
 function pinPress(d) {
   if (_pinBuffer.length >= _pinMax) return;
   _pinBuffer += d;
   updatePinDisplay();
+  updatePinHint();
+  /* PROMPT 020C — auto-submit uniquement à 6 chiffres (pas à 4, l'utilisateur peut continuer) */
   if (_pinBuffer.length === _pinMax) {
     setTimeout(doLoginPin, 200);
   }
@@ -1016,12 +1035,25 @@ function pinPress(d) {
 function pinDel() {
   _pinBuffer = _pinBuffer.slice(0, -1);
   updatePinDisplay();
+  updatePinHint();
 }
 function updatePinDisplay() {
-  for (var i = 0; i < _pinMax; i++) {
+  /* PROMPT 020C — boucle toujours sur 6 dots (pas _pinMax) */
+  for (var i = 0; i < 6; i++) {
     var dot = document.getElementById('pin-dot-' + i);
     if (dot) dot.className = 'auth-pin-dot' + (i < _pinBuffer.length ? ' filled' : '');
   }
+}
+/* PROMPT 020C — message d'aide contextuel selon longueur saisie */
+function updatePinHint() {
+  var hint = document.getElementById('pin-hint');
+  if (!hint) return;
+  var len = _pinBuffer.length;
+  if (len === 0) { hint.textContent = ''; hint.className = 'auth-pin-hint'; return; }
+  if (len < 4)  { hint.textContent = 'Veuillez saisir au moins 4 chiffres.'; hint.className = 'auth-pin-hint warn'; return; }
+  if (len === 4){ hint.textContent = 'Appuyez sur « Se connecter » ou continuez pour un PIN à 6 chiffres.'; hint.className = 'auth-pin-hint info'; return; }
+  if (len === 5){ hint.textContent = 'PIN incomplet — saisissez le 6ᵉ chiffre ou ⌫ pour revenir à 4.'; hint.className = 'auth-pin-hint warn'; return; }
+  hint.textContent = 'PIN à 6 chiffres saisi.'; hint.className = 'auth-pin-hint ok';
 }
 
 /* PROMPT 008A — showAuthOverlay avec messages d'erreur distincts */
@@ -1133,8 +1165,19 @@ function doLoginPin() {
   /* PROMPT 008B — empRole lu uniquement pour affichage avant validation serveur */
   /* data-pin supprimé — comparaison PIN JAMAIS côté client */
 
+  /* PROMPT 020C — guards 4/5/6 chiffres */
   if (_pinBuffer.length < 4) {
-    errEl.textContent = 'Veuillez entrer votre NIP / PIN employé.';
+    errEl.textContent = 'Veuillez saisir au moins 4 chiffres.';
+    errEl.classList.add('show');
+    return;
+  }
+  if (_pinBuffer.length === 5) {
+    errEl.textContent = 'PIN incomplet — saisissez le 6ᵉ chiffre ou ⌫ pour revenir à 4 chiffres.';
+    errEl.classList.add('show');
+    return;
+  }
+  if (_pinBuffer.length !== 4 && _pinBuffer.length !== 6) {
+    errEl.textContent = 'PIN invalide.';
     errEl.classList.add('show');
     return;
   }
@@ -1720,7 +1763,7 @@ function purgeLegacyPinCache() {
  * Ne compare JAMAIS le PIN côté client
  *
  * @param {string} employeeId  - ID Supabase de l'employé
- * @param {string} pin         - PIN saisi (4 chiffres)
+ * @param {string} pin         - PIN saisi (4 chiffres legacy OU 6 chiffres nouveau — PROMPT 020C)
  * @returns {Promise<{ok:boolean, employee?:object, error?:string}>}
  */
 function verifyEmployeePin(employeeId, pin) {
@@ -2873,61 +2916,4 @@ function vlzClearPwaCache(){
     if(typeof showCoreToast === 'function'){
       showCoreToast('🗑 Cache PWA vidé — rechargement...', 'ok');
     }
-    setTimeout(function(){ window.location.reload(true); }, 1200);
-  }).catch(function(err){
-    console.error('[VERALUZ PWA] Erreur vidage cache:', err);
-  });
-}
-
-// ── Bouton installation (Android/Chrome) ─────────────────────
-var _vlzDeferredInstall = null;
-
-window.addEventListener('beforeinstallprompt', function(e){
-  e.preventDefault();
-  _vlzDeferredInstall = e;
-  // Ne pas montrer si déjà en mode standalone (app installée)
-  if(_vlzIsStandalone) return;
-  var banner = document.getElementById('vlz-pwa-install-banner');
-  if(banner){ banner.style.display = 'flex'; }
-});
-
-function vlzTriggerInstall(){
-  if(!_vlzDeferredInstall) return;
-  _vlzDeferredInstall.prompt();
-  _vlzDeferredInstall.userChoice.then(function(result){
-    console.log('[VERALUZ PWA] Choix installation:', result.outcome);
-    _vlzDeferredInstall = null;
-    var banner = document.getElementById('vlz-pwa-install-banner');
-    if(banner){ banner.style.display = 'none'; }
-  });
-}
-
-window.addEventListener('appinstalled', function(){
-  console.log('[VERALUZ PWA] Application installée !');
-  var banner = document.getElementById('vlz-pwa-install-banner');
-  if(banner){ banner.style.display = 'none'; }
-});
-
-// ── Indicateur offline ────────────────────────────────────────
-function vlzUpdateOnlineBanner(){
-  var bar = document.getElementById('vlz-offline-bar');
-  if(!bar) return;
-  bar.style.display = navigator.onLine ? 'none' : 'flex';
-}
-window.addEventListener('online',  vlzUpdateOnlineBanner);
-window.addEventListener('offline', vlzUpdateOnlineBanner);
-
-// ── Lancement ─────────────────────────────────────────────────
-registerVeraluzServiceWorker();
-window.addEventListener('DOMContentLoaded', function(){
-  vlzUpdateOnlineBanner();
-  // iOS : afficher l'aide installation si pas encore en standalone
-  if(_vlzIsIOS && !_vlzIsStandalone){
-    var banner = document.getElementById('vlz-pwa-install-banner');
-    if(banner){
-      // Masquer le bouton Installer (inutile sur iOS) et garder l'aide Partager
-      var installBtn = document.getElementById('vlz-pwa-install-btn');
-      if(installBtn) installBtn.style.display = 'none';
-      banner.style.display = 'flex';
-    }
-  }
+    setTimeou
