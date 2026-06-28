@@ -211,6 +211,11 @@ select.form-input option{background:var(--bg3);}
   <div class="tab-pane" id="pane-history"></div>
   <div class="tab-pane" id="pane-guide"></div>
   <div class="tab-pane" id="pane-settings"></div>
+  <div class="tab-pane" id="pane-chloe"></div>
+  <div class="tab-pane" id="pane-approvals"></div>
+  <div class="tab-pane" id="pane-drafts"></div>
+  <div class="tab-pane" id="pane-reminders"></div>
+  <div class="tab-pane" id="pane-techops"></div>
 </div>
 
 <!-- MODAL -->
@@ -290,13 +295,13 @@ var _loadingReport = false;
 
 /* ── 10 Agents par défaut (fallback si Supabase indisponible) ─ */
 var AI_AGENTS_DEFAULT = [
-  { agent_key:'daily_director',   name:'Directeur Quotidien',       category:'direction',
-    icon:'📋', risk_level:'medium', status:'active', version:1, approval_required:true,
-    description:'Analyse l\'activité globale et produit un rapport quotidien pour Blaise / manager.',
-    system_prompt:'Tu es l\'Agent Directeur Quotidien de la résidence VERALUZ Kribi. Analyse les données de la journée et produis un rapport structuré avec résumé, alertes et recommandations. Tu ne peux pas modifier de données. Toute recommandation nécessite une validation humaine.',
-    data_sources_json:{sources:['analytics_snapshot','reservations','payments','expenses','housekeeping','food','rh','alerts']},
-    allowed_actions_json:{actions:['résumer','recommander','classer_priorités','créer_recommandation_pending']},
-    forbidden_actions_json:{actions:['modifier_prix','confirmer_réservation','annuler_réservation','modifier_paiement','supprimer_donnée','modifier_salaire','envoyer_message_client']}},
+  { agent_key:'chloe_director_v1', name:'Directrice Chloé',          category:'direction',
+    icon:'👩‍💼', risk_level:'medium', status:'active', version:1, approval_required:true,
+    description:'Chloé coordonne les agents, produit le rapport du matin, centralise les urgences et prépare les validations. Aucune action sensible sans validation humaine.',
+    system_prompt:'Tu es Directrice Chloé, l\'IA coordinatrice de VERALUZ Kribi. Tu analyses les données, coordonnes les agents et produis le rapport du matin pour le directeur. Tu ne peux pas modifier de données, signer, envoyer ou payer. Toute action sensible nécessite validation humaine.',
+    data_sources_json:{sources:['analytics_snapshot','reservations','payments','expenses','housekeeping','food','rh','alerts','chloe_reports','chloe_approvals','chloe_reminders']},
+    allowed_actions_json:{actions:['résumer','recommander','classer_priorités','créer_recommandation_pending','préparer_brouillon','créer_rappel','générer_rapport_matin','générer_rapport_techops']},
+    forbidden_actions_json:{actions:['modifier_prix','confirmer_réservation','annuler_réservation','modifier_paiement','supprimer_donnée','modifier_salaire','envoyer_message_client','signer_document','approuver_automatiquement','modifier_code','déployer']}},
 
   { agent_key:'reception_crm',    name:'Réception / CRM',           category:'réservations',
     icon:'🛎️', risk_level:'high',   status:'active', version:1, approval_required:true,
@@ -383,7 +388,12 @@ var TABS = [
   { id:'prompts',       label:'Prompts',         icon:'📝' },
   { id:'history',       label:'Historique',      icon:'🕐' },
   { id:'guide',         label:'Guide rapide',    icon:'📖' },
-  { id:'settings',      label:'Paramètres IA',   icon:'⚙️' }
+  { id:'settings',      label:'Paramètres IA',   icon:'⚙️' },
+  { id:'chloe',         label:'Directrice Chloé', icon:'👩‍💼' },
+  { id:'approvals',     label:'Approbations',    icon:'✅' },
+  { id:'drafts',        label:'Brouillons',      icon:'✉️' },
+  { id:'reminders',     label:'Rappels',         icon:'🔔' },
+  { id:'techops',       label:'TechOps',         icon:'🛠️' }
 ];
 
 /* ── Supabase helpers ────────────────────────────────────────── */
@@ -512,7 +522,12 @@ function renderCurrentTab() {
     prompts:         renderPrompts,
     history:         renderHistory,
     guide:           renderGuide,
-    settings:        renderSettings
+    settings:        renderSettings,
+    chloe:           renderChloe,
+    approvals:       renderApprovals,
+    drafts:          renderDrafts,
+    reminders:       renderReminders,
+    techops:         renderTechOps
   };
   if (fns[_currentTab]) fns[_currentTab]();
 }
@@ -538,7 +553,7 @@ function renderOverview() {
       '<div style="background:rgba(34,211,165,.05);border:1px solid rgba(34,211,165,.2);border-radius:11px;padding:14px;margin-bottom:14px;">',
       '<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;">🧪 Comment tester les agents — Mode aperçu</div>',
       '<ol style="font-size:12px;color:var(--text2);line-height:2.2;padding-left:18px;margin:0;">',
-      '<li>Ici <b>Vue d\'ensemble</b> → Cliquer <b>Générer rapport Directeur Quotidien</b></li>',
+      '<li>Ici <b>Vue d\'ensemble</b> → Cliquer <b>Générer rapport du matin</b> (ou onglet Directrice Chloé)</li>',
       '<li>Onglet <b>🤖 Agents</b> → Voir les 10 agents, statuts, risques, prompts</li>',
       '<li>Onglet <b>📝 Prompts</b> → Ouvrir et modifier un prompt (version +1)</li>',
       '<li>Onglet <b>💡 Recommandations</b> → Approuver / Rejeter / Marquer fait</li>',
@@ -555,7 +570,7 @@ function renderOverview() {
     '<div class="generate-area">',
       '<div class="generate-icon">🧠</div>',
       '<div class="generate-text">',
-        '<div class="generate-title">Agent Directeur Quotidien</div>',
+        '<div class="generate-title">Directrice Chloé</div>',
         '<div class="generate-sub">Génère un rapport structuré (réservations, revenus, housekeeping, alertes, recommandations) en mode simulation depuis les données Supabase.</div>',
       '</div>',
       '<button class="btn btn-primary btn-lg" onclick="runDirectorReport()" id="btn-generate">',
@@ -641,7 +656,7 @@ function runDirectorReport() {
 
     /* Enregistrer dans veraluz_ai_agent_runs */
     return sbPost('veraluz_ai_agent_runs', {
-      agent_key: 'daily_director',
+      agent_key: 'chloe_director_v1',
       run_type: 'daily_report',
       status: 'completed',
       input_snapshot_json: parentSnap || { source:'direct_supabase' },
@@ -655,7 +670,7 @@ function runDirectorReport() {
       if (recs.length > 0) {
         return Promise.all(recs.map(function(rec) {
           return sbPost('veraluz_ai_recommendations', {
-            agent_key: 'daily_director',
+            agent_key: 'chloe_director_v1',
             category: rec.category || 'general',
             title: rec.title,
             description: rec.description,
@@ -958,8 +973,8 @@ function buildMockReport(snap, reservations, payments, employees, housekeeping, 
   }
 
   return {
-    title: 'Rapport Directeur Quotidien',
-    agent: 'daily_director',
+    title: 'Rapport du matin — Directrice Chloé',
+    agent: 'chloe_director_v1',
     generated_at: now.toISOString(),
     mode: 'mock',
     using_analytics_snapshot: !!snap,
@@ -1384,7 +1399,7 @@ function renderGuide() {
       '<div class="sec-sub">Comprendre les agents, leurs limites et comment les utiliser en toute sécurité</div>',
     '</div></div>',
     guideSection('✅','Ce que les agents peuvent faire maintenant', [
-      '• <b>daily_director</b> : générer un rapport quotidien structuré avec alertes et recommandations',
+      '• <b>chloe_director_v1</b> : Directrice Chloé — rapport du matin, coordination agents, approbations',
       '• <b>Tous les agents</b> : afficher leur prompt, statut, niveau de risque',
       '• <b>Prompts</b> : modifiables manuellement avec versioning automatique',
       '• <b>Recommandations</b> : approvuables, rejetables ou marquables — manuellement',
@@ -1454,7 +1469,7 @@ function renderSettings() {
     '<div style="font-size:12px;font-weight:700;margin-bottom:12px;">📊 Tableau de bord Sécurité IA</div>',
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;">',
       secBadge('Mode IA actuel',         VERALUZ_AI_MODE==='edge'?'EDGE IA':'MOCK', VERALUZ_AI_MODE==='edge'?'ok':'warn', VERALUZ_AI_MODE==='edge'?'Appel IA via Edge Function serveur':'Simulation locale — aucun appel IA externe'),
-      secBadge('Agent réel connecté',    VERALUZ_AI_MODE==='edge'?'daily_director':'AUCUN', VERALUZ_AI_MODE==='edge'?'ok':'warn', 'Seul daily_director est activé en mode edge — les 9 autres restent mock'),
+      secBadge('Agent réel connecté',    VERALUZ_AI_MODE==='edge'?'chloe_director_v1':'AUCUN', VERALUZ_AI_MODE==='edge'?'ok':'warn', 'Seul chloe_director_v1 est activé en mode edge — les 9 autres restent mock'),
       secBadge('Appel IA externe',       VERALUZ_AI_MODE==='edge'?'ACTIVÉ (serveur)':'DÉSACTIVÉ', 'ok', 'Clé IA côté Supabase Secrets uniquement — jamais dans le frontend'),
       secBadge('Clé IA frontend',        'ABSENTE',         'ok',  'Aucune clé API dans le code HTML/JS — règle absolue'),
       secBadge('Validation humaine',     'ACTIVE',          'ok',  'requires_approval=TRUE forcé sur toutes les recommandations IA'),
@@ -1728,6 +1743,705 @@ function showToast(msg, type) {
   document.body.appendChild(t);
   setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(function(){ t.remove(); },300); }, 3000);
 }
+/* ══════════════════════════════════════════════════════════════
+   PROMPT 023 — DIRECTRICE CHLOÉ — 5 onglets + 2 générateurs
+   RÈGLE D'OR : Chloé prépare. Le directeur vérifie, signe, approuve, envoie.
+   Chloé ne signe pas, ne paie pas, n'envoie pas, ne supprime pas.
+══════════════════════════════════════════════════════════════ */
+
+/* ── Helpers Chloé ─────────────────────────────────────────── */
+function priBdg(p) {
+  var colors = { high:'var(--red)', urgent:'var(--red)', normal:'var(--accent)', low:'var(--text3)' };
+  var labels = { high:'URGENT', urgent:'URGENT', normal:'NORMAL', low:'BAS' };
+  return '<span style="background:rgba(0,0,0,.3);color:'+(colors[p]||'var(--text2)')+';border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;">'+(labels[p]||String(p||'').toUpperCase())+'</span>';
+}
+function typeBdg(t) {
+  var icons = { email:'✉️', whatsapp:'💬', note:'📝', sms:'📱', approbation:'✅', contrat:'📄', facture:'🧾', devis:'📋', maintenance:'🔧', rh:'👤', finance:'💰', reservation:'🏨' };
+  return '<span style="font-size:14px;" title="'+esc(t)+'">'+(icons[t]||'📌')+'</span> ';
+}
+function sevBdg(s) {
+  var colors = { critical:'#ef4444', high:'var(--red)', medium:'var(--yellow)', warning:'var(--yellow)', low:'var(--accent)', info:'var(--blue)' };
+  return '<span style="background:rgba(0,0,0,.3);color:'+(colors[s]||'var(--text2)')+';border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;">'+(s||'info').toUpperCase()+'</span>';
+}
+function relDate(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso); var now = new Date();
+  var diff = d - now; var absDiff = Math.abs(diff);
+  if (absDiff < 60000) return 'maintenant';
+  if (absDiff < 3600000) return Math.round(absDiff/60000)+'min '+(diff<0?'passé':'');
+  if (absDiff < 86400000) return Math.round(absDiff/3600000)+'h '+(diff<0?'passé':'');
+  var days = Math.round(absDiff/86400000);
+  return days+'j '+(diff<0?'passé':'');
+}
+function chloePrintReport() {
+  window.print();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB : DIRECTRICE CHLOÉ
+══════════════════════════════════════════════════════════════ */
+function renderChloe() {
+  var pane = document.getElementById('pane-chloe');
+  if (!pane) return;
+  pane.innerHTML = [
+    '<div class="sec-hdr">',
+      '<div>',
+        '<div class="sec-title">👩‍💼 Directrice Chloé</div>',
+        '<div class="sec-sub">Rapport du matin · Coordination agents · Validations en attente</div>',
+      '</div>',
+      '<div style="font-size:10px;color:var(--text3);padding:6px 10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:7px;max-width:340px;text-align:right;">',
+        '⚖️ Chloé prépare. Le directeur vérifie, signe, approuve, envoie.',
+      '</div>',
+    '</div>',
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:16px;">',
+      quickCard('✅','Approbations','Documents en attente','approvals','var(--accent)'),
+      quickCard('✉️','Brouillons','Messages à valider','drafts','var(--blue)'),
+      quickCard('🔔','Rappels','Échéances du jour','reminders','var(--yellow)'),
+      quickCard('🛠️','TechOps','État technique','techops','var(--text2)'),
+    '</div>',
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">',
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">',
+        '<div>',
+          '<div style="font-size:13px;font-weight:700;">📋 Rapport du matin</div>',
+          '<div style="font-size:11px;color:var(--text3);" id="chloe-report-meta">Non généré</div>',
+        '</div>',
+        '<div style="display:flex;gap:8px;">',
+          '<button class="btn btn-sec btn-sm" id="chloe-print-btn" onclick="chloePrintReport()" style="display:none;">🖨️ PDF / Imprimer</button>',
+          '<button class="btn btn-primary" id="chloe-gen-btn" onclick="generateChloeMorningReport()">🚀 Générer rapport du matin</button>',
+        '</div>',
+      '</div>',
+      '<div id="chloe-report-content">',
+        '<div class="empty"><div class="empty-icon">👩‍💼</div>',
+        '<div class="empty-title">Aucun rapport généré</div>',
+        '<div class="empty-sub">Cliquez sur "Générer rapport du matin" pour que Directrice Chloé analyse la situation de VERALUZ Kribi et prépare votre briefing quotidien.</div></div>',
+      '</div>',
+    '</div>',
+    '<div id="chloe-recent-reports"></div>'
+  ].join('');
+
+  sbGet('/rest/v1/veraluz_chloe_reports?tenant_id=eq.veraluz-001&order=created_at.desc&limit=5').then(function(rows) {
+    var el = document.getElementById('chloe-recent-reports');
+    if (!el || !rows || !rows.length) return;
+    el.innerHTML = '<div class="sec-hdr" style="margin-top:4px;"><div class="sec-title">Rapports récents</div></div>'
+      + rows.map(function(r) {
+          return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;margin-bottom:7px;display:flex;align-items:center;gap:10px;">'
+            + '<div style="flex:1;"><div style="font-size:12px;font-weight:600;">'+esc(r.title||'Rapport')+'</div>'
+            + '<div style="font-size:11px;color:var(--text3);">'+fmtDate(r.created_at)+'</div></div>'
+            + '<div style="display:flex;gap:5px;">'
+            + '<span style="background:rgba(34,211,165,.12);color:var(--accent);border-radius:5px;padding:2px 7px;font-size:10px;">'+esc(r.report_type)+'</span>'
+            + '<span style="background:rgba(255,255,255,.07);color:var(--text3);border-radius:5px;padding:2px 7px;font-size:10px;">'+esc(r.status)+'</span>'
+            + '</div></div>';
+        }).join('');
+  });
+}
+
+function quickCard(icon, title, sub, tabId, accent) {
+  return '<button class="btn-outline" onclick="showTab(\''+tabId+'\')" style="text-align:left;padding:13px;border-radius:10px;cursor:pointer;">'
+    + '<div style="font-size:20px;margin-bottom:5px;">'+icon+'</div>'
+    + '<div style="font-size:12px;font-weight:700;color:'+accent+';">'+title+'</div>'
+    + '<div style="font-size:10px;color:var(--text3);margin-top:2px;">'+sub+'</div>'
+    + '</button>';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GÉNÉRATEUR — RAPPORT DU MATIN
+══════════════════════════════════════════════════════════════ */
+function generateChloeMorningReport() {
+  var btn = document.getElementById('chloe-gen-btn');
+  var contentEl = document.getElementById('chloe-report-content');
+  var metaEl = document.getElementById('chloe-report-meta');
+  var printBtn = document.getElementById('chloe-print-btn');
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Analyse en cours...'; }
+
+  var today = new Date().toISOString().slice(0,10);
+  var now = new Date();
+
+  Promise.all([
+    sbGet('/rest/v1/veraluz_reservations?check_in=eq.'+today+'&limit=50'),
+    sbGet('/rest/v1/veraluz_reservations?check_out=eq.'+today+'&limit=50'),
+    sbGet('/rest/v1/veraluz_housekeeping?status=eq.pending&order=created_at.desc&limit=20'),
+    sbGet('/rest/v1/veraluz_payments?status=eq.pending&order=created_at.desc&limit=20'),
+    sbGet('/rest/v1/veraluz_employees?status=eq.active&limit=50'),
+    sbGet('/rest/v1/veraluz_chloe_approvals?tenant_id=eq.veraluz-001&status=eq.pending&limit=20'),
+    sbGet('/rest/v1/veraluz_chloe_reminders?tenant_id=eq.veraluz-001&status=eq.active&due_at=lte.'+(today+'T23:59:59Z')+'&limit=20')
+  ]).then(function(results) {
+    var arrivals    = results[0]||[];
+    var departures  = results[1]||[];
+    var hkPending   = results[2]||[];
+    var payPending  = results[3]||[];
+    var employees   = results[4]||[];
+    var approvals   = results[5]||[];
+    var reminders   = results[6]||[];
+
+    var totalPay = payPending.reduce(function(s,p){ return s+(parseFloat(p.amount)||0); }, 0);
+    var fmtXAF = function(n){ return n.toLocaleString('fr-FR')+' XAF'; };
+
+    var urgents = [];
+    if (approvals.length) urgents.push(approvals.length+' approbation(s) en attente');
+    if (reminders.length) urgents.push(reminders.length+' rappel(s) du jour');
+    if (hkPending.length > 5) urgents.push(hkPending.length+' tâches ménage en retard');
+    if (payPending.length) urgents.push(payPending.length+' paiement(s) à traiter ('+fmtXAF(totalPay)+')');
+
+    var score = urgents.length === 0 ? 'Bonne' : urgents.length <= 2 ? 'Attention requise' : 'Critique';
+    var scoreColor = urgents.length === 0 ? 'var(--accent)' : urgents.length <= 2 ? 'var(--yellow)' : 'var(--red)';
+
+    var reportTitle = 'Rapport du matin — '+today;
+    var summaryParts = [
+      'VERALUZ Kribi — '+now.toLocaleString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' à '+now.toLocaleString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'.',
+      arrivals.length+' arrivée(s) prévue(s).',
+      departures.length+' départ(s) prévu(s).',
+      employees.length+' employé(s) actifs.',
+      hkPending.length+' tâche(s) ménage en cours.',
+      payPending.length ? 'Paiements en attente : '+fmtXAF(totalPay)+'.' : 'Aucun paiement en attente.',
+      urgents.length ? 'Points urgents : '+urgents.join(', ')+'.' : 'Aucune urgence signalée.'
+    ];
+
+    var reportData = {
+      title: reportTitle,
+      agent: 'chloe_director_v1',
+      generated_at: now.toISOString(),
+      mode: _sbAvailable ? 'live' : 'mock',
+      summary: summaryParts.join(' '),
+      situation_score: score,
+      metrics: {
+        arrivals: arrivals.length,
+        departures: departures.length,
+        hk_pending: hkPending.length,
+        pay_pending: payPending.length,
+        pay_amount: totalPay,
+        employees_active: employees.length,
+        approvals_pending: approvals.length,
+        reminders_today: reminders.length
+      },
+      urgents: urgents,
+      arrivals_list: arrivals.slice(0,5).map(function(r){ return {name:r.guest_name||'—',room:r.room_number||'—'}; }),
+      departures_list: departures.slice(0,5).map(function(r){ return {name:r.guest_name||'—',room:r.room_number||'—'}; }),
+      approvals_list: approvals.slice(0,3).map(function(a){ return {title:a.title,type:a.approval_type,priority:a.priority}; }),
+      reminders_list: reminders.slice(0,3).map(function(r){ return {title:r.title,due_at:r.due_at}; })
+    };
+
+    // Afficher le rapport
+    if (contentEl) contentEl.innerHTML = renderChloeReportHTML(reportData, scoreColor);
+    if (metaEl) metaEl.textContent = 'Généré le '+fmtDate(now.toISOString())+' · Mode : '+(reportData.mode==='live'?'Données réelles':'Données mock');
+    if (printBtn) printBtn.style.display='';
+    if (btn) { btn.disabled=false; btn.textContent='🔄 Actualiser'; }
+
+    // Sauvegarder dans Supabase
+    if (_sbAvailable) {
+      sbPost('veraluz_chloe_reports', {
+        tenant_id: 'veraluz-001',
+        report_date: today,
+        report_type: 'morning',
+        title: reportTitle,
+        executive_summary: reportData.summary,
+        status: 'draft',
+        severity: urgents.length===0?'info':urgents.length<=2?'warning':'critical',
+        sections: reportData,
+        recommendations: reportData.urgents,
+        generated_by: 'directrice_chloe'
+      }).then(function(r){ if(r) showToast('Rapport sauvegardé dans Supabase','ok'); });
+    }
+
+    // Actualiser la liste
+    var recentEl = document.getElementById('chloe-recent-reports');
+    if (recentEl && recentEl.textContent==='') {
+      recentEl.innerHTML = '';
+    }
+    showToast('Rapport du matin généré par Directrice Chloé','ok');
+  }).catch(function(e) {
+    console.warn('[Chloé]', e);
+    if (btn) { btn.disabled=false; btn.textContent='🚀 Générer rapport du matin'; }
+    showToast('Erreur lors de la génération du rapport','err');
+  });
+}
+
+function renderChloeReportHTML(r, scoreColor) {
+  var fmtXAF = function(n){ return (n||0).toLocaleString('fr-FR')+' XAF'; };
+  var kpiCard = function(lbl, val, icon) {
+    return '<div style="background:var(--bg3,rgba(0,0,0,.3));border-radius:9px;padding:12px;">'
+      + '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">'+icon+' '+lbl+'</div>'
+      + '<div style="font-size:22px;font-weight:700;color:var(--text);">'+val+'</div></div>';
+  };
+  var m = r.metrics||{};
+  var parts = [
+    '<div style="border:1px solid rgba(34,211,165,.25);border-radius:10px;padding:14px;background:rgba(34,211,165,.04);">',
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">',
+        '<div style="font-size:13px;font-weight:700;color:var(--text);">👩‍💼 Synthèse — Directrice Chloé</div>',
+        '<span style="font-size:11px;font-weight:700;color:'+scoreColor+';">Situation : '+(r.situation_score||'?')+'</span>',
+      '</div>',
+      '<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px;">'+esc(r.summary)+'</div>',
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:12px;">',
+        kpiCard('Arrivées',''+m.arrivals,'🏨'),
+        kpiCard('Départs',''+m.departures,'🧳'),
+        kpiCard('Ménage en attente',''+m.hk_pending,'🧹'),
+        kpiCard('Paiements',''+m.pay_pending,'💳'),
+        kpiCard('Employés actifs',''+m.employees_active,'👥'),
+        kpiCard('Approbations',''+m.approvals_pending,'✅'),
+      '</div>'
+  ];
+
+  if (r.urgents && r.urgents.length) {
+    parts.push('<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:10px;margin-bottom:10px;">');
+    parts.push('<div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px;">⚠️ Points d&#39;attention</div>');
+    r.urgents.forEach(function(u) {
+      parts.push('<div style="font-size:11px;color:var(--text2);padding:3px 0;">• '+esc(u)+'</div>');
+    });
+    parts.push('</div>');
+  }
+
+  if (r.approvals_list && r.approvals_list.length) {
+    parts.push('<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;">✅ Approbations en attente</div>');
+    r.approvals_list.forEach(function(a) {
+      parts.push('<div style="font-size:11px;color:var(--text2);padding:3px 0;">• '+priBdg(a.priority)+' '+typeBdg(a.type||'approbation')+esc(a.title)+'</div>');
+    });
+    parts.push('</div>');
+  }
+
+  if (r.arrivals_list && r.arrivals_list.length) {
+    parts.push('<div><div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;">🏨 Arrivées du jour</div>');
+    r.arrivals_list.forEach(function(a) {
+      parts.push('<div style="font-size:11px;color:var(--text2);padding:2px 0;">• '+esc(a.name)+' — Chambre '+esc(a.room)+'</div>');
+    });
+    parts.push('</div>');
+  }
+
+  parts.push('<div style="margin-top:10px;padding:8px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;font-size:10px;color:var(--yellow);">');
+  parts.push('⚖️ Ce rapport est préparé par Directrice Chloé à titre informatif. Toute action (validation, paiement, communication) doit être initiée par le directeur.');
+  parts.push('</div>');
+  parts.push('</div>');
+  return parts.join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB : APPROBATIONS
+══════════════════════════════════════════════════════════════ */
+var _approvalsFilter = 'pending';
+function renderApprovals() {
+  var pane = document.getElementById('pane-approvals');
+  if (!pane) return;
+  var filters = [
+    {k:'pending',   l:'En attente'},
+    {k:'reviewed',  l:'Examiné'},
+    {k:'approved',  l:'Approuvé'},
+    {k:'rejected',  l:'Rejeté'},
+    {k:'all',       l:'Tous'}
+  ];
+  pane.innerHTML = [
+    '<div class="sec-hdr">',
+      '<div><div class="sec-title">✅ Approbations</div>',
+      '<div class="sec-sub">Documents préparés par Chloé en attente de validation humaine</div></div>',
+      '<button class="btn btn-sec btn-sm" onclick="renderApprovals()">🔄 Actualiser</button>',
+    '</div>',
+    '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">',
+      filters.map(function(f) {
+        var active = _approvalsFilter===f.k;
+        return '<button onclick="_approvalsFilter=\''+f.k+'\';renderApprovals()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:'+(active?'var(--accent)':'var(--bg2)')+';color:'+(active?'#111':'var(--text2)')+';">'+f.l+'</button>';
+      }).join(''),
+    '</div>',
+    '<div id="approvals-list"><div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Chargement...</div></div></div>'
+  ].join('');
+
+  var path = '/rest/v1/veraluz_chloe_approvals?tenant_id=eq.veraluz-001&order=created_at.desc&limit=30';
+  if (_approvalsFilter !== 'all') path += '&status=eq.'+_approvalsFilter;
+  sbGet(path).then(function(rows) {
+    var el = document.getElementById('approvals-list');
+    if (!el) return;
+    if (!rows || !rows.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Aucune approbation '
+        +(_approvalsFilter==='pending'?'en attente':_approvalsFilter==='all'?'':'avec le statut "'+_approvalsFilter+'"')+'</div></div>';
+      return;
+    }
+    el.innerHTML = rows.map(function(a) {
+      var isPending = a.status==='pending';
+      return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '
+        +(isPending?'var(--yellow)':a.status==='approved'?'var(--accent)':a.status==='rejected'?'var(--red)':'var(--border)')
+        +';border-radius:9px;padding:13px;margin-bottom:8px;">'
+        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">'
+        + '<div style="flex:1;">'
+        + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">'
+        + typeBdg(a.approval_type) + priBdg(a.priority)
+        + '<span style="font-size:12px;font-weight:700;color:var(--text);">'+esc(a.title)+'</span>'
+        + '</div>'
+        + (a.description?'<div style="font-size:11px;color:var(--text2);margin-bottom:5px;">'+esc(a.description)+'</div>':'')
+        + '<div style="display:flex;gap:10px;font-size:11px;color:var(--text3);">'
+        + (a.amount?'<span>💰 '+parseFloat(a.amount).toLocaleString('fr-FR')+' '+(a.currency||'XAF')+'</span>':'')
+        + '<span>📅 '+fmtDate(a.created_at)+'</span>'
+        + '<span>Demandé par : '+esc(a.requested_by||'—')+'</span>'
+        + '</div></div>'
+        + '<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;">'
+        + statusBdg(a.status)
+        + (isPending?'<button class="btn btn-ok btn-sm" onclick="chloePatchApproval(\''+a.id+'\',\'approved\')">✓ Approuver</button>':'')
+        + (isPending?'<button class="btn btn-danger btn-sm" onclick="chloePatchApproval(\''+a.id+'\',\'rejected\')">✕ Rejeter</button>':'')
+        + '</div></div></div>';
+    }).join('');
+  });
+}
+function chloePatchApproval(id, status) {
+  if (!confirm((status==='approved'?'Approuver':'Rejeter')+' cette demande ?')) return;
+  sbPatch('veraluz_chloe_approvals', 'id=eq.'+id, {status:status, reviewed_at:new Date().toISOString(), updated_at:new Date().toISOString()})
+    .then(function(){ showToast('Approbation mise à jour → '+status,'ok'); renderApprovals(); });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB : BROUILLONS
+══════════════════════════════════════════════════════════════ */
+var _draftsFilter = 'draft';
+function renderDrafts() {
+  var pane = document.getElementById('pane-drafts');
+  if (!pane) return;
+  var filters = [
+    {k:'draft',     l:'Brouillons'},
+    {k:'validated', l:'Validés'},
+    {k:'cancelled', l:'Annulés'},
+    {k:'all',       l:'Tous'}
+  ];
+  pane.innerHTML = [
+    '<div class="sec-hdr">',
+      '<div><div class="sec-title">✉️ Brouillons</div>',
+      '<div class="sec-sub">Messages préparés par Chloé — à valider avant envoi</div></div>',
+      '<button class="btn btn-sec btn-sm" onclick="renderDrafts()">🔄 Actualiser</button>',
+    '</div>',
+    '<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--yellow);margin-bottom:12px;">',
+      '⚖️ Chloé prépare les messages. Vous les validez et les envoyez vous-même.',
+    '</div>',
+    '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">',
+      filters.map(function(f) {
+        var active = _draftsFilter===f.k;
+        return '<button onclick="_draftsFilter=\''+f.k+'\';renderDrafts()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:'+(active?'var(--accent)':'var(--bg2)')+';color:'+(active?'#111':'var(--text2)')+';">'+f.l+'</button>';
+      }).join(''),
+    '</div>',
+    '<div id="drafts-list"><div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Chargement...</div></div></div>'
+  ].join('');
+
+  var path = '/rest/v1/veraluz_chloe_drafts?tenant_id=eq.veraluz-001&order=created_at.desc&limit=30';
+  if (_draftsFilter !== 'all') path += '&status=eq.'+_draftsFilter;
+  sbGet(path).then(function(rows) {
+    var el = document.getElementById('drafts-list');
+    if (!el) return;
+    if (!rows || !rows.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">✉️</div><div class="empty-title">Aucun brouillon</div></div>';
+      return;
+    }
+    el.innerHTML = rows.map(function(d) {
+      var isDraft = d.status==='draft';
+      return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:13px;margin-bottom:8px;">'
+        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">'
+        + '<div style="flex:1;">'
+        + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
+        + typeBdg(d.draft_type)
+        + '<span style="font-size:12px;font-weight:700;">'+esc(d.title)+'</span>'
+        + (d.requires_validation?'<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--yellow);border-radius:4px;padding:1px 6px;">VALIDATION REQUISE</span>':'')
+        + '</div>'
+        + (d.recipient_name?'<div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Destinataire : '+esc(d.recipient_name)+(d.recipient_contact?' ('+esc(d.recipient_contact)+')':'')+'</div>':'')
+        + (d.subject?'<div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Objet : '+esc(d.subject)+'</div>':'')
+        + '<div style="font-size:11px;color:var(--text2);background:var(--bg3,rgba(0,0,0,.2));border-radius:6px;padding:8px;max-height:80px;overflow:hidden;">'+esc((d.body||'').slice(0,300))+(d.body&&d.body.length>300?'…':'')+'</div>'
+        + '<div style="font-size:10px;color:var(--text3);margin-top:5px;">'+fmtDate(d.created_at)+' · par '+esc(d.created_by)+'</div>'
+        + '</div>'
+        + '<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;">'
+        + statusBdg(d.status)
+        + '<button class="btn btn-sec btn-sm" onclick="copyDraftBody(\''+d.id+'\')" title="Copier le message">📋 Copier</button>'
+        + (isDraft?'<button class="btn btn-ok btn-sm" onclick="chloePatchDraft(\''+d.id+'\',\'validated\')">✓ Marquer envoyé</button>':'')
+        + (isDraft?'<button class="btn btn-danger btn-sm" onclick="chloePatchDraft(\''+d.id+'\',\'cancelled\')">✕ Annuler</button>':'')
+        + '</div></div></div>';
+    }).join('');
+    // Store bodies for copy
+    window._chloeDraftBodies = {};
+    rows.forEach(function(d){ window._chloeDraftBodies[d.id]=d.body||''; });
+  });
+}
+function copyDraftBody(id) {
+  var body = (window._chloeDraftBodies||{})[id]||'';
+  if (!body) { showToast('Corps introuvable','warn'); return; }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(body).then(function(){ showToast('Message copié dans le presse-papier','ok'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value=body; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    showToast('Message copié','ok');
+  }
+}
+function chloePatchDraft(id, status) {
+  var label = status==='validated'?'Marquer comme envoyé':'Annuler';
+  if (!confirm(label+' ce brouillon ?')) return;
+  sbPatch('veraluz_chloe_drafts','id=eq.'+id,{status:status,validated_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    .then(function(){ showToast('Brouillon mis à jour → '+status,'ok'); renderDrafts(); });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB : RAPPELS
+══════════════════════════════════════════════════════════════ */
+function renderReminders() {
+  var pane = document.getElementById('pane-reminders');
+  if (!pane) return;
+  pane.innerHTML = [
+    '<div class="sec-hdr">',
+      '<div><div class="sec-title">🔔 Rappels</div>',
+      '<div class="sec-sub">Échéances et rappels gérés par Directrice Chloé</div></div>',
+      '<button class="btn btn-primary btn-sm" onclick="chloeAddReminderUI()">+ Ajouter rappel</button>',
+    '</div>',
+    '<div id="reminders-add-form" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;"></div>',
+    '<div id="reminders-list"><div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Chargement...</div></div></div>'
+  ].join('');
+  loadReminders();
+}
+function loadReminders() {
+  sbGet('/rest/v1/veraluz_chloe_reminders?tenant_id=eq.veraluz-001&status=eq.active&order=due_at.asc&limit=30').then(function(rows) {
+    var el = document.getElementById('reminders-list');
+    if (!el) return;
+    if (!rows || !rows.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🔔</div><div class="empty-title">Aucun rappel actif</div></div>';
+      return;
+    }
+    var now = new Date();
+    el.innerHTML = rows.map(function(r) {
+      var due = new Date(r.due_at);
+      var isOverdue = due < now;
+      var isDueToday = due.toDateString()===now.toDateString();
+      var borderColor = isOverdue?'var(--red)':isDueToday?'var(--yellow)':'var(--border)';
+      return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+borderColor+';border-radius:9px;padding:12px;margin-bottom:7px;display:flex;align-items:center;gap:10px;">'
+        + '<div style="flex:1;">'
+        + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">'
+        + priBdg(r.priority)
+        + '<span style="font-size:12px;font-weight:700;">'+esc(r.title)+'</span>'
+        + (isOverdue?'<span style="font-size:9px;background:rgba(239,68,68,.15);color:var(--red);border-radius:4px;padding:1px 5px;">EN RETARD</span>':'')
+        + (isDueToday&&!isOverdue?'<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--yellow);border-radius:4px;padding:1px 5px;">AUJOURD&#39;HUI</span>':'')
+        + '</div>'
+        + (r.message?'<div style="font-size:11px;color:var(--text2);margin-bottom:3px;">'+esc(r.message)+'</div>':'')
+        + '<div style="font-size:10px;color:var(--text3);">Échéance : '+fmtDate(r.due_at)+' · '+relDate(r.due_at)+'</div>'
+        + '</div>'
+        + '<div style="display:flex;gap:5px;flex-shrink:0;">'
+        + '<button class="btn btn-ok btn-sm" onclick="chloePatchReminder(\''+r.id+'\',\'done\')">✓ Fait</button>'
+        + '<button class="btn btn-danger btn-sm" onclick="chloePatchReminder(\''+r.id+'\',\'cancelled\')">✕</button>'
+        + '</div></div>';
+    }).join('');
+  });
+}
+function chloeAddReminderUI() {
+  var f = document.getElementById('reminders-add-form');
+  if (!f) return;
+  var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  var iso = tomorrow.toISOString().slice(0,16);
+  f.style.display='';
+  f.innerHTML = '<div style="font-size:12px;font-weight:700;margin-bottom:10px;">+ Nouveau rappel</div>'
+    + '<div style="display:grid;gap:8px;">'
+    + '<input id="rem-title" placeholder="Titre du rappel" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg3,rgba(0,0,0,.3));color:var(--text);font-size:12px;width:100%;">'
+    + '<textarea id="rem-msg" placeholder="Message (optionnel)" rows="2" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg3,rgba(0,0,0,.3));color:var(--text);font-size:12px;width:100%;resize:vertical;"></textarea>'
+    + '<div style="display:flex;gap:8px;">'
+    + '<input type="datetime-local" id="rem-due" value="'+iso+'" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--border);background:var(--bg3,rgba(0,0,0,.3));color:var(--text);font-size:12px;">'
+    + '<select id="rem-pri" style="padding:7px;border-radius:6px;border:1px solid var(--border);background:var(--bg3,rgba(0,0,0,.3));color:var(--text);font-size:12px;">'
+    + '<option value="normal">Priorité : Normal</option><option value="high">Priorité : Urgent</option><option value="low">Priorité : Bas</option>'
+    + '</select></div>'
+    + '<div style="display:flex;gap:7px;">'
+    + '<button class="btn btn-primary btn-sm" onclick="chloeSaveReminder()">Enregistrer</button>'
+    + '<button class="btn btn-sec btn-sm" onclick="document.getElementById(\'reminders-add-form\').style.display=\'none\'">Annuler</button>'
+    + '</div></div>';
+}
+function chloeSaveReminder() {
+  var title = (document.getElementById('rem-title')||{}).value||'';
+  var msg   = (document.getElementById('rem-msg')||{}).value||'';
+  var due   = (document.getElementById('rem-due')||{}).value||'';
+  var pri   = (document.getElementById('rem-pri')||{}).value||'normal';
+  if (!title.trim()) { showToast('Titre requis','warn'); return; }
+  if (!due) { showToast('Date d\'échéance requise','warn'); return; }
+  sbPost('veraluz_chloe_reminders',{
+    tenant_id:'veraluz-001', title:title.trim(), message:msg.trim()||null,
+    reminder_type:'general', due_at:new Date(due).toISOString(),
+    priority:pri, status:'active', created_by:'directeur'
+  }).then(function(r) {
+    if (r) { showToast('Rappel créé','ok'); var f=document.getElementById('reminders-add-form'); if(f)f.style.display='none'; loadReminders(); }
+    else showToast('Erreur création rappel','err');
+  });
+}
+function chloePatchReminder(id, status) {
+  sbPatch('veraluz_chloe_reminders','id=eq.'+id,{status:status,updated_at:new Date().toISOString()})
+    .then(function(){ showToast('Rappel mis à jour','ok'); loadReminders(); });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB : TECHOPS
+══════════════════════════════════════════════════════════════ */
+function renderTechOps() {
+  var pane = document.getElementById('pane-techops');
+  if (!pane) return;
+  pane.innerHTML = [
+    '<div class="sec-hdr">',
+      '<div><div class="sec-title">🛠️ TechOps</div>',
+      '<div class="sec-sub">Monitoring technique VERALUZ — Alertes et rapport système</div></div>',
+      '<button class="btn btn-primary btn-sm" id="techops-gen-btn" onclick="generateTechOpsReport()">📊 Générer rapport TechOps</button>',
+    '</div>',
+    '<div id="techops-alerts-list"><div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Chargement des alertes...</div></div></div>',
+    '<div style="margin-top:16px;" id="techops-prompts"></div>'
+  ].join('');
+  loadTechOpsAlerts();
+}
+function loadTechOpsAlerts() {
+  Promise.all([
+    sbGet('/rest/v1/veraluz_techops_alerts?tenant_id=eq.veraluz-001&status=eq.open&order=created_at.desc&limit=20'),
+    sbGet('/rest/v1/veraluz_techops_reports?tenant_id=eq.veraluz-001&order=created_at.desc&limit=1')
+  ]).then(function(res) {
+    var alerts  = res[0]||[];
+    var reports = res[1]||[];
+    var lastReport = reports[0];
+    var el = document.getElementById('techops-alerts-list');
+    if (!el) return;
+
+    var headerParts = ['<div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">',
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:10px 14px;flex:1;min-width:130px;">',
+        '<div style="font-size:10px;color:var(--text3);">Alertes ouvertes</div>',
+        '<div style="font-size:22px;font-weight:700;color:'+(alerts.length>0?'var(--yellow)':'var(--accent)')+';">'+alerts.length+'</div>',
+      '</div>',
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:10px 14px;flex:1;min-width:130px;">',
+        '<div style="font-size:10px;color:var(--text3);">Dernier rapport</div>',
+        '<div style="font-size:12px;font-weight:600;color:var(--text);">'+(lastReport?fmtDate(lastReport.created_at):'Jamais')+'</div>',
+      '</div>',
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:10px 14px;flex:1;min-width:130px;">',
+        '<div style="font-size:10px;color:var(--text3);">Mode IA</div>',
+        '<div style="font-size:12px;font-weight:600;color:var(--accent);">'+( VERALUZ_AI_MODE==='edge'?'EDGE':'MOCK')+'</div>',
+      '</div>',
+    '</div>'];
+
+    if (!alerts.length) {
+      headerParts.push('<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Aucune alerte TechOps ouverte</div><div class="empty-sub">Générez un rapport pour analyser l&#39;état technique.</div></div>');
+    } else {
+      headerParts.push(alerts.map(function(a) {
+        return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '
+          +(a.severity==='critical'||a.severity==='high'?'var(--red)':a.severity==='medium'||a.severity==='warning'?'var(--yellow)':'var(--blue)')
+          +';border-radius:9px;padding:12px;margin-bottom:7px;">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+          + '<div style="display:flex;align-items:center;gap:6px;">'
+          + sevBdg(a.severity)
+          + '<span style="font-size:12px;font-weight:700;">'+esc(a.title)+'</span>'
+          + '</div>'
+          + '<button class="btn btn-sec btn-sm" onclick="resolveTechAlert(\''+a.id+'\')">✓ Résoudre</button>'
+          + '</div>'
+          + (a.message?'<div style="font-size:11px;color:var(--text2);margin-bottom:4px;">'+esc(a.message)+'</div>':'')
+          + (a.recommendation?'<div style="font-size:11px;color:var(--accent);">💡 '+esc(a.recommendation)+'</div>':'')
+          + (a.suggested_prompt?'<div style="margin-top:6px;background:rgba(0,0,0,.2);border-radius:6px;padding:6px;font-size:10px;color:var(--text3);cursor:pointer;" onclick="copyTechPrompt(\''+a.id+'\')">📋 Prompt suggéré : '+esc(a.suggested_prompt.slice(0,100))+'…</div>':'')
+          + '<div style="font-size:10px;color:var(--text3);margin-top:4px;">'+fmtDate(a.created_at)+(a.module_key?' · Module : '+esc(a.module_key):'')+'</div>'
+          + '</div>';
+      }).join(''));
+    }
+    el.innerHTML = headerParts.join('');
+    window._techAlerts = alerts;
+
+    // Prompts suggérés fixes
+    var promptsEl = document.getElementById('techops-prompts');
+    if (promptsEl) {
+      var suggestedPrompts = [
+        { label:'Vérifier tables Supabase', prompt:'SELECT table_name, pg_size_pretty(pg_total_relation_size(table_name::regclass)) as size FROM information_schema.tables WHERE table_schema=\'public\' ORDER BY pg_total_relation_size(table_name::regclass) DESC;' },
+        { label:'Lister les modules désactivés', prompt:'SELECT module_key, module_name, is_enabled FROM veraluz_tenant_modules WHERE tenant_id=\'veraluz-001\' AND is_enabled=false ORDER BY module_key;' },
+        { label:'Audit agents IA', prompt:'SELECT agent_key, name, status, risk_level, approval_required FROM veraluz_ai_agents ORDER BY category, name;' },
+        { label:'État Edge Functions', prompt:'Vérifier dans Supabase Dashboard → Edge Functions que verify-employee-pin v4, reset-employee-pin v3 et change-employee-pin v2 sont actives.' }
+      ];
+      promptsEl.innerHTML = '<div style="font-size:12px;font-weight:700;margin-bottom:8px;">📋 Prompts TechOps (cliquer pour copier)</div>'
+        + suggestedPrompts.map(function(p) {
+          return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;cursor:pointer;" onclick="copyText('+JSON.stringify(p.prompt)+')">'
+            + '<div style="font-size:11px;font-weight:600;margin-bottom:3px;">'+esc(p.label)+'</div>'
+            + '<div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(p.prompt.slice(0,80))+'…</div>'
+            + '</div>';
+        }).join('');
+    }
+  });
+}
+function copyText(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function(){ showToast('Copié dans le presse-papier','ok'); });
+  } else {
+    var ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    showToast('Copié','ok');
+  }
+}
+function copyTechPrompt(id) {
+  var a = ((window._techAlerts)||[]).find(function(x){ return x.id===id; });
+  if (a && a.suggested_prompt) copyText(a.suggested_prompt);
+}
+function resolveTechAlert(id) {
+  sbPatch('veraluz_techops_alerts','id=eq.'+id,{status:'resolved',resolved_at:new Date().toISOString()})
+    .then(function(){ showToast('Alerte résolue','ok'); loadTechOpsAlerts(); });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GÉNÉRATEUR — RAPPORT TECHOPS
+══════════════════════════════════════════════════════════════ */
+function generateTechOpsReport() {
+  var btn = document.getElementById('techops-gen-btn');
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Analyse...'; }
+
+  Promise.all([
+    sbGet('/rest/v1/veraluz_tenant_modules?tenant_id=eq.veraluz-001&is_enabled=eq.false'),
+    sbGet('/rest/v1/veraluz_ai_agents?status=eq.active'),
+    sbGet('/rest/v1/veraluz_employees?status=eq.active&limit=5'),
+    sbGet('/rest/v1/veraluz_techops_alerts?tenant_id=eq.veraluz-001&status=eq.open')
+  ]).then(function(results) {
+    var disabledMods = results[0]||[];
+    var activeAgents = results[1]||[];
+    var employees    = results[2]||[];
+    var openAlerts   = results[3]||[];
+
+    var findings = [
+      { key:'supabase_connection', status:_sbAvailable?'ok':'error', message:_sbAvailable?'Supabase accessible':'Supabase inaccessible — vérifier la connexion' },
+      { key:'ai_mode', status:VERALUZ_AI_MODE==='edge'?'ok':'info', message:'Mode IA : '+(VERALUZ_AI_MODE==='edge'?'EDGE (IA réelle via Edge Function)':'MOCK (simulation locale)') },
+      { key:'active_agents', status:activeAgents.length>0?'ok':'warning', message:activeAgents.length+' agent(s) IA actif(s)' },
+      { key:'disabled_modules', status:disabledMods.length===0?'ok':'info', message:disabledMods.length+' module(s) désactivé(s) : '+(disabledMods.map(function(m){return m.module_key;}).join(', ')||'aucun') },
+      { key:'employees_access', status:employees.length>0?'ok':'warning', message:employees.length+' employé(s) actif(s) trouvé(s) (requête limitée à 5)' },
+      { key:'open_alerts', status:openAlerts.length===0?'ok':openAlerts.length<=3?'warning':'error', message:openAlerts.length+' alerte(s) TechOps ouverte(s)' }
+    ];
+
+    var severity = findings.some(function(f){return f.status==='error';})?'critical'
+      : findings.some(function(f){return f.status==='warning';})?'medium':'info';
+    var title = 'Rapport TechOps — '+new Date().toISOString().slice(0,10);
+
+    var saveData = {
+      tenant_id:'veraluz-001',
+      report_date:new Date().toISOString().slice(0,10),
+      report_type:'techops',
+      title:title,
+      summary:'Analyse technique VERALUZ : '+findings.filter(function(f){return f.status!=='ok';}).map(function(f){return f.message;}).join('. ')|| 'Tous les systèmes sont opérationnels.',
+      severity:severity,
+      status:'open',
+      findings:findings,
+      recommendations:[
+        'Vérifier les Edge Functions actives dans Supabase Dashboard.',
+        'S\'assurer que tous les modules désactivés le sont volontairement.',
+        'Tester le reset PIN sur un employé test avant une descente terrain.'
+      ],
+      suggested_prompts:[
+        { label:'Taille tables', sql:'SELECT table_name FROM information_schema.tables WHERE table_schema=\'public\''},
+        { label:'Agents actifs', sql:'SELECT agent_key, name, status FROM veraluz_ai_agents WHERE status=\'active\''}
+      ],
+      created_by:'techops_ai'
+    };
+
+    if (_sbAvailable) {
+      sbPost('veraluz_techops_reports', saveData).then(function(r) {
+        if (r) showToast('Rapport TechOps sauvegardé','ok');
+      });
+      // Créer alerte si critical
+      if (severity==='critical') {
+        sbPost('veraluz_techops_alerts',{
+          tenant_id:'veraluz-001', alert_type:'system', severity:'critical',
+          title:'État critique détecté — rapport TechOps '+new Date().toISOString().slice(0,10),
+          message: findings.filter(function(f){return f.status==='error';}).map(function(f){return f.message;}).join('; '),
+          recommendation:'Vérifier la connexion Supabase et les Edge Functions.',
+          status:'open'
+        });
+      }
+    }
+
+    if (btn) { btn.disabled=false; btn.textContent='📊 Générer rapport TechOps'; }
+    showToast('Rapport TechOps généré — Sévérité : '+severity.toUpperCase(), severity==='critical'?'err':severity==='medium'?'warn':'ok');
+    loadTechOpsAlerts();
+  }).catch(function(e) {
+    console.warn('[TechOps]', e);
+    if (btn) { btn.disabled=false; btn.textContent='📊 Générer rapport TechOps'; }
+    showToast('Erreur génération rapport TechOps','err');
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FIN PROMPT 023 — Directrice Chloé V1
+══════════════════════════════════════════════════════════════ */
+
 </script>
 </body>
 </html>
