@@ -2126,7 +2126,7 @@ var KDS_QUICK_REPLIES = [
 
 function openKdsMsg(orderId){
   _kdsMsgOrderId = orderId;
-  var o = _foodOrders.find(function(x){return x.id===orderId;});
+  var o = FOOD_ORDERS.find(function(x){return x.id===orderId;});
   var ref = o ? (o.order_number||o.id||'').toString().slice(0,8) : orderId.slice(0,8);
   document.getElementById('kds-msg-ref').textContent = '#'+ref;
   /* Quick replies */
@@ -2217,7 +2217,7 @@ function sendKdsMsg(){
 
 /* Polling messages non lus (toutes les 30s) — badge par commande */
 function pollKdsMsgBadges(){
-  if(!_foodOrders||!_foodOrders.length)return;
+  if(!FOOD_ORDERS||!FOOD_ORDERS.length)return;
   var today=new Date().toISOString().slice(0,10);
   fetch(SB+'/rest/v1/veraluz_delivery_messages?tenant_id=eq.veraluz-001&created_at=gte.'+today+'T00:00:00&sender_type=eq.driver&order=created_at.desc&limit=40',{headers:H()})
     .then(function(r){return r.json();})

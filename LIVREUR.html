@@ -887,13 +887,19 @@ function initApp(){
 /* ══════════════════════════════════════════
    TABS
 ══════════════════════════════════════════ */
+/* PROMPT 031B — tous les onglets incluant historique + messages */
 function switchMainTab(t){
-  ['livraisons','pointage','profil'].forEach(function(p){
-    document.getElementById('mtab-'+p).classList.toggle('active',p===t);
-    document.getElementById('pane-'+p).classList.toggle('active',p===t);
-    document.getElementById('bnav-'+p).classList.toggle('active',p===t);
+  ['livraisons','pointage','profil','historique','messages'].forEach(function(p){
+    var mt=document.getElementById('mtab-'+p);
+    var pn=document.getElementById('pane-'+p);
+    var bn=document.getElementById('bnav-'+p);
+    if(mt) mt.classList.toggle('active',p===t);
+    if(pn) pn.classList.toggle('active',p===t);
+    if(bn) bn.classList.toggle('active',p===t);
   });
   if(t==='profil') renderProfil();
+  if(t==='messages') renderMessagesTab();
+  if(t==='historique') renderHistorique && renderHistorique();
 }
 
 function switchOrderTab(t,btn){
