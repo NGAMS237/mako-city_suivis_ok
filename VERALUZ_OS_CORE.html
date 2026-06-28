@@ -598,6 +598,109 @@ var MODULES = [
     file:'DOCUMENTS_EMBEDDED.html',   desc:'Coffre · Métadonnées · Échéances · Juridique' },
 ];
 
+/* ══════════════════════════════════════════════════════════════════
+   PLATEFORME MULTI-RÉSIDENCE — PROMPT 021
+   Chaque résidence (tenant) a son propre profil, modules et agent IA.
+   Tenant par défaut : VERALUZ Kribi (veraluz-001).
+   Toutes les fonctions sont en failsafe : si la table n'est pas encore
+   chargée, isModuleEnabled() retourne true (tous modules actifs).
+   ══════════════════════════════════════════════════════════════════ */
+
+var TENANT_ID      = 'veraluz-001';
+var _TENANT = {
+  id:             'veraluz-001',
+  name:           'Résidences Veraluz Kribi',
+  slug:           'veraluz',
+  legal_name:     'Résidences Veraluz',
+  city:           'Kribi',
+  country:        'Cameroun',
+  currency:       'XAF',
+  timezone:       'Africa/Douala',
+  primary_color:  null,
+  secondary_color:null,
+  accent_color:   null,
+  theme_mode:     'dark',
+  contact_phone:  '',
+  whatsapp_number:'',
+  email:          '',
+  logo_url:       ''
+};
+var _TENANT_MODULES = {}; /* { module_key: boolean } */
+var _TENANT_LOADED  = false; /* false = failsafe (tous modules actifs) */
+
+/* ── getCurrentTenant ─────────────────────────────────────────────── */
+function getCurrentTenant() { return _TENANT; }
+
+/* ── loadTenantSettings ───────────────────────────────────────────── */
+function loadTenantSettings() {
+  return sbGet('/rest/v1/veraluz_tenants?select=*&slug=eq.veraluz&limit=1')
+    .then(function(rows) {
+      if (!Array.isArray(rows) || !rows.length) return;
+      Object.assign(_TENANT, rows[0]);
+      TENANT_ID = _TENANT.id || TENANT_ID;
+      applyTenantBranding();
+      console.info('[Tenant] Profil chargé :', _TENANT.name);
+    })
+    .catch(function(e) { console.warn('[Tenant] loadTenantSettings — fallback silencieux', e); });
+}
+
+/* ── loadTenantModules ────────────────────────────────────────────── */
+function loadTenantModules() {
+  return sbGet('/rest/v1/veraluz_tenant_modules?select=module_key,is_enabled&tenant_id=eq.'
+      + encodeURIComponent(TENANT_ID) + '&limit=50')
+    .then(function(rows) {
+      if (!Array.isArray(rows) || !rows.length) return;
+      rows.forEach(function(r) {
+        _TENANT_MODULES[r.module_key] = (r.is_enabled === true || r.is_enabled === 'true');
+      });
+      _TENANT_LOADED = true;
+      console.info('[Tenant] Modules chargés :', Object.keys(_TENANT_MODULES).length);
+    })
+    .catch(function(e) { console.warn('[Tenant] loadTenantModules — failsafe (tous actifs)', e); });
+}
+
+/* ── isModuleEnabled ──────────────────────────────────────────────── */
+function isModuleEnabled(moduleKey) {
+  if (!_TENANT_LOADED || !moduleKey) return true;
+  return _TENANT_MODULES[moduleKey] !== false;
+}
+
+/* ── applyTenantBranding ──────────────────────────────────────────── */
+function applyTenantBranding() {
+  var t = _TENANT;
+  if (t.primary_color)   document.documentElement.style.setProperty('--accent', t.primary_color);
+  if (t.secondary_color) document.documentElement.style.setProperty('--acc2', t.secondary_color);
+  if (t.accent_color)    document.documentElement.style.setProperty('--acc3', t.accent_color);
+  var nameEl = document.getElementById('sb-hotel-name');
+  if (nameEl && t.name) nameEl.textContent = t.name.replace(/^Résidences\s+/i,'');
+  var subEl = document.querySelector('.sb-logo-sub');
+  if (subEl && (t.city||t.country))
+    subEl.textContent = [t.city,t.country].filter(Boolean).join(' · ');
+  if (t.logo_url && !localStorage.getItem('vz_logo_url')) {
+    var li=document.getElementById('sb-logo-img');
+    var le=document.getElementById('sb-logo-emoji');
+    if (li){ li.src=t.logo_url; li.style.display='block'; }
+    if (le) le.style.display='none';
+  }
+  if (t.name) document.title = t.name + ' — OS';
+}
+
+/* ── renderNavigationByModules ────────────────────────────────────── */
+function renderNavigationByModules() {
+  if (!_TENANT_LOADED) { buildNav(); return; }
+  var saved = MODULES.slice();
+  MODULES = MODULES.filter(function(m){ return isModuleEnabled(m.id); });
+  buildNav();
+  MODULES = saved;
+}
+
+/* ── guardModuleAccess ────────────────────────────────────────────── */
+function guardModuleAccess(moduleKey) {
+  if (isModuleEnabled(moduleKey)) return true;
+  showCoreToast('Module « '+moduleKey+' » non activé pour cette résidence.','err');
+  return false;
+}
+
 /* ── Monochrome SVG icons for sidebar ─────────────────────────────── */
 var SVG_ICONS = {
   'contacts': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
@@ -652,6 +755,7 @@ function goTo(pageId) {
     return;
   }
   if (!mod) return;
+  if (!guardModuleAccess(pageId)) return;
   currentModule = mod;
   setTopbar(mod.icon+' '+mod.label, mod.desc||'');
   loadModuleFrame(mod);
@@ -752,8 +856,8 @@ function buildNav(){
   }
 
   var visibleModules = (currentUser && ROLES[currentUser.role])
-    ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0; })
-    : MODULES;
+    ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0 && isModuleEnabled(m.id); })
+    : MODULES.filter(function(m){ return isModuleEnabled(m.id); });
 
   /* PROMPT 008A — Mon espace pour les employés */
   if (currentUser && currentUser.employee_id) {
@@ -1716,7 +1820,7 @@ function devDoResetPin() {
       document.getElementById('drp-pin').textContent = res.temporary_pin;
       document.getElementById('drp-result').style.display='block';
     } else {
-      errEl.textContent = res.error || 'Erreur reset PIN'; errEl.style.display='block';
+      var _dp=['[dev] '+(res.error||'Erreur reset PIN')];if(res.detail)_dp.push('Détail: '+res.detail);if(res.code)_dp.push('Code: '+res.code);errEl.textContent=_dp.join(' | '); errEl.style.display='block';
     }
   })
   .catch(function(){ btn.disabled=false; btn.textContent='Générer PIN'; errEl.textContent='Erreur réseau.'; errEl.style.display='block'; });
@@ -2193,6 +2297,9 @@ function sendAuthContext(iframe) {
 
 document.addEventListener('DOMContentLoaded', function(){
   purgeLegacyPinCache(); /* PROMPT 008B — purge cache PIN legacy */
+  /* PROMPT 021 — Charger profil résidence + modules activés (async, failsafe) */
+  try { loadTenantSettings(); } catch(e) { console.warn('[Tenant] loadTenantSettings:', e); }
+  try { loadTenantModules(); } catch(e) { console.warn('[Tenant] loadTenantModules:', e); }
 
   /* PROMPT 016A + PROMPT 019 — Migration auto session DEV existante */
   (function patchDevSessionModules(){
@@ -2916,4 +3023,111 @@ function vlzClearPwaCache(){
     if(typeof showCoreToast === 'function'){
       showCoreToast('🗑 Cache PWA vidé — rechargement...', 'ok');
     }
-    setTimeou
+    setTimeout(function(){ window.location.reload(true); }, 1200);
+  }).catch(function(err){
+    console.error('[VERALUZ PWA] Erreur vidage cache:', err);
+  });
+}
+
+// ── Bouton installation (Android/Chrome) ─────────────────────
+var _vlzDeferredInstall = null;
+
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  _vlzDeferredInstall = e;
+  // Ne pas montrer si déjà en mode standalone (app installée)
+  if(_vlzIsStandalone) return;
+  var banner = document.getElementById('vlz-pwa-install-banner');
+  if(banner){ banner.style.display = 'flex'; }
+});
+
+function vlzTriggerInstall(){
+  if(!_vlzDeferredInstall) return;
+  _vlzDeferredInstall.prompt();
+  _vlzDeferredInstall.userChoice.then(function(result){
+    console.log('[VERALUZ PWA] Choix installation:', result.outcome);
+    _vlzDeferredInstall = null;
+    var banner = document.getElementById('vlz-pwa-install-banner');
+    if(banner){ banner.style.display = 'none'; }
+  });
+}
+
+window.addEventListener('appinstalled', function(){
+  console.log('[VERALUZ PWA] Application installée !');
+  var banner = document.getElementById('vlz-pwa-install-banner');
+  if(banner){ banner.style.display = 'none'; }
+});
+
+// ── Indicateur offline ────────────────────────────────────────
+function vlzUpdateOnlineBanner(){
+  var bar = document.getElementById('vlz-offline-bar');
+  if(!bar) return;
+  bar.style.display = navigator.onLine ? 'none' : 'flex';
+}
+window.addEventListener('online',  vlzUpdateOnlineBanner);
+window.addEventListener('offline', vlzUpdateOnlineBanner);
+
+// ── Lancement ─────────────────────────────────────────────────
+registerVeraluzServiceWorker();
+window.addEventListener('DOMContentLoaded', function(){
+  vlzUpdateOnlineBanner();
+  // iOS : afficher l'aide installation si pas encore en standalone
+  if(_vlzIsIOS && !_vlzIsStandalone){
+    var banner = document.getElementById('vlz-pwa-install-banner');
+    if(banner){
+      // Masquer le bouton Installer (inutile sur iOS) et garder l'aide Partager
+      var installBtn = document.getElementById('vlz-pwa-install-btn');
+      if(installBtn) installBtn.style.display = 'none';
+      banner.style.display = 'flex';
+    }
+  }
+  // Si déjà installée en standalone : masquer toutes les bannières installation
+  if(_vlzIsStandalone){
+    var b = document.getElementById('vlz-pwa-install-banner');
+    if(b) b.style.display = 'none';
+  }
+});
+</script>
+
+<!-- ── PWA : masquer les bannières si app déjà installée (standalone) ── -->
+<style>
+@media (display-mode: standalone) {
+  #vlz-pwa-install-banner { display:none !important; }
+}
+</style>
+
+<!-- ── PWA Bannière offline ────────────────────────────────── -->
+<div id="vlz-offline-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
+  background:#f59e0b;color:#0d0d1a;padding:8px 16px;font-size:12px;font-weight:600;
+  align-items:center;justify-content:center;gap:8px;text-align:center;">
+  ⚠ Connexion faible ou hors ligne. Certaines données peuvent ne pas se synchroniser.
+</div>
+
+<!-- ── PWA Bannière installation ──────────────────────────────── -->
+<div id="vlz-pwa-install-banner" style="display:none;position:fixed;bottom:16px;right:16px;z-index:99998;
+  background:#1a1a2e;border:1px solid rgba(34,211,165,.35);border-radius:12px;
+  padding:12px 16px;max-width:270px;box-shadow:0 8px 32px rgba(0,0,0,.4);
+  flex-direction:column;gap:8px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-size:13px;font-weight:600;color:#e2e8f0;">📲 Installer VERALUZ OS</div>
+    <button onclick="document.getElementById('vlz-pwa-install-banner').style.display='none'"
+      style="padding:2px 7px;background:rgba(255,255,255,.07);color:#94a3b8;border:none;
+      border-radius:5px;font-size:13px;cursor:pointer;line-height:1.4;">✕</button>
+  </div>
+  <div style="font-size:11px;color:#94a3b8;line-height:1.5;">
+    Ajoutez l'application à votre écran d'accueil pour un accès rapide, même hors ligne.
+  </div>
+  <!-- Bouton Android/Chrome : affiché via JS si beforeinstallprompt disponible -->
+  <button id="vlz-pwa-install-btn" onclick="vlzTriggerInstall()" style="display:none;
+    width:100%;padding:9px;background:#22d3a5;color:#0d0d1a;border:none;border-radius:8px;
+    font-size:13px;font-weight:700;cursor:pointer;">⬇ Installer l'application</button>
+  <!-- Aide iPhone : toujours visible dans la bannière -->
+  <div style="font-size:11px;color:#64748b;background:rgba(255,255,255,.04);
+    border-radius:6px;padding:8px 10px;line-height:1.5;">
+    📱 <strong style="color:#94a3b8;">iPhone / iPad :</strong><br>
+    Partager ⬆ → Ajouter à l'écran d'accueil
+  </div>
+</div>
+
+</body>
+</html>

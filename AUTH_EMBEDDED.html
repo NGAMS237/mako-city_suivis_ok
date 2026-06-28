@@ -235,7 +235,7 @@ function doResetPin(btn) {
   .then(function(r){ return r.json(); })
   .then(function(result){
     if (!result.ok) {
-      toast('Erreur : ' + (result.error || 'Échec reset PIN'), true);
+      var _ep=['Erreur : '+(result.error||'Échec reset PIN')];if(result.detail)_ep.push('Détail : '+result.detail);if(result.code)_ep.push('Code : '+result.code);toast(_ep.join(' | '),true);
       btn.disabled = false; btn.textContent = '🔑 Générer PIN temporaire';
       return;
     }
