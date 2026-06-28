@@ -203,7 +203,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
 <!-- ── Content ── -->
 <div class="content">
-  <div class="tab-pane active" id="pane-inbox"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
+  <div class="tab-pane active" id="pane-inbox"><div id="actor-debug-panel" style="display:none;"></div><div class="loading"><span class="spinner"></span>Chargement…</div></div>
   <div class="tab-pane" id="pane-threads"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
   <div class="tab-pane" id="pane-orders"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
   <div class="tab-pane" id="pane-employees"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
@@ -284,7 +284,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <div class="toast" id="msg-toast"></div>
 
 <script>
-var MESSAGES_BUILD = 'v031c-b-msgfix-2026-06-28'; /* PROMPT 031 */
+var MESSAGES_BUILD = 'v031d-message-rights-2026-06-28'; /* PROMPT 031 */
 var _migration030Status = 'pending'; /* sera verifie au demarrage */
 /* ──────────────────────────────────────────────────────────
    VERALUZ MESSAGES MODULE — PROMPT 030
@@ -292,7 +292,138 @@ var _migration030Status = 'pending'; /* sera verifie au demarrage */
 var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 var TENANT = 'veraluz-001';
-var _currentUser = { username:'admin', role:'admin', name:'Admin' };
+var _currentUser = null;
+var _msgActor = null;
+
+/* PROMPT 031D — Détection identité de l'acteur messaging */
+function getCurrentMessagingActor(){
+  if(_msgActor) return _msgActor;
+  var ADMIN_ROLES=['superadmin','admin','manager','direction','directeur'];
+  var actor={
+    tenant_id:TENANT, actor_id:'', actor_name:'Utilisateur',
+    actor_type:'admin', role:'admin', department:'direction',
+    employee_id:'', user_id:'',
+    can_view_all_messages:false,
+    can_send_to_departments:false,
+    can_send_to_all:false
+  };
+  /* Source 1 : session VERALUZ OS (CORE) */
+  try{
+    var raw=localStorage.getItem('veraluz_auth_v1');
+    if(raw){
+      var s=JSON.parse(raw);
+      if(s&&s.username){
+        actor.user_id=s.username||'';
+        actor.actor_id=s.employee_id||s.username||'';
+        actor.actor_name=s.name||s.full_name||s.username||'Admin';
+        actor.role=s.role||'admin';
+        actor.employee_id=s.employee_id||s.username||'';
+        actor.department=s.department||_roleToDept(s.role)||'direction';
+        actor.actor_type=_roleToActorType(s.role);
+        actor.can_view_all_messages=ADMIN_ROLES.indexOf(s.role)>=0||s.dev_mode===true;
+        actor.can_send_to_departments=ADMIN_ROLES.indexOf(s.role)>=0||
+          ['rh','restaurant','housekeeping','kitchen'].indexOf(s.role)>=0;
+        actor.can_send_to_all=ADMIN_ROLES.indexOf(s.role)>=0;
+        _currentUser=s; _msgActor=actor; return actor;
+      }
+    }
+  }catch(e){}
+  /* Source 2 : session Livreur */
+  try{
+    var lraw=localStorage.getItem('veraluz_livreur_session');
+    if(lraw){
+      var ls=JSON.parse(lraw);
+      if(ls&&ls.id){
+        actor.actor_id=String(ls.id); actor.employee_id=String(ls.id);
+        actor.actor_name=ls.full_name||ls.name||'Livreur';
+        actor.role='delivery'; actor.actor_type='driver';
+        actor.department='delivery';
+        actor.can_view_all_messages=false;
+        actor.can_send_to_departments=false;
+        actor.can_send_to_all=false;
+        _msgActor=actor; return actor;
+      }
+    }
+  }catch(e){}
+  /* Source 3 : session Restaurant */
+  try{
+    var rraw=localStorage.getItem('veraluz_restaurant_session');
+    if(rraw){
+      var rs=JSON.parse(rraw);
+      if(rs){
+        actor.actor_id=rs.id||'restaurant';
+        actor.actor_name=rs.name||'Restaurant';
+        actor.role='restaurant'; actor.actor_type='restaurant';
+        actor.department='restaurant';
+        actor.can_view_all_messages=false;
+        actor.can_send_to_departments=false;
+        actor.can_send_to_all=false;
+        _msgActor=actor; return actor;
+      }
+    }
+  }catch(e){}
+  /* Fallback dev */
+  actor.can_view_all_messages=true; actor.can_send_to_all=true;
+  actor.can_send_to_departments=true; actor.actor_id='admin';
+  _msgActor=actor; return actor;
+}
+
+function _roleToActorType(role){
+  var map={superadmin:'admin',admin:'admin',manager:'admin',direction:'admin',
+    reception:'reception',restaurant:'restaurant',kitchen:'restaurant',
+    delivery:'driver',driver:'driver',livreur:'driver',
+    housekeeping:'housekeeping',maintenance:'maintenance',
+    rh:'rh',finance:'finance',accountant:'finance',comptable:'finance',
+    staff:'staff'};
+  return map[role]||'admin';
+}
+
+function _roleToDept(role){
+  var map={superadmin:'direction',admin:'direction',manager:'direction',
+    direction:'direction',reception:'reception',
+    restaurant:'restaurant',kitchen:'restaurant',
+    delivery:'delivery',driver:'delivery',livreur:'delivery',
+    housekeeping:'housekeeping',maintenance:'maintenance',
+    rh:'rh',finance:'finance',accountant:'finance',comptable:'finance'};
+  return map[role]||'direction';
+}
+
+/* canActorSeeMessage — règles de visibilité par rôle (PROMPT 031D) */
+function canActorSeeMessage(actor,msg){
+  if(!actor||!msg) return false;
+  var t=msg.tenant_id||TENANT; if(t!==TENANT) return false;
+  if(actor.can_view_all_messages) return true;
+  var aid=actor.actor_id||''; var eid=actor.employee_id||'';
+  /* Destinataire direct */
+  if(msg.recipient_id&&(msg.recipient_id===aid||msg.recipient_id===eid)) return true;
+  /* Type de destinataire = rôle acteur */
+  if(msg.recipient_type&&msg.recipient_type===actor.actor_type) return true;
+  if(msg.recipient_type&&msg.recipient_type===actor.role) return true;
+  /* Département */
+  if(msg.department&&msg.department===actor.department) return true;
+  /* Restaurant : voit commandes/livraisons */
+  if(actor.actor_type==='restaurant'){
+    if(['restaurant','delivery'].indexOf(msg.department||'')>=0) return true;
+    if(['order','delivery','restaurant'].indexOf(msg.context_type||'')>=0) return true;
+  }
+  /* Livreur : seulement ses messages */
+  if(actor.actor_type==='driver'){
+    if(msg.sender_id&&(msg.sender_id===aid||msg.sender_id===eid)) return true;
+    return false;
+  }
+  /* Sender = actor */
+  if(msg.sender_id&&(msg.sender_id===aid||msg.sender_id===eid)) return true;
+  return false;
+}
+
+/* dedupeMessagesById — fusionner plusieurs jeux sans doublons */
+function dedupeMessagesById(msgs){
+  var seen={}; var out=[];
+  (msgs||[]).forEach(function(m){
+    if(m&&m.id&&!seen[m.id]){seen[m.id]=true;out.push(m);}
+  });
+  return out.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);});
+}
 var _activeTab = 'inbox';
 var _activeThreadId = null;
 var _threadMessages = [];
@@ -376,15 +507,69 @@ function loadTab(tab){
 /* ────────────────────────────────────
    INBOX — loadMessages
 ──────────────────────────────────── */
+/* PROMPT 031D — loadMyInbox avec filtrage par acteur */
+function loadMyInbox(filters){
+  return loadMessages(filters);
+}
+
 function loadMessages(filters){
-  var pane=document.getElementById('pane-'+(filters&&filters.status==='archived'?'archives':'inbox'));
+  var actor=getCurrentMessagingActor();
+  var isArchive=filters&&filters.status==='archived';
+  var pane=document.getElementById('pane-'+(isArchive?'archives':'inbox'));
   if(!pane)return;
   pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
-  var path='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&order=created_at.desc&limit=60';
-  if(filters&&filters.status==='archived') path+='&status=eq.archived';
-  else path+='&status=neq.archived&status=neq.cancelled';
-  sbQ(path).then(function(rows){
-    _allMessages=rows||[];
+
+  var promises=[];
+
+  if(actor.can_view_all_messages){
+    /* Admin : tout charger */
+    var path='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&order=created_at.desc&limit=80';
+    if(isArchive) path+='&status=eq.archived';
+    else path+='&status=neq.archived&status=neq.cancelled';
+    promises.push(sbQ(path).catch(function(){return[];}));
+  } else {
+    /* Requêtes ciblées selon acteur — fusionnées côté JS */
+    var base='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&order=created_at.desc&limit=40';
+    var sf=isArchive?'&status=eq.archived':'&status=neq.archived&status=neq.cancelled';
+
+    /* Messages directs à cet acteur */
+    if(actor.actor_id){
+      promises.push(sbQ(base+sf+'&recipient_id=eq.'+encodeURIComponent(actor.actor_id))
+        .catch(function(){return[];}));
+    }
+    if(actor.employee_id&&actor.employee_id!==actor.actor_id){
+      promises.push(sbQ(base+sf+'&recipient_id=eq.'+encodeURIComponent(actor.employee_id))
+        .catch(function(){return[];}));
+    }
+    /* Par type de rôle */
+    if(actor.actor_type){
+      promises.push(sbQ(base+sf+'&recipient_type=eq.'+encodeURIComponent(actor.actor_type))
+        .catch(function(){return[];}));
+    }
+    /* Par département */
+    if(actor.department&&actor.department!=='direction'){
+      promises.push(sbQ(base+sf+'&department=eq.'+encodeURIComponent(actor.department))
+        .catch(function(){return[];}));
+    }
+    /* Restaurant : aussi context_type order/delivery */
+    if(actor.actor_type==='restaurant'){
+      promises.push(sbQ(base+sf+'&context_type=in.(order,delivery,restaurant)')
+        .catch(function(){return[];}));
+    }
+    /* Messages envoyés par cet acteur */
+    if(actor.actor_id){
+      promises.push(sbQ(base+sf+'&sender_id=eq.'+encodeURIComponent(actor.actor_id)+'&limit=20')
+        .catch(function(){return[];}));
+    }
+  }
+
+  Promise.all(promises).then(function(results){
+    var combined=[]; results.forEach(function(r){combined=combined.concat(r||[]);});
+    _allMessages=dedupeMessagesById(combined);
+    /* Filtrage JS supplémentaire si pas admin */
+    if(!actor.can_view_all_messages){
+      _allMessages=_allMessages.filter(function(m){return canActorSeeMessage(actor,m);});
+    }
     _unreadCount=_allMessages.filter(function(m){return !m.read_at&&m.status==='sent';}).length;
     updateBadges();
     var toShow=_allMessages;
@@ -884,16 +1069,19 @@ function cancelDraft(draftId){
    CORE FUNCTIONS
 ──────────────────────────────────── */
 function sendInternalMessage(payload){
-  /* Sécurité : jamais de service_role, jamais de PIN, jamais d'envoi automatique WA */
+  /* PROMPT 031D — Sécurité : jamais service_role, PIN, WhatsApp/email auto, paiement auto */
+  var actor=getCurrentMessagingActor();
   var data=Object.assign({
     tenant_id:TENANT,
-    sender_type:_currentUser.role||'admin',
-    sender_id:_currentUser.username||'',
-    sender_name:_currentUser.name||_currentUser.username||'Utilisateur',
+    sender_type:actor.actor_type||'admin',
+    sender_id:actor.actor_id||actor.user_id||'',
+    sender_name:actor.actor_name||'Utilisateur',
+    department:actor.department||'direction',
     is_internal:true,
     status:'sent',
     created_at:new Date().toISOString()
   },payload);
+  console.log('[MSGS] sendInternalMessage actor='+actor.actor_type+' to='+data.recipient_type+'/'+data.recipient_id);
   return sbIns('veraluz_internal_messages',data);
 }
 
@@ -913,8 +1101,23 @@ function archiveMessage(messageId){
 }
 
 function getUnreadMessageCount(){
-  return sbQ('veraluz_internal_messages?tenant_id=eq.'+TENANT+'&status=eq.sent&select=id&limit=1&read_at=is.null')
-    .then(function(rows){return (rows||[]).length;}).catch(function(){return 0;});
+  /* PROMPT 031D — compter seulement les messages visibles par l'acteur courant */
+  var actor=getCurrentMessagingActor();
+  var base='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&status=eq.sent&read_at=is.null&select=id&limit=100';
+  if(actor.can_view_all_messages){
+    return sbQ(base).then(function(r){return (r||[]).length;}).catch(function(){return 0;});
+  }
+  var queries=[];
+  if(actor.actor_id) queries.push(sbQ(base+'&recipient_id=eq.'+encodeURIComponent(actor.actor_id)).catch(function(){return[];}));
+  if(actor.employee_id&&actor.employee_id!==actor.actor_id)
+    queries.push(sbQ(base+'&recipient_id=eq.'+encodeURIComponent(actor.employee_id)).catch(function(){return[];}));
+  if(actor.actor_type) queries.push(sbQ(base+'&recipient_type=eq.'+encodeURIComponent(actor.actor_type)).catch(function(){return[];}));
+  if(actor.department&&actor.department!=='direction')
+    queries.push(sbQ(base+'&department=eq.'+encodeURIComponent(actor.department)).catch(function(){return[];}));
+  return Promise.all(queries).then(function(results){
+    var combined=[]; results.forEach(function(r){combined=combined.concat(r||[]);});
+    return dedupeMessagesById(combined).length;
+  }).catch(function(){return 0;});
 }
 
 function updateBadges(){
@@ -983,13 +1186,22 @@ function submitNewMsg(){
 
 /* ── createChloeMessage (appelable par AI_CENTER) ── */
 function createChloeMessage(payload){
-  /* payload: {message, message_type, priority, context_type, context_id, requires_action} */
+  /* PROMPT 031D — Chloé : alertes ciblées uniquement. Jamais WhatsApp/email/paiement auto.
+     payload doit inclure: recipient_type, department, priority, context_type, context_id */
+  if(!payload||!payload.message){console.warn('[Chloé] message manquant'); return Promise.resolve();}
   var data=Object.assign({
     sender_type:'chloe',
+    sender_id:'chloe_director',
     sender_name:'Directrice Chloé',
-    recipient_type:'admin',
-    is_internal:true
+    recipient_type:'admin',         /* défaut — peut être écrasé par payload */
+    department:'direction',
+    priority:'normal',
+    is_internal:true,
+    requires_action:false,
+    status:'sent',
+    created_at:new Date().toISOString()
   },payload,{tenant_id:TENANT});
+  console.log('[Chloé] Alerte ciblée → '+data.recipient_type+(data.recipient_id?'/'+data.recipient_id:'')+' prio='+data.priority);
   return sbIns('veraluz_internal_messages',data);
 }
 
@@ -1039,9 +1251,37 @@ function sendDeliveryMessage(orderId,message,type){
 /* ────────────────────────────────────
    INIT
 ──────────────────────────────────── */
-document.addEventListener('DOMContentLoaded',function(){
+document./* PROMPT 031D — Debug admin droits messagerie */
+function renderActorDebugPanel(){
+  var actor=getCurrentMessagingActor();
+  var el=document.getElementById('actor-debug-panel');
+  if(!el)return;
+  if(!actor.can_view_all_messages){el.style.display='none';return;}
+  el.style.display='block';
+  el.innerHTML='<div style="background:#1c2333;border:1px solid #58a6ff;border-radius:8px;padding:12px;margin:8px;font-size:12px;">'
+    +'<b style="color:#58a6ff">🔍 Contexte acteur (debug admin)</b><br><br>'
+    +'<b>actor_id:</b> '+escH(actor.actor_id)+'<br>'
+    +'<b>actor_name:</b> '+escH(actor.actor_name)+'<br>'
+    +'<b>actor_type:</b> '+escH(actor.actor_type)+'<br>'
+    +'<b>role:</b> '+escH(actor.role)+'<br>'
+    +'<b>department:</b> '+escH(actor.department)+'<br>'
+    +'<b>tenant_id:</b> '+escH(actor.tenant_id)+'<br>'
+    +'<b>can_view_all_messages:</b> '+actor.can_view_all_messages+'<br>'
+    +'<b>can_send_to_all:</b> '+actor.can_send_to_all+'<br>'
+    +'<b>Messages visibles:</b> '+_allMessages.length+'<br>'
+    +'<b>Non lus:</b> '+_unreadCount+'<br>'
+    +'<button onclick="renderActorDebugPanel()" style="margin-top:8px;padding:4px 10px;background:#21262d;border:1px solid #444;color:#c9d1d9;border-radius:4px;cursor:pointer;">Rafraîchir</button>'
+    +'</div>';
+}
+
+addEventListener('DOMContentLoaded',function(){
+  /* PROMPT 031D — init avec acteur identifié */
+  var actor=getCurrentMessagingActor();
+  console.log('[MSGS] Actor:', actor.actor_type, actor.actor_name, 'can_view_all='+actor.can_view_all_messages);
   loadMessages({status:'sent',excludeArchived:true});
   renderMessageBadge();
+  /* Panneau debug admin */
+  setTimeout(renderActorDebugPanel, 800);
   /* Polling léger toutes les 45s */
   setInterval(function(){
     if(_activeTab==='inbox')loadMessages({status:'sent',excludeArchived:true});

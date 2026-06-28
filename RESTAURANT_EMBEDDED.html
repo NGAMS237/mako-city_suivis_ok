@@ -990,7 +990,7 @@ var payMeth='cash',payOid=null;
 var _tt=null;
 var APP_PROMOS=[], _appSub='promos';
 var LIVREURS=[], _assignOid=null;
-var RESTAURANT_BUILD = 'v031c-messages-hotfix-2026-06-28'; /* PROMPT 031 */
+var RESTAURANT_BUILD = 'v031d-message-rights-2026-06-28'; /* PROMPT 031 */
 
 /* ══════════════════════════════════════════
    NORMALIZE UTILS — VERALUZ CORE v0.3.0
@@ -2185,24 +2185,53 @@ function sendKdsMsgText(text){
 }
 
 function sendKdsMsg(){
+  /* PROMPT 031D — Double INSERT: delivery_messages + internal_messages miroir */
   if(!_kdsMsgOrderId)return;
   var inp = document.getElementById('kds-msg-inp');
   var txt = inp ? (inp.value||'').trim() : '';
   if(!txt)return;
+
+  /* Récupérer l'objet commande pour obtenir le livreur assigné */
+  var order = FOOD_ORDERS.find(function(x){return x.id===_kdsMsgOrderId;});
+  var livreurId = order ? String(order.livreur_id||'') : '';
+  /* Trouver le nom du livreur dans la liste */
+  var livreurObj = livreurId ? LIVREURS.find(function(l){return String(l.id)===livreurId;}) : null;
+  var livreurName = livreurObj ? (livreurObj.full_name||livreurObj.prenom||'Livreur') : 'Livreur';
+
+  /* Guard : si pas de livreur assigné, bloquer l'envoi */
+  if(!livreurId){
+    toast('Aucun livreur assigné à cette commande','er');
+    console.warn('[KDS MSG] Pas de livreur_id pour order='+_kdsMsgOrderId);
+    return;
+  }
+
   if(inp)inp.value='';
   inp.disabled = true;
-  console.log('[KDS MSG] Envoi vers veraluz_delivery_messages order='+_kdsMsgOrderId+' txt='+txt.substring(0,30));
+  var now = new Date().toISOString();
+  console.log('[KDS MSG] Envoi order='+_kdsMsgOrderId+' → livreur='+livreurId+' txt='+txt.substring(0,30));
+
+  var delivPayload = {
+    tenant_id:'veraluz-001',
+    order_id:_kdsMsgOrderId,
+    sender_type:'restaurant',
+    sender_name:'Restaurant Veraluz',
+    recipient_type:'driver',
+    recipient_id:livreurId,
+    recipient_name:livreurName,
+    department:'delivery',
+    message:txt,
+    message_type:'text',
+    priority:'normal',
+    status:'sent',
+    livreur_id:livreurId,
+    created_at:now
+  };
+
+  /* INSERT 1 — veraluz_delivery_messages (principal) */
   fetch(SB+'/rest/v1/veraluz_delivery_messages',{
     method:'POST',
     headers:H({Prefer:'return=minimal'}),
-    body:JSON.stringify({
-      tenant_id:'veraluz-001',
-      order_id:_kdsMsgOrderId,
-      sender_type:'restaurant',
-      sender_name:'Restaurant Veraluz',
-      message:txt,
-      message_type:'text'
-    })
+    body:JSON.stringify(delivPayload)
   }).then(function(r){
     if(!r.ok){
       return r.text().then(function(body){
@@ -2215,11 +2244,40 @@ function sendKdsMsg(){
     return r.json().catch(function(){return {};});
   }).then(function(){
     toast('Message envoyé ✓','ok');
-    console.log('[KDS MSG] OK order='+_kdsMsgOrderId);
+    console.log('[KDS MSG] delivery_messages OK order='+_kdsMsgOrderId);
     renderKdsMsgs(_kdsMsgOrderId);
-    /* Badge: effacer badge du livreur pour cet order */
     var badge = document.getElementById('kds-msg-badge-'+_kdsMsgOrderId);
     if(badge){badge.style.display='none';}
+
+    /* INSERT 2 — veraluz_internal_messages miroir (non-bloquant) */
+    var mirrorPayload = {
+      tenant_id:'veraluz-001',
+      sender_type:'restaurant',
+      sender_id:'restaurant',
+      sender_name:'Restaurant Veraluz',
+      recipient_type:'driver',
+      recipient_id:livreurId,
+      recipient_name:livreurName,
+      department:'delivery',
+      context_type:'order',
+      context_id:_kdsMsgOrderId,
+      message:txt,
+      message_type:'text',
+      priority:'normal',
+      is_internal:true,
+      status:'sent',
+      source_type:'delivery_message',
+      created_at:now
+    };
+    fetch(SB+'/rest/v1/veraluz_internal_messages',{
+      method:'POST',
+      headers:H({Prefer:'return=minimal'}),
+      body:JSON.stringify(mirrorPayload)
+    }).then(function(r2){
+      if(!r2.ok) r2.text().then(function(b){console.warn('[KDS MSG] Mirror 400:', b.substring(0,120));});
+      else console.log('[KDS MSG] internal_messages miroir OK');
+    }).catch(function(e2){console.warn('[KDS MSG] Mirror erreur:', e2&&e2.message||e2);});
+
   }).catch(function(e){
     var msg=e&&(e.detail||e.message||JSON.stringify(e))||'Erreur inconnue';
     var code=e&&e.status?' [HTTP '+e.status+']':'';

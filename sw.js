@@ -10,7 +10,7 @@
  * À chaque changement important des fichiers statiques, incrémenter CACHE_NAME.
  */
 
-var CACHE_NAME = 'veraluz-pwa-v031c-messages-hotfix'; /* PROMPT 031 — Stabilisation + UUID fix */
+var CACHE_NAME = 'veraluz-pwa-v031d-message-rights'; /* PROMPT 031 — Stabilisation + UUID fix */
 
 // Contrôle d'activation (mettre false pour désactiver en dev si besoin)
 var VERALUZ_PWA_ENABLED = true;

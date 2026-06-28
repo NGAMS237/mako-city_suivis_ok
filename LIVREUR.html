@@ -609,7 +609,7 @@ function sbPatch(table,id,data){
    STATE
 ══════════════════════════════════════════ */
 var LIVREURS=[], LIVREUR_ACTIF=null;
-var LIVREUR_BUILD = 'v031-final-day-2026-06-28'; /* PROMPT 031 */
+var LIVREUR_BUILD = 'v031d-message-rights-2026-06-28'; /* PROMPT 031 */
 var _orders=[], _orderTab='pickup', _online=navigator.onLine, _curId=null, _interval=null;
 var _pointages=[], _pinBuffer='';
 var _lastSync=null;  // PROMPT 005: dernière synchronisation réussie
@@ -2035,6 +2035,66 @@ function updateMsgTabBadge(count){
 
 var _lastMsgCount=0; /* PROMPT 030 */
 
+/* PROMPT 031D — loadLivreurMessages : messages ciblés par livreur_id */
+function loadLivreurMessages(){
+  if(!LIVREUR_ACTIF) return Promise.resolve([]);
+  var lid=String(LIVREUR_ACTIF.id||'');
+  var today=new Date().toISOString().slice(0,10);
+  var base='veraluz_delivery_messages?tenant_id=eq.veraluz-001&order=created_at.desc&limit=60';
+  /* Requêtes ciblées : messages où le livreur est sender OU recipient OU livreur_id */
+  var q1=sbFetch(base+'&livreur_id=eq.'+encodeURIComponent(lid)).catch(function(){return[];});
+  var q2=sbFetch(base+'&recipient_id=eq.'+encodeURIComponent(lid)).catch(function(){return[];});
+  var q3=sbFetch(base+'&sender_id=eq.'+encodeURIComponent(lid)).catch(function(){return[];});
+  return Promise.all([q1,q2,q3]).then(function(r){
+    var seen={}, out=[];
+    r.forEach(function(arr){(arr||[]).forEach(function(m){if(m&&m.id&&!seen[m.id]){seen[m.id]=true;out.push(m);}});});
+    return out.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);});
+  });
+}
+
+/* PROMPT 031D — sendLivreurMessage : réponse ciblée → restaurant ou admin */
+function sendLivreurMessage(txt, orderId, targetType){
+  if(!LIVREUR_ACTIF||!txt) return Promise.resolve();
+  var lid=String(LIVREUR_ACTIF.id||'');
+  var lname=(LIVREUR_ACTIF.prenom||LIVREUR_ACTIF.full_name||'Livreur');
+  var payload={
+    tenant_id:'veraluz-001',
+    order_id:orderId||null,
+    sender_type:'driver',
+    sender_id:lid,
+    sender_name:lname,
+    recipient_type:targetType||'restaurant',
+    department:'delivery',
+    message:txt,
+    message_type:'text',
+    priority:'normal',
+    status:'sent',
+    livreur_id:lid,
+    created_at:new Date().toISOString()
+  };
+  return sbInsert('veraluz_delivery_messages',payload).then(function(){
+    console.log('[LIVREUR MSG] Envoyé → '+payload.recipient_type);
+  });
+}
+
+/* PROMPT 031D — markLivreurMessageRead */
+function markLivreurMessageRead(msgId){
+  if(!msgId) return;
+  sbFetch('veraluz_delivery_messages?id=eq.'+encodeURIComponent(msgId), {
+    method:'PATCH',
+    headers:{'Content-Type':'application/json',Prefer:'return=minimal'},
+    body:JSON.stringify({read_at:new Date().toISOString(), is_read:true})
+  }).catch(function(e){console.warn('[LIVREUR MSG] markRead:', e&&e.message||e);});
+}
+
+/* PROMPT 031D — updateMsgTabBadge via getMyUnreadCount */
+function refreshMsgBadge(){
+  if(!LIVREUR_ACTIF) return;
+  var lid=String(LIVREUR_ACTIF.id||'');
+  sbFetch('veraluz_delivery_messages?tenant_id=eq.veraluz-001&livreur_id=eq.'+encodeURIComponent(lid)+'&is_read=is.false&sender_type=eq.restaurant&select=id&limit=50')
+    .then(function(r){updateMsgTabBadge((r||[]).length);}).catch(function(){});
+}
+
 function renderMessagesTab(){
   if(!LIVREUR_ACTIF){
     document.getElementById('messages-body').innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Connectez-vous.</div>';
@@ -2042,8 +2102,7 @@ function renderMessagesTab(){
   }
   var body=document.getElementById('messages-body');
   body.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Chargement...</div>';
-  var today=new Date().toISOString().slice(0,10);
-  sbFetch('veraluz_delivery_messages?tenant_id=eq.veraluz-001&created_at=gte.'+today+'T00:00:00&order=created_at.desc')
+  loadLivreurMessages()
     .then(function(msgs){
       /* PROMPT 030 — Quick replies row */
       var qrRow='<div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg2);">'
@@ -2120,6 +2179,7 @@ function sendLivreurQR(txt){
 }
 
 function sendDeliveryMsgFromTab(){
+  /* PROMPT 031D — utilise sendLivreurMessage ciblé */
   if(!LIVREUR_ACTIF)return;
   var inp=document.getElementById('msg-input-tab');
   if(!inp)return;
@@ -2132,19 +2192,13 @@ function sendDeliveryMsgFromTab(){
     return o.status==='ready'&&String(o.livreur_id)===String(LIVREUR_ACTIF.id);
   });
   var ordId=activeOrder?String(activeOrder.id):null;
-  sbInsert('veraluz_delivery_messages',{
-    tenant_id:'veraluz-001',
-    order_id:ordId,
-    sender_type:'driver',
-    sender_id:String(LIVREUR_ACTIF.id||''),
-    sender_name:(LIVREUR_ACTIF.prenom||'')+' '+(LIVREUR_ACTIF.nom||''),
-    message:txt,message_type:'text'
-  }).then(function(){
-    logLivreurMsgEvent(txt, ordId);
-    toast('Message envoyé','ok');
+  sendLivreurMessage(txt, ordId, 'restaurant').then(function(){
     renderMessagesTab();
-  }).catch(function(){toast('Erreur envoi','err');inp.value=txt;});
+  }).catch(function(e){
+    console.error('[LIVREUR] sendDeliveryMsgFromTab:', e&&e.message||e);
+  });
 }
+
 
 function renderProfil(){
   if(!LIVREUR_ACTIF)return;
