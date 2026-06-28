@@ -183,6 +183,41 @@ select.form-input option{background:var(--bg3);}
 .vtag{background:var(--bg4);color:var(--text3);padding:1px 6px;border-radius:4px;font-size:10px;font-family:monospace;}
 /* DIVIDER */
 .divider{height:1px;background:var(--border);margin:16px 0;}
+/* ── CHLOÉ CSS ────────────────────────────────────────────── */
+.chloe-report{display:flex;flex-direction:column;}
+.chloe-section{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;}
+.chloe-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:10px;}
+.chloe-report-title{font-size:14px;font-weight:700;color:var(--text);}
+.chloe-report-date{font-size:11px;color:var(--text3);margin-top:3px;}
+.chloe-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;}
+.chloe-kpi{background:var(--bg3,rgba(0,0,0,.3));border-radius:8px;padding:10px;}
+.chloe-kpi-lbl{font-size:10px;color:var(--text3);margin-bottom:3px;}
+.chloe-kpi-val{font-size:20px;font-weight:700;color:var(--text);}
+.chloe-summary{font-size:12px;color:var(--text2);line-height:1.6;}
+.chloe-badge{display:inline-block;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;}
+.chloe-badge-mode{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2);}
+.chloe-badge-live{background:rgba(34,211,165,.1);color:var(--accent);border:1px solid rgba(34,211,165,.2);}
+.chloe-urgents-section{border-left:3px solid var(--red);}
+.chloe-security-note{font-size:10px;color:var(--text3);background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.15);}
+.chloe-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.chloe-print-header{display:none;}
+.no-print{}
+/* ── @media print ─────────────────────────────────────────── */
+@media print{
+  .topbar,.tabs,.no-print{display:none !important;}
+  .chloe-print-header{display:block !important;text-align:center;padding:16px;border-bottom:2px solid #333;margin-bottom:14px;font-family:Georgia,serif;}
+  body{background:#fff !important;color:#111 !important;font-size:11pt !important;}
+  .content{overflow:visible !important;padding:0 !important;}
+  .tab-pane{display:block !important;}
+  #pane-chloe{display:block !important;}
+  .chloe-section{background:#fff !important;border:1px solid #ccc !important;border-radius:0 !important;margin-bottom:10px;page-break-inside:avoid;}
+  .chloe-section-title{color:#555 !important;}
+  .chloe-kpi{background:#f5f5f5 !important;border:1px solid #ddd !important;border-radius:4px !important;}
+  .chloe-kpi-lbl,.chloe-kpi-val,.chloe-summary{color:#333 !important;}
+  .chloe-urgents-section{border-left:3px solid #c00 !important;}
+  .chloe-security-note{background:#f9f9f9 !important;border-color:#ccc !important;color:#555 !important;}
+  .chloe-print-footer::after{content:"Généré par Directrice Chloé — VERALUZ Kribi — Validation humaine obligatoire";display:block;text-align:center;font-size:9pt;color:#888;margin-top:20px;border-top:1px solid #ccc;padding-top:8px;}
+}
 </style>
 </head>
 <body>
@@ -1238,29 +1273,62 @@ function renderAgentCard(a) {
 /* ══════════════════════════════════════════════════════════════
    TAB 3 — RAPPORTS
 ══════════════════════════════════════════════════════════════ */
+var _rFilter = 'all';
 function renderReports() {
   var pane = document.getElementById('pane-reports');
-  if (_runs.length === 0) {
-    pane.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">Aucun rapport</div><div class="empty-sub">Générez votre premier rapport depuis l\'onglet Vue d\'ensemble.</div></div>';
-    return;
-  }
-  pane.innerHTML = [
-    '<div class="sec-hdr"><div><div class="sec-title">Rapports générés</div></div></div>',
-    _runs.map(function(r) {
-      var out = r.output_json || {};
-      return [
-        '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:10px;">',
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">',
-          '<div style="flex:1"><b>'+esc(out.title||r.run_type||'Rapport')+'</b> <span class="vtag">'+esc(r.agent_key)+'</span></div>',
-          statusBdg(r.status),
-          '<span style="font-size:11px;color:var(--text3);">'+fmtDate(r.created_at)+'</span>',
-        '</div>',
-        '<div style="font-size:12px;color:var(--text2);line-height:1.5;">'+esc(r.output_text||out.summary||'—')+'</div>',
-        '<div style="margin-top:8px;font-size:11px;color:var(--text3);">Par : '+esc(r.created_by||'—')+'</div>',
-        '</div>'
-      ].join('');
-    }).join(''),
-  ].join('');
+  if (!pane) return;
+  pane.innerHTML = '<div class="sec-hdr"><div><div class="sec-title">Rapports Chloé</div>'
+    +'<div class="sec-sub">Persistants — reconsultables après rafraîchissement</div></div>'
+    +'<div id="rpt-filter-bar" style="display:flex;gap:5px;"></div></div>'
+    +'<div id="rpt-list"></div>';
+  loadReportsFromSupabase();
+}
+function loadReportsFromSupabase() {
+  var filters=[{k:'all',l:'Tous'},{k:'morning',l:'Matin'},{k:'techops',l:'TechOps'}];
+  var fb=document.getElementById('rpt-filter-bar');
+  if(fb) fb.innerHTML=filters.map(function(f){
+    return '<button class="btn btn-sm '+(_rFilter===f.k?'btn-primary':'btn-sec')+'" onclick="_rFilter=\''+f.k+'\';loadReportsFromSupabase()">'+f.l+'</button>';
+  }).join('');
+  var el=document.getElementById('rpt-list');
+  if(!el) return;
+  el.innerHTML='<div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Chargement...</div></div>';
+  var tq=_rFilter==='all'?'':('&report_type=eq.'+_rFilter);
+  var p1=sbGet('/rest/v1/veraluz_chloe_reports?tenant_id=eq.veraluz-001&order=created_at.desc&limit=20'+tq);
+  var p2=(_rFilter==='all'||_rFilter==='techops')
+    ?sbGet('/rest/v1/veraluz_techops_reports?tenant_id=eq.veraluz-001&order=created_at.desc&limit=10')
+    :Promise.resolve([]);
+  Promise.all([p1,p2]).then(function(res){
+    var cr=res[0]||[]; var tr=_rFilter!=='morning'?(res[1]||[]):[];
+    var all=cr.map(function(r){return{src:'chloe',row:r};}).concat(tr.map(function(r){return{src:'techops',row:r};}));
+    all.sort(function(a,b){return new Date(b.row.created_at)-new Date(a.row.created_at);});
+    if(!all.length){
+      el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Aucun rapport</div><div class="empty-sub">Ouvrez l\'onglet Directrice Chloé pour générer votre premier rapport.</div></div>';
+      return;
+    }
+    el.innerHTML=all.map(function(item){
+      var r=item.row; var isTech=item.src==='techops';
+      var tlbl=isTech?'TechOps':(r.report_type||'morning');
+      var sev=r.severity||'info';
+      var sc={critical:'var(--red)',high:'var(--red)',warning:'var(--yellow)',medium:'var(--yellow)',info:'var(--blue)'};
+      var fn=isTech?'openTechOpsReportById':'openChloeReport';
+      var summ=(r.executive_summary||r.summary||'').slice(0,200);
+      return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:10px;">'
+        +'<div style="display:flex;align-items:flex-start;gap:10px;">'
+        +'<div style="flex:1;"><div style="font-size:12px;font-weight:700;margin-bottom:3px;">'+esc(r.title||'Rapport')+'</div>'
+        +'<div style="font-size:11px;color:var(--text3);">'+fmtDate(r.created_at)+'</div></div>'
+        +'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">'
+        +'<span style="font-size:10px;background:rgba(34,211,165,.12);color:var(--accent);border-radius:5px;padding:2px 6px;">'+esc(tlbl)+'</span>'
+        +'<span style="font-size:10px;color:'+(sc[sev]||'var(--text3)')+';background:rgba(0,0,0,.12);border-radius:5px;padding:2px 6px;">'+esc(sev)+'</span>'
+        +'<button class="btn btn-sec btn-sm" onclick="'+fn+'(\''+r.id+'\')">Voir</button>'
+        +'<button class="btn btn-sec btn-sm no-print" onclick="switchAndPrint(\''+r.id+'\',\''+item.src+'\')">PDF</button>'
+        +'</div></div>'
+        +(summ?'<div style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5;">'+esc(summ)+(summ.length>=200?'…':'')+'</div>':'')
+        +'</div>';
+    }).join('');
+  }).catch(function(e){
+    console.warn('[loadReportsFromSupabase]',e);
+    if(el) el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">Rapports non disponibles</div><div class="empty-sub">Supabase non connecté.</div></div>';
+  });
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1776,6 +1844,7 @@ function relDate(iso) {
 function chloePrintReport() {
   window.print();
 }
+window.addEventListener('afterprint',function(){});
 
 /* ══════════════════════════════════════════════════════════════
    TAB : DIRECTRICE CHLOÉ
@@ -1819,20 +1888,8 @@ function renderChloe() {
     '<div id="chloe-recent-reports"></div>'
   ].join('');
 
-  sbGet('/rest/v1/veraluz_chloe_reports?tenant_id=eq.veraluz-001&order=created_at.desc&limit=5').then(function(rows) {
-    var el = document.getElementById('chloe-recent-reports');
-    if (!el || !rows || !rows.length) return;
-    el.innerHTML = '<div class="sec-hdr" style="margin-top:4px;"><div class="sec-title">Rapports récents</div></div>'
-      + rows.map(function(r) {
-          return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;margin-bottom:7px;display:flex;align-items:center;gap:10px;">'
-            + '<div style="flex:1;"><div style="font-size:12px;font-weight:600;">'+esc(r.title||'Rapport')+'</div>'
-            + '<div style="font-size:11px;color:var(--text3);">'+fmtDate(r.created_at)+'</div></div>'
-            + '<div style="display:flex;gap:5px;">'
-            + '<span style="background:rgba(34,211,165,.12);color:var(--accent);border-radius:5px;padding:2px 7px;font-size:10px;">'+esc(r.report_type)+'</span>'
-            + '<span style="background:rgba(255,255,255,.07);color:var(--text3);border-radius:5px;padding:2px 7px;font-size:10px;">'+esc(r.status)+'</span>'
-            + '</div></div>';
-        }).join('');
-  });
+  loadLastChloeReport();
+  loadChloeReportsList();
 }
 
 function quickCard(icon, title, sub, tabId, accent) {
@@ -1922,7 +1979,7 @@ function generateChloeMorningReport() {
 
     // Afficher le rapport
     if (contentEl) contentEl.innerHTML = renderChloeReportHTML(reportData, scoreColor);
-    if (metaEl) metaEl.textContent = 'Généré le '+fmtDate(now.toISOString())+' · Mode : '+(reportData.mode==='live'?'Données réelles':'Données mock');
+    if (metaEl) metaEl.textContent = 'Généré le '+fmtDate(now.toISOString())+' · '+(reportData.mode==='live'?'Données réelles':'MODE MOCK — Analyse par règles internes');
     if (printBtn) printBtn.style.display='';
     if (btn) { btn.disabled=false; btn.textContent='🔄 Actualiser'; }
 
@@ -1942,11 +1999,7 @@ function generateChloeMorningReport() {
       }).then(function(r){ if(r) showToast('Rapport sauvegardé dans Supabase','ok'); });
     }
 
-    // Actualiser la liste
-    var recentEl = document.getElementById('chloe-recent-reports');
-    if (recentEl && recentEl.textContent==='') {
-      recentEl.innerHTML = '';
-    }
+    loadChloeReportsList();
     showToast('Rapport du matin généré par Directrice Chloé','ok');
   }).catch(function(e) {
     console.warn('[Chloé]', e);
@@ -1956,58 +2009,71 @@ function generateChloeMorningReport() {
 }
 
 function renderChloeReportHTML(r, scoreColor) {
-  var fmtXAF = function(n){ return (n||0).toLocaleString('fr-FR')+' XAF'; };
-  var kpiCard = function(lbl, val, icon) {
-    return '<div style="background:var(--bg3,rgba(0,0,0,.3));border-radius:9px;padding:12px;">'
-      + '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">'+icon+' '+lbl+'</div>'
-      + '<div style="font-size:22px;font-weight:700;color:var(--text);">'+val+'</div></div>';
-  };
   var m = r.metrics||{};
+  var kpiCell = function(lbl, val) {
+    return '<div class="chloe-kpi"><div class="chloe-kpi-lbl">'+lbl+'</div><div class="chloe-kpi-val">'+val+'</div></div>';
+  };
+  var modeBadge = (r.mode==='live')
+    ? '<span class="chloe-badge chloe-badge-live no-print">LIVE</span>'
+    : '<span class="chloe-badge chloe-badge-mode no-print">MODE MOCK — Analyse par règles internes</span>';
   var parts = [
-    '<div style="border:1px solid rgba(34,211,165,.25);border-radius:10px;padding:14px;background:rgba(34,211,165,.04);">',
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">',
-        '<div style="font-size:13px;font-weight:700;color:var(--text);">👩‍💼 Synthèse — Directrice Chloé</div>',
-        '<span style="font-size:11px;font-weight:700;color:'+scoreColor+';">Situation : '+(r.situation_score||'?')+'</span>',
+    '<div class="chloe-print-header">',
+      '<div style="font-size:18px;font-weight:700;">VERALUZ Kribi</div>',
+      '<div style="font-size:14px;margin-top:4px;">Directrice Chloé — Rapport du matin</div>',
+      '<div style="font-size:11px;color:#555;margin-top:6px;">'+fmtDate(r.generated_at||new Date().toISOString())+'</div>',
+    '</div>',
+    '<div class="chloe-report">',
+      '<div class="chloe-section">',
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">',
+          '<div>',
+            '<div class="chloe-report-title">Rapport du matin — Directrice Chloé</div>',
+            '<div class="chloe-report-date">'+fmtDate(r.generated_at||new Date().toISOString())+'</div>',
+          '</div>',
+          '<div style="text-align:right;">'+modeBadge+'<div style="font-size:12px;font-weight:700;color:'+scoreColor+';margin-top:4px;">Situation : '+(r.situation_score||'?')+'</div></div>',
+        '</div>',
       '</div>',
-      '<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px;">'+esc(r.summary)+'</div>',
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:12px;">',
-        kpiCard('Arrivées',''+m.arrivals,'🏨'),
-        kpiCard('Départs',''+m.departures,'🧳'),
-        kpiCard('Ménage en attente',''+m.hk_pending,'🧹'),
-        kpiCard('Paiements',''+m.pay_pending,'💳'),
-        kpiCard('Employés actifs',''+m.employees_active,'👥'),
-        kpiCard('Approbations',''+m.approvals_pending,'✅'),
+      '<div class="chloe-section">',
+        '<div class="chloe-section-title">Résumé exécutif</div>',
+        '<div class="chloe-summary">'+esc(r.summary)+'</div>',
+      '</div>',
+      '<div class="chloe-section">',
+        '<div class="chloe-section-title">Indicateurs clés</div>',
+        '<div class="chloe-kpi-grid">',
+          kpiCell('Arrivées',''+m.arrivals),
+          kpiCell('Départs',''+m.departures),
+          kpiCell('Ménage en attente',''+m.hk_pending),
+          kpiCell('Paiements en attente',''+m.pay_pending),
+          kpiCell('Personnel actif',''+m.employees_active),
+          kpiCell('Approbations',''+m.approvals_pending),
+        '</div>',
       '</div>'
   ];
-
   if (r.urgents && r.urgents.length) {
-    parts.push('<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:10px;margin-bottom:10px;">');
-    parts.push('<div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px;">⚠️ Points d&#39;attention</div>');
-    r.urgents.forEach(function(u) {
-      parts.push('<div style="font-size:11px;color:var(--text2);padding:3px 0;">• '+esc(u)+'</div>');
-    });
+    parts.push('<div class="chloe-section chloe-urgents-section">');
+    parts.push('<div class="chloe-section-title" style="color:var(--red);">Points d&#39;attention</div>');
+    r.urgents.forEach(function(u){ parts.push('<div style="font-size:11px;color:var(--text2);padding:3px 0;">— '+esc(u)+'</div>'); });
     parts.push('</div>');
   }
-
   if (r.approvals_list && r.approvals_list.length) {
-    parts.push('<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;">✅ Approbations en attente</div>');
-    r.approvals_list.forEach(function(a) {
-      parts.push('<div style="font-size:11px;color:var(--text2);padding:3px 0;">• '+priBdg(a.priority)+' '+typeBdg(a.type||'approbation')+esc(a.title)+'</div>');
+    parts.push('<div class="chloe-section">');
+    parts.push('<div class="chloe-section-title">Approbations en attente</div>');
+    r.approvals_list.forEach(function(a){
+      parts.push('<div style="font-size:11px;color:var(--text2);padding:3px 0;">— '+priBdg(a.priority)+' '+typeBdg(a.type||'approbation')+esc(a.title)+'</div>');
     });
     parts.push('</div>');
   }
-
   if (r.arrivals_list && r.arrivals_list.length) {
-    parts.push('<div><div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;">🏨 Arrivées du jour</div>');
-    r.arrivals_list.forEach(function(a) {
-      parts.push('<div style="font-size:11px;color:var(--text2);padding:2px 0;">• '+esc(a.name)+' — Chambre '+esc(a.room)+'</div>');
+    parts.push('<div class="chloe-section">');
+    parts.push('<div class="chloe-section-title">Arrivées du jour</div>');
+    r.arrivals_list.forEach(function(a){
+      parts.push('<div style="font-size:11px;color:var(--text2);padding:2px 0;">— '+esc(a.name)+' — Chambre '+esc(a.room)+'</div>');
     });
     parts.push('</div>');
   }
-
-  parts.push('<div style="margin-top:10px;padding:8px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;font-size:10px;color:var(--yellow);">');
-  parts.push('⚖️ Ce rapport est préparé par Directrice Chloé à titre informatif. Toute action (validation, paiement, communication) doit être initiée par le directeur.');
+  parts.push('<div class="chloe-section chloe-security-note">');
+  parts.push('Règle d\'or : Chloé prépare. Le directeur vérifie, signe, approuve, envoie. Aucune action n\'est exécutée automatiquement.');
   parts.push('</div>');
+  parts.push('<div class="chloe-print-footer no-print" style="display:none;"></div>');
   parts.push('</div>');
   return parts.join('');
 }
@@ -2441,6 +2507,114 @@ function generateTechOpsReport() {
 /* ══════════════════════════════════════════════════════════════
    FIN PROMPT 023 — Directrice Chloé V1
 ══════════════════════════════════════════════════════════════ */
+
+
+/* ══════════════════════════════════════════════════════════════
+   PERSISTANCE RAPPORTS — PROMPT 024
+══════════════════════════════════════════════════════════════ */
+
+/* Charge le dernier rapport de veraluz_chloe_reports et l\'affiche
+   dans #chloe-report-content si la zone est encore vide. */
+function loadLastChloeReport() {
+  if (!_sbAvailable) return;
+  sbGet('/rest/v1/veraluz_chloe_reports?tenant_id=eq.veraluz-001&order=created_at.desc&limit=1')
+    .then(function(rows) {
+      if (!rows || !rows.length) return;
+      var row = rows[0];
+      var data = row.sections || {};
+      if (typeof data === 'string') { try { data = JSON.parse(data); } catch(e) { data = {}; } }
+      var el = document.getElementById('chloe-report-content');
+      if (!el) return;
+      // Ne remplacer que si vide (pas de rapport généré cette session)
+      if (!el.querySelector('.empty') && el.innerHTML.trim() !== '') return;
+      var sc = (data.situation_score||'').indexOf('Critique')>=0?'var(--red)'
+             : (data.situation_score||'').indexOf('Attention')>=0?'var(--yellow)':'var(--accent)';
+      el.innerHTML = renderChloeReportHTML(data, sc);
+      var metaEl = document.getElementById('chloe-report-meta');
+      if (metaEl) metaEl.textContent = 'Dernier rapport : '+fmtDate(row.created_at);
+      var pb = document.getElementById('chloe-print-btn');
+      if (pb) pb.style.display = '';
+      window._curChloeId = row.id;
+    })
+    .catch(function(e){ console.warn('[loadLastChloeReport]', e); });
+}
+
+/* Ouvre un rapport Chloé spécifique dans l\'onglet Directrice Chloé. */
+function openChloeReport(reportId) {
+  showTab('chloe');
+  if (!reportId) return;
+  var el = document.getElementById('chloe-report-content');
+  if (el) el.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Chargement...</div></div>';
+  sbGet('/rest/v1/veraluz_chloe_reports?id=eq.'+reportId+'&tenant_id=eq.veraluz-001&limit=1')
+    .then(function(rows) {
+      if (!rows || !rows.length) { showToast('Rapport introuvable', 'warn'); return; }
+      var row = rows[0];
+      var data = row.sections || {};
+      if (typeof data === 'string') { try { data = JSON.parse(data); } catch(e) { data = {}; } }
+      var sc = (data.situation_score||'').indexOf('Critique')>=0?'var(--red)'
+             : (data.situation_score||'').indexOf('Attention')>=0?'var(--yellow)':'var(--accent)';
+      var ce = document.getElementById('chloe-report-content');
+      if (ce) ce.innerHTML = renderChloeReportHTML(data, sc);
+      var me = document.getElementById('chloe-report-meta');
+      if (me) me.textContent = 'Rapport du '+fmtDate(row.created_at);
+      var pb = document.getElementById('chloe-print-btn');
+      if (pb) pb.style.display = '';
+      window._curChloeId = reportId;
+    })
+    .catch(function(e){ console.warn('[openChloeReport]', e); showToast('Erreur chargement', 'err'); });
+}
+
+/* Ouvre un rapport TechOps dans l\'onglet TechOps. */
+function openTechOpsReportById(reportId) {
+  showTab('techops');
+  if (!reportId) return;
+  sbGet('/rest/v1/veraluz_techops_reports?id=eq.'+reportId+'&tenant_id=eq.veraluz-001&limit=1')
+    .then(function(rows) {
+      if (!rows || !rows.length) { showToast('Rapport TechOps introuvable', 'warn'); return; }
+      var row = rows[0];
+      var pane = document.getElementById('pane-techops');
+      if (!pane) return;
+      var existing = document.getElementById('techops-rpt-detail');
+      if (!existing) {
+        existing = document.createElement('div');
+        existing.id = 'techops-rpt-detail';
+        existing.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:12px;';
+        pane.appendChild(existing);
+      }
+      existing.innerHTML = '<div style="font-size:12px;font-weight:700;margin-bottom:8px;">Rapport TechOps — '+fmtDate(row.created_at)+'</div>'
+        + '<div style="font-size:11px;color:var(--text2);">'+esc(row.summary||row.title||'—')+'</div>'
+        + (row.severity?'<div style="margin-top:6px;"><span style="font-size:10px;background:rgba(0,0,0,.15);border-radius:5px;padding:2px 6px;color:var(--text3);">'+esc(row.severity)+'</span></div>':'');
+    })
+    .catch(function(e){ console.warn('[openTechOpsReportById]', e); });
+}
+
+/* Charge la liste des rapports récents dans #chloe-recent-reports. */
+function loadChloeReportsList() {
+  if (!_sbAvailable) return;
+  sbGet('/rest/v1/veraluz_chloe_reports?tenant_id=eq.veraluz-001&order=created_at.desc&limit=8')
+    .then(function(rows) {
+      var el = document.getElementById('chloe-recent-reports');
+      if (!el) return;
+      if (!rows || !rows.length) { el.innerHTML = ''; return; }
+      el.innerHTML = '<div class="sec-hdr" style="margin-top:4px;"><div class="sec-title">Rapports récents</div></div>'
+        + rows.map(function(r) {
+            return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;margin-bottom:7px;display:flex;align-items:center;gap:10px;">'
+              + '<div style="flex:1;"><div style="font-size:12px;font-weight:600;">'+esc(r.title||'Rapport')+'</div>'
+              + '<div style="font-size:11px;color:var(--text3);">'+fmtDate(r.created_at)+'</div></div>'
+              + '<div style="display:flex;gap:5px;">'
+              + '<span style="font-size:10px;background:rgba(34,211,165,.12);color:var(--accent);border-radius:5px;padding:2px 7px;">'+esc(r.report_type||'morning')+'</span>'
+              + '<button class="btn btn-sec btn-sm" onclick="openChloeReport(\''+r.id+'\')">Voir</button>'
+              + '</div></div>';
+          }).join('');
+    })
+    .catch(function(e){ console.warn('[loadChloeReportsList]', e); });
+}
+
+/* Switche vers le bon onglet puis imprime. */
+function switchAndPrint(reportId, src) {
+  if (src === 'techops') { openTechOpsReportById(reportId); setTimeout(chloePrintReport, 900); }
+  else { openChloeReport(reportId); setTimeout(chloePrintReport, 900); }
+}
 
 </script>
 </body>
