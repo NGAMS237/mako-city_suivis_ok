@@ -96,9 +96,43 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 
 /* ── Cart ── */
 .cart{width:250px;display:flex;flex-direction:column;background:var(--bg2);}
-@media(max-width:600px){.split{flex-direction:column;}.cart{width:100%;max-height:220px;border-top:1px solid var(--border);}}
+/* PROMPT 028 : Tablette 900px — 2 colonnes KDS */
+@media(max-width:900px){
+  .kds-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .kds-header{flex-wrap:wrap;gap:8px;}
+  /* PROMPT 028 : Responsive utilitaires */
+.kds-flt{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.kds-filters{display:flex;flex-wrap:nowrap;gap:6px;}
+.kds-topbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.order-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.livreur-modal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+
+.kds-flt{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
+  .kds-filters{display:flex;gap:6px;min-width:max-content;}
+  .kds-topbar{flex-wrap:wrap;gap:6px;}
+  .kds-section-head{font-size:13px;}
+  .order-summary-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media(max-width:600px){
+  .kds-grid{grid-template-columns:1fr;gap:6px;}
+  .kds-card{min-height:unset;}
+  .kds-topbar{padding:6px 8px;}
+  .kds-section-head{font-size:12px;}
+  .kds-title{font-size:15px;}
+  .kds-flt button{font-size:11px;padding:4px 8px;}
+  .livreur-modal-grid{grid-template-columns:1fr;}
+  .order-summary-grid{grid-template-columns:1fr;}
+  .snd-btn{padding:4px 8px;font-size:11px;}
+}.cart{width:100%;max-height:220px;border-top:1px solid var(--border);}}
 @media(max-width:430px){
-  #app{height:100dvh;height:100vh;}
+  .kds-topbar{padding:4px 6px;}
+  .kds-title{font-size:14px;}
+  .kds-card-head{font-size:13px;}
+  .kds-card-body{font-size:12px;}
+  .kds-flt button{font-size:10px;padding:3px 7px;}
+  .order-alert-banner{font-size:12px;padding:8px 10px;}
+  .kds-card .btns button{font-size:11px;padding:4px 8px;}
+}
   #header{padding:5px 8px;flex-wrap:wrap;gap:4px;}
   #tabs{padding:4px 6px;}
   .tab{padding:6px 8px;font-size:11px;}
@@ -158,11 +192,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);
   color:var(--text3);font-size:10px;cursor:pointer;display:flex;align-items:center;gap:3px;flex-shrink:0;transition:all .15s}
 .snd-btn.on{border-color:var(--accent);color:var(--accent)}
 /* PROMPT 027 — Alerte nouvelle commande Food */
-.order-alert-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:#16a34a;color:#fff;
-  padding:10px 14px;display:none;align-items:center;gap:8px;font-size:.82rem;font-weight:700;
-  box-shadow:0 4px 12px rgba(0,0,0,.25);animation:slideDown .3s ease}
-.order-alert-banner.show{display:flex}
-@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+.order-alert-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#16a34a 0%,#15803d 100%);color:#fff;padding:12px 16px;display:none;align-items:center;gap:10px;font-size:14px;font-weight:700;box-shadow:0 4px 20px rgba(22,163,74,.5);animation:orderAlertSlide .35s ease;}
+@keyframes orderAlertSlide{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+@keyframes orderAlertPulse{0%,100%{opacity:1}50%{opacity:.7}}
 .order-alert-close{margin-left:auto;background:rgba(255,255,255,.2);border:none;color:#fff;
   border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.9rem;display:flex;
   align-items:center;justify-content:center;flex-shrink:0}
@@ -459,7 +491,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
             <div class="kds-stat"><div class="kds-stat-n warn" id="kds-n-prep">0</div><div class="kds-stat-l">En cours</div></div>
             <div class="kds-stat"><div class="kds-stat-n danger" id="kds-n-late">0</div><div class="kds-stat-l">En retard</div></div>
           </div>
-          <button class="snd-btn on" id="kds-snd-btn" onclick="toggleKdsSnd()">
+          <button class="snd-btn" id="kds-snd-btn" onclick="toggleKdsSnd()" title="Cliquez pour activer les alertes sonores">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>Son
           </button>
           <button class="btn bg bs" onclick="loadKDS()" style="padding:4px 8px;font-size:12px">&#8635;</button>
@@ -894,7 +926,26 @@ var VC = window.VeraluzCore || {};
 function H(x){return Object.assign({apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},x||{});}
 function GET(p){return fetch(SB+p,{headers:H({Accept:'application/json'})}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
 function POST(t,d){return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:H({Prefer:'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
-function PATCH(t,id,d){return fetch(SB+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:H({Prefer:'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
+/* PROMPT 028 : PATCH enrichi — capture erreur Supabase */
+function PATCH(t,id,d){
+  return fetch(SB+'/rest/v1/'+t+'?id=eq.'+id,{
+    method:'PATCH',
+    headers:H({Prefer:'return=representation'}),
+    body:JSON.stringify(d)
+  }).then(function(r){
+    if(!r.ok){
+      return r.json().then(function(e){
+        var err=new Error(e&&(e.message||e.details)||'HTTP '+r.status);
+        err.sbCode=e&&e.code;err.sbDetails=e&&e.details;err.httpStatus=r.status;
+        throw err;
+      }).catch(function(je){
+        if(je&&je.httpStatus){throw je;}
+        var err=new Error('HTTP '+r.status);err.httpStatus=r.status;throw err;
+      });
+    }
+    return r.json().catch(function(){return null;});
+  });
+}
 function DEL(t,id){return fetch(SB+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:H()}).then(function(r){if(!r.ok)throw r.status;});}
 
 /* State */
@@ -1484,18 +1535,76 @@ function _doSendKitchen(){
 var FOOD_ORDERS=[];
 var _kdsFilter='all';
 var _kdsSnd=true;
+/* PROMPT 028 : AudioContext persistant — créé seulement après geste utilisateur */
+var _kdsAudioCtx=null;
+var _kdsAudioReady=false;
+
+function initKdsAudio(){
+  if(_kdsAudioCtx){
+    _kdsAudioCtx.resume().catch(function(){});
+    _kdsAudioReady=true;
+    _updateSndBtnLabel();
+    toast('&#128276; Alertes sonores activ&#233;es','ok');
+    return;
+  }
+  try{
+    _kdsAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    _kdsAudioCtx.resume().then(function(){
+      _kdsAudioReady=true;
+      _updateSndBtnLabel();
+      toast('&#128276; Alertes sonores activ&#233;es','ok');
+      /* Test bip discret à l'activation */
+      _playBeepOnCtx(440,0.1,0);
+    }).catch(function(e){
+      console.warn('[Audio] Resume failed:',e);
+      toast('Son non disponible sur ce navigateur','er');
+    });
+  }catch(e){
+    console.warn('[Audio] AudioContext non supporté:',e);
+    toast('Audio non supporté sur cet appareil','er');
+  }
+}
+
+function _playBeepOnCtx(freq,vol,delay){
+  if(!_kdsAudioCtx||!_kdsAudioReady)return;
+  try{
+    var o=_kdsAudioCtx.createOscillator();
+    var g=_kdsAudioCtx.createGain();
+    o.connect(g);g.connect(_kdsAudioCtx.destination);
+    o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,_kdsAudioCtx.currentTime+delay);
+    g.gain.exponentialRampToValueAtTime(0.001,_kdsAudioCtx.currentTime+delay+0.3);
+    o.start(_kdsAudioCtx.currentTime+delay);
+    o.stop(_kdsAudioCtx.currentTime+delay+0.3);
+  }catch(e){}
+}
+
+function _updateSndBtnLabel(){
+  var b=document.getElementById('kds-snd-btn');if(!b)return;
+  var actif=document.getElementById('kds-snd-actif');if(actif)actif.style.display=_kdsAudioReady?'none':'inline';
+  b.classList.toggle('on',_kdsSnd&&_kdsAudioReady);
+}
 var _kdsInterval=null;
 var _kdsKnownIds=[];
 
 /* ══ PROMPT 027 — Alerte visuelle nouvelles commandes Food ══ */
 function showOrderAlert(n,name){
+  /* PROMPT 028 : popup plus visible + son 3 bips */
   var banner=document.getElementById('order-alert-banner');
   var txt=document.getElementById('order-alert-txt');
-  if(!banner||!txt)return;
-  txt.textContent=n+' nouvelle(s) commande(s) Food'+(name?' : '+name:'');
-  banner.classList.add('show');
-  setTimeout(function(){banner.classList.remove('show');},8000);
+  if(txt)txt.textContent=(n>1?n+' nouvelles commandes':name?'Nouvelle commande : '+name:'Nouvelle commande Food');
+  if(banner){
+    banner.classList.add('show');
+    /* Animation pulse */
+    banner.style.animation='none';
+    void banner.offsetWidth;
+    banner.style.animation='';
+  }
+  kdsBeep();
+  /* Auto-dismiss après 3 min (rappel visuel seulement) */
+  setTimeout(function(){dismissOrderAlert();},180000);
 }
+
 function dismissOrderAlert(){
   var b=document.getElementById('order-alert-banner');if(b)b.classList.remove('show');
 }
@@ -1503,21 +1612,28 @@ function dismissOrderAlert(){
 /* Sound notification */
 function kdsBeep(){
   if(!_kdsSnd)return;
-  try{
-    var ac=new(window.AudioContext||window.webkitAudioContext)();
-    [880,1100].forEach(function(freq,i){
-      var o=ac.createOscillator();var g=ac.createGain();
-      o.connect(g);g.connect(ac.destination);
-      o.frequency.value=freq;g.gain.setValueAtTime(.3,ac.currentTime+i*.15);
-      g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+i*.15+.35);
-      o.start(ac.currentTime+i*.15);o.stop(ac.currentTime+i*.15+.35);
+  if(!_kdsAudioReady||!_kdsAudioCtx){
+    /* PROMPT 028 : son non encore activé — montrer l'invite */
+    var b=document.getElementById('kds-snd-actif');if(b)b.style.display='inline';
+    return;
+  }
+  /* PROMPT 028 : 3 bips via contexte persistant */
+  _kdsAudioCtx.resume().then(function(){
+    [880,1100,1320].forEach(function(freq,i){
+      _playBeepOnCtx(freq,0.25,i*0.18);
     });
-  }catch(e){}
+  }).catch(function(){});
 }
 function toggleKdsSnd(){
-  _kdsSnd=!_kdsSnd;
+  if(!_kdsAudioReady){
+    /* PROMPT 028 : premier clic → initialiser AudioContext */
+    initKdsAudio();
+    _kdsSnd=true;
+  } else {
+    _kdsSnd=!_kdsSnd;
+  }
   var b=document.getElementById('kds-snd-btn');if(!b)return;
-  b.classList.toggle('on',_kdsSnd);
+  b.classList.toggle('on',_kdsSnd&&_kdsAudioReady);
   b.innerHTML='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">'
     +(_kdsSnd?'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>'
       :'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>')
@@ -1752,19 +1868,54 @@ function kdsUpd(oid,st){
   }).catch(function(){toast('Erreur mise &#224; jour','er');});
 }
 
-/* Update food web app order status */
+/* PROMPT 028 : kdsFoodUpd — statuts + horodatages complets + erreurs détaillées */
 function kdsFoodUpd(oid,st){
-  /* PROMPT 027 : horodatages + delivery_status */
   var now=new Date().toISOString();
   var patchData={status:st};
-  var dsMap={'ready':'waiting_assignment','out_for_delivery':'out_for_delivery','delivered':'delivered'};
-  if(dsMap[st])patchData.delivery_status=dsMap[st];
-  if(st==='delivered')patchData.delivered_at=now;
-  PATCH('veraluz_food_orders',oid,patchData).then(function(){
-    var o=FOOD_ORDERS.find(function(x){return x.id===oid;});if(o)o.status=st;
-    renderKDS();toast('&#10003; '+st,'ok');
-    if(st==='delivered')syncStockFromFood(o);
-  }).catch(function(){toast('Erreur mise &#224; jour','er');});
+  var lblMap={
+    confirmed:'Commande confirm&#233;e',
+    preparing:'Pr&#233;paration d&#233;marr&#233;e',
+    ready:'Commande pr&#234;te',
+    out_for_delivery:'Remise au livreur',
+    delivered:'Livraison confirm&#233;e'
+  };
+  /* Horodatages + delivery_status par &#233;tape */
+  if(st==='ready'){
+    patchData.delivery_status='waiting_assignment';
+  } else if(st==='out_for_delivery'){
+    /* PROMPT 028 : Remis livreur = picked_up (pas out_for_delivery) */
+    patchData.delivery_status='picked_up';
+    patchData.picked_up_at=now;
+  } else if(st==='delivered'){
+    patchData.delivery_status='delivered';
+    patchData.delivered_at=now;
+  }
+  PATCH('veraluz_food_orders',oid,patchData)
+    .then(function(){
+      var o=FOOD_ORDERS.find(function(x){return x.id===oid;});
+      if(o){o.status=st;if(patchData.delivery_status)o.delivery_status=patchData.delivery_status;}
+      renderKDS();
+      toast('&#10003; '+(lblMap[st]||st),'ok');
+      if(st==='delivered')syncStockFromFood(o);
+      /* PROMPT 028 : log delivery event */
+      _logRestEvent(oid,st);
+    })
+    .catch(function(e){
+      /* PROMPT 028 : si colonne manquante (PGRST204), fallback statut seulement */
+      if(e&&e.sbCode==='PGRST204'){
+        console.warn('[Restaurant] Colonne manquante — fallback statut seul. Exécutez MIGRATION_SQL_PROMPT_028.sql');
+        PATCH('veraluz_food_orders',oid,{status:st})
+          .then(function(){
+            var o=FOOD_ORDERS.find(function(x){return x.id===oid;});if(o)o.status=st;
+            renderKDS();
+            toast('&#10003; '+(lblMap[st]||st)+' (sans horodatage — migration requise)','ok');
+          })
+          .catch(function(e2){toast('Erreur Supabase: '+(e2&&e2.message||'mise &#224; jour'),'er');});
+        return;
+      }
+      console.warn('[Restaurant] PATCH erreur:',e&&e.message,e&&e.sbCode,e&&e.sbDetails);
+      toast('Erreur: '+(e&&e.message||'mise &#224; jour'),'er');
+    });
 }
 
 /* Assign deliverer — modal avec cartes livreurs */
@@ -1818,6 +1969,10 @@ function pickLivreur(btn){
   var lid=btn?btn.dataset.lid:null;
   var lnom=btn?btn.dataset.lnom:null;
   closeMd('md-livreur');
+  /* PROMPT 028 : confirmation si déjà assigné à un autre livreur */
+  if(o&&o.livreur_id&&lid&&String(o.livreur_id)!==String(lid)){
+    if(!confirm('Cette commande est déjà assignée à '+esc(o.assigned_to||'un livreur')+'. Voulez-vous réassigner ?'))return;
+  }
   /* PROMPT 026 : copier driver_photo_url au moment de l'assignation */
   var lphoto=btn?btn.dataset.lphoto||null:null;
   /* PROMPT 027 : enregistrer assigned_at + delivery_status */
@@ -1835,7 +1990,34 @@ function pickLivreur(btn){
       renderKDS();
       toast(lnom?'&#128667; '+lnom+' assign&#233;':'Livreur retiré','ok');
     })
-    .catch(function(){toast('Erreur assignation','er');});
+    .catch(function(e){
+      if(e&&e.sbCode==='PGRST204'){
+        console.warn('[Restaurant] Colonne manquante assignation. Exécutez MIGRATION_SQL_PROMPT_028.sql');
+        /* Fallback : assigner sans delivery_status/assigned_at */
+        PATCH('veraluz_food_orders',oid,{assigned_to:lnom||null,livreur_id:lid||null})
+          .then(function(){if(o){o.assigned_to=lnom;o.livreur_id=lid;}renderKDS();toast(lnom?'&#128667; '+lnom+' assign&#233; (partiel)':'Livreur retiré','ok');})
+          .catch(function(e2){toast('Erreur assignation: '+(e2&&e2.message||'?'),'er');});
+        return;
+      }
+      toast('Erreur assignation: '+(e&&e.message||'?'),'er');
+    });
+}
+
+/* PROMPT 028 : log événement livraison côté Restaurant */
+function _logRestEvent(orderId,eventType){
+  if(!orderId)return;
+  var evtMap={
+    preparing:'preparing',ready:'ready_to_deliver',
+    out_for_delivery:'picked_up',delivered:'delivered_confirmed'
+  };
+  var evt=evtMap[eventType];
+  if(!evt)return;
+  var row={tenant_id:'veraluz-001',order_id:String(orderId),
+    event_type:evt,actor_type:'restaurant',
+    actor_name:'Cuisine',note:'Mise à jour Restaurant PROMPT 028'};
+  fetch(SB+'/rest/v1/veraluz_delivery_events',{
+    method:'POST',headers:H({Prefer:'return=minimal'}),body:JSON.stringify(row)
+  }).catch(function(e){console.warn('[RestEvent]',e.message||e);}); /* best effort */
 }
 
 /* Stock deduction on delivery */
@@ -3319,10 +3501,6 @@ function saveAppCfg(){
   </div>
 </div>
 <!-- PROMPT 027 — Bannière alerte nouvelle commande Food -->
-<div class="order-alert-banner" id="order-alert-banner">
-  <span>🔔</span>
-  <span id="order-alert-txt">Nouvelle commande Food !</span>
-  <button class="order-alert-close" onclick="dismissOrderAlert()">✕</button>
-</div>
+<div class="order-alert-banner" id="order-alert-banner"><span style="font-size:18px;animation:orderAlertPulse 1s infinite">&#128276;</span>&nbsp;<span id="order-alert-txt">Nouvelle commande Food !</span>&nbsp;<button onclick="document.getElementById('kds-flt-food')&&kdsFilter(document.getElementById('kds-flt-food'),'all')" style="background:rgba(255,255,255,.25);border:none;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer;font-weight:700;">Voir</button>&nbsp;<button class="order-alert-close" onclick="dismissOrderAlert()">&#10005;</button></div>
 </body>
 </html>

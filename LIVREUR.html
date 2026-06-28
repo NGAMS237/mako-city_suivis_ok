@@ -942,8 +942,11 @@ function loadOrders(){
            + les commandes non encore assignées (prêtes à récupérer) */
         if(!LIVREUR_ACTIF) return true;
         var lid = String(LIVREUR_ACTIF.id||'');
+        /* PROMPT 028 : le livreur voit ses commandes assignées + les commandes non assignées 'ready' */
         var oid = String(o.livreur_id||'');
-        return !o.livreur_id || oid === lid;
+        var isAssignedToMe = oid === lid;
+        var isUnassignedReady = !o.livreur_id && o.status === 'ready' && o.delivery_type === 'delivery';
+        return isAssignedToMe || isUnassignedReady;
       });
       /* PROMPT 005: sauvegarder dans localStorage */
       try { localStorage.setItem(LS_ORDERS, JSON.stringify({saved_at: new Date().toISOString(), orders: _orders})); } catch(e){}
