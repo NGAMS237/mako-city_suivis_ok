@@ -199,11 +199,11 @@ function openResetPinMd(empId, empName) {
     + 'Un PIN temporaire à 6 chiffres sera généré et affiché une seule fois.<br>'
     + "L'employé devra le changer à sa prochaine connexion."
     + '</div>'
-    + '<div id="rp-result" style="display:none;background:var(--bg3);border-radius:8px;padding:14px;margin-bottom:14px;text-align:center;">'
-    + '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">PIN temporaire (valable 24h)</div>'
-    + '<div id="rp-pin" style="font-size:32px;font-weight:900;letter-spacing:8px;color:var(--acc1);font-family:monospace"></div>'
-    + '<div id="rp-exp" style="font-size:12px;color:var(--text2);margin-top:6px;"></div>'
-    + '<div style="font-size:12px;color:#ef4444;margin-top:6px;font-weight:600">⚠️ Notez ce PIN maintenant — il ne sera plus affiché.</div>'
+    + '<div id="rp-result" style="display:none;background:var(--bg3);border:1.5px solid #22d3a5;border-radius:10px;padding:18px 14px;margin-bottom:14px;text-align:center;">'
+    + '<div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.8px;">PIN provisoire</div>'
+    + '<div id="rp-pin" style="font-size:36px;font-weight:900;letter-spacing:10px;color:#22d3a5;font-family:monospace;margin:6px 0 2px;"></div>'
+    + '<div id="rp-exp" style="font-size:11px;color:var(--text2);margin-bottom:8px;"></div>'
+    + '<div style="font-size:11px;color:#f87171;font-weight:700;background:rgba(239,68,68,.12);border-radius:6px;padding:6px 10px;">⚠️ Ce PIN ne sera affiché qu&#39;une seule fois. Notez-le maintenant.</div>'
     + '</div>'
     + '<div class="btn-row" id="rp-btn-row">'
     + '<button class="btn btn-sec" onclick="closeMd(\'md-reset-pin\')">Annuler</button>'
@@ -240,6 +240,7 @@ function doResetPin(btn) {
       return;
     }
     /* Afficher le PIN une seule fois */
+    toast('✅ PIN provisoire généré — copiez-le maintenant !', false);
     document.getElementById('rp-result').style.display = 'block';
     document.getElementById('rp-pin').textContent = result.temporary_pin;
     var exp = result.expires_at ? new Date(result.expires_at).toLocaleString('fr-FR') : '24h';
