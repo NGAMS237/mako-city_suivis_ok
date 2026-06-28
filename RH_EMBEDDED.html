@@ -757,6 +757,12 @@ function DELETE(t,id){return fetch(SUPA_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 /* PROMPT 007 — délégation VC.esc() + safeUrl() */
 var VC = window.VeraluzCore || {};
+function maskMomo(v){
+  if(!v||v==='—')return'—';
+  var s=String(v).replace(/[^\d+]/g,'');
+  if(s.length>=4)return s.slice(0,4).replace(/./g,'*')+' '+s.slice(-3).replace(/./g,'X')+' (masqué)';
+  return '****';
+}
 function esc(s){
   if(VC&&typeof VC.esc==='function') return VC.esc(s);
   if(!s)return'';
@@ -1095,7 +1101,7 @@ function renderDosProfil(e){
     +'<div><div style="color:var(--text3);font-size:10px;">&#201;quipe</div><div>'+esc(team?team.name:'—')+'</div></div>'
     +'<div><div style="color:var(--text3);font-size:10px;">Date embauche</div><div>'+fdate(e.hire_date)+'</div></div>'
     +'<div><div style="color:var(--text3);font-size:10px;">Statut</div><div><span class="bdg '+(e.status==='actif'?'ok':e.status==='conge'?'warn':'danger')+'">'+esc(e.status||'—')+'</span></div></div>'
-    +'<div><div style="color:var(--text3);font-size:10px;">MoMo</div><div>'+esc(e.momo_number||'—')+'</div></div>'
+    +'<div><div style="color:var(--text3);font-size:10px;">MoMo</div><div>'+maskMomo(e.momo_number)+'</div></div>'
     +'<div><div style="color:var(--text3);font-size:10px;">PIN</div><div>&#9679;&#9679;&#9679;&#9679;</div></div>'
     +'</div>'
     +(e.notes?'<div style="margin-top:10px;font-size:12px;color:var(--text3);">'+esc(e.notes)+'</div>':'')
@@ -1538,7 +1544,7 @@ function exportPayCSV(){
   var month=new Date().toISOString().slice(0,7);
   var rows=PAYROLLS.filter(function(p){return payM(p)===month;}).map(function(p){
     var emp=EMPS.find(function(e){return e.id===p.employee_id;});
-    return [emp?emp.full_name:'—',emp?emp.momo_number||emp.bank_account||'—':'—',netOf(p),p.status,month].join(';');
+    return [emp?emp.full_name:'—',emp?maskMomo(emp.momo_number||emp.bank_account||''):'—',netOf(p),p.status,month].join(';');
   });
   var csv='Nom;MoMo/Compte;Montant FCFA;Statut;Mois\n'+rows.join('\n');
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='paie_'+month+'.csv';a.click();
@@ -1557,7 +1563,7 @@ function printPayslip(pid){
   var er=emp?esc(emp.role||'&#8212;'):'&#8212;';
   var eh=emp?fdate(emp.hire_date):'&#8212;';
   var es=emp?esc(emp.status||'actif'):'&#8212;';
-  var em=emp?esc(emp.momo_number||emp.bank_account||'&#8212;'):'&#8212;';
+  var em=emp?maskMomo(emp.momo_number||emp.bank_account||''):'&#8212;'; /* PROMPT 018: masqué */
   var per=esc(payM(p)||'');
   var ref2=esc((p.id||'').slice(0,8).toUpperCase());
   var stxt=p.status==='paye'?'&#9989; Pay&#233;':p.status==='approuve'?'&#8987; Approuv&#233;':'&#9208; En attente';
@@ -1917,7 +1923,7 @@ function renderEpProfil(){
     +'<div><div style="font-size:10px;color:var(--text3);">Email</div><div>'+esc(e.email||'—')+'</div></div>'
     +'<div><div style="font-size:10px;color:var(--text3);">&#201;quipe</div><div>'+esc(team?team.name:'—')+'</div></div>'
     +'<div><div style="font-size:10px;color:var(--text3);">Embauche</div><div>'+fdate(e.hire_date)+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--text3);">MoMo</div><div>'+esc(e.momo_number||'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text3);">MoMo</div><div>'+maskMomo(e.momo_number)+'</div></div>'
     +'<div><div style="font-size:10px;color:var(--text3);">Statut</div><div><span class="bdg ok">'+esc(e.status)+'</span></div></div>'
     +'</div></div>';
 }
@@ -2151,4 +2157,17 @@ window.addEventListener('message', function(ev) {
       // Fermer l'écran de login interne s'il est affiché
       var ls = document.getElementById('login-screen');
       if (ls) ls.classList.remove('on');
-   
+      // Afficher directement l'écran de pointage
+      showClockScreen();
+    } else if ((attempts || 0) < 10) {
+      setTimeout(function() { tryAutoLogin((attempts || 0) + 1); }, 500);
+    } else {
+      console.warn('RH auto-login: employé introuvable dans EMPS pour id=' + empId);
+    }
+  }
+  tryAutoLogin(0);
+});
+</script>
+
+<!-- Modal signature électronique -->
+<div class="ov" id="md-sign-contract

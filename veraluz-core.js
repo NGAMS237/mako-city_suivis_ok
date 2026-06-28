@@ -318,8 +318,7 @@
     /* Rôle */
     var role = row.role || row.poste || row.position || '';
 
-    /* PIN */
-    var pin = row.pin_code || row.pin || '';
+    /* PIN — PROMPT 018: ne pas propager pin_code vers modules clients */
 
     /* Actif — supporte les deux conventions */
     var active = (row.status === 'actif') || (row.actif === true) || (row.active === true);
@@ -338,9 +337,7 @@
       /* Équipe */
       team_id:       teamId,
       team_name:     teamName,
-      /* PIN */
-      pin:           pin,
-      pin_code:      pin,
+      /* PIN — supprimé PROMPT 018: ne jamais propager vers modules non-Auth */
       /* Autres */
       active:        active,
       vehicule:      row.vehicule      || '',
