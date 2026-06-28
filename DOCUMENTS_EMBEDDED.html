@@ -595,6 +595,15 @@ tr:hover td{background:var(--bg3);}
       <li>Ne jamais rendre publics les buckets privés</li>
     </ul>
   </div>
+
+  <!-- PROMPT 019B — Bouton diagnostic connexion Supabase (DEV) -->
+  <div id="docs-diag-wrap" style="margin-top:20px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--rad);padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:600;">🔌 Diagnostic connexion Supabase</div>
+      <button class="btn btn-secondary btn-sm" onclick="runDocsDiag()" style="font-size:11px;">Tester la connexion</button>
+    </div>
+    <div id="docs-diag-result" style="font-size:12px;color:var(--fg2);font-family:monospace;line-height:1.8;display:none;"></div>
+  </div>
 </div>
 
 <!-- ============================================================ -->
@@ -666,6 +675,76 @@ tr:hover td{background:var(--bg3);}
       <li>Partage sécurisé externe avec lien signé</li>
     </ul>
   </div>
+
+  <!-- PROMPT 019B — Roadmap Assistant Documents / OCR -->
+  <div class="guide-section" style="border:1px solid rgba(99,102,241,.25);border-radius:var(--rad);padding:16px;background:rgba(99,102,241,.04);">
+    <h3>🤖 Roadmap — Assistant Documents (OCR + IA)</h3>
+    <p style="font-size:12px;color:var(--fg2);margin-bottom:12px;">
+      Le workflow complet d'analyse automatique de documents est prévu dans les prochains prompts.
+      <strong>Aucune de ces étapes n'est active aujourd'hui.</strong> Validation humaine obligatoire à chaque étape.
+    </p>
+    <ol style="font-size:12px;line-height:2.2;padding-left:18px;color:var(--fg);">
+      <li>
+        <strong>Upload sécurisé</strong> — Le fichier est envoyé via Edge Function
+        vers le bucket privé correspondant à la catégorie du document. Jamais directement du frontend.
+      </li>
+      <li>
+        <strong>Extraction texte / OCR côté serveur</strong> — L'Edge Function lit le fichier
+        (PDF ou image), extrait le texte brut via un service OCR sécurisé. Le contenu brut
+        est stocké dans <code>veraluz_document_extracted_text</code>.
+      </li>
+      <li>
+        <strong>Détection automatique (IA)</strong> — L'agent <code>legal_docs_ai</code> analyse
+        le texte et suggère :
+        <ul style="margin-top:4px;">
+          <li>Titre du document</li>
+          <li>Catégorie (juridique, banque, fiscalité, RH…)</li>
+          <li>Type précis (contrat, attestation, extrait, relevé…)</li>
+          <li>Dates clés (signature, début, fin, expiration)</li>
+          <li>Parties concernées (noms, sociétés, numéros)</li>
+          <li>Montants mentionnés (si applicable)</li>
+          <li>Échéances et délais</li>
+          <li>Statut recommandé (actif, expiré, à renouveler)</li>
+        </ul>
+        Ces suggestions sont stockées dans <code>veraluz_document_ai_suggestions</code>.
+      </li>
+      <li>
+        <strong>Pré-remplissage des champs</strong> — Les métadonnées suggérées apparaissent
+        pré-remplies dans le formulaire. L'utilisateur peut corriger chaque champ.
+        Aucun champ n'est enregistré sans action humaine.
+      </li>
+      <li>
+        <strong>Validation humaine obligatoire</strong> — Le propriétaire ou manager
+        confirme ou corrige les suggestions IA dans <code>veraluz_document_approvals</code>.
+        L'IA ne peut jamais valider elle-même.
+      </li>
+      <li>
+        <strong>Archivage</strong> — Après validation, le document passe en statut <em>active</em>.
+        L'accès au fichier se fait uniquement via URL signée (max 15 min).
+      </li>
+      <li>
+        <strong>Signature interne</strong> (si nécessaire) — Pour les documents nécessitant
+        une signature, un workflow de signature électronique interne est déclenché.
+        Géré via <code>veraluz_document_signatures</code>.
+      </li>
+      <li>
+        <strong>Journal d'audit</strong> — Chaque action (upload, lecture, modification, signature,
+        suppression logique) est enregistrée dans <code>veraluz_document_audit_logs</code>
+        avec horodatage, auteur et détail de l'action.
+      </li>
+    </ol>
+    <div style="margin-top:14px;padding:10px 14px;background:rgba(245,158,11,.08);
+                border:1px solid rgba(245,158,11,.3);border-radius:var(--rad2);font-size:11px;color:var(--fg2);">
+      <strong>⚠️ Tables futures (non créées) :</strong>
+      <code>veraluz_document_analysis_jobs</code> ·
+      <code>veraluz_document_extracted_text</code> ·
+      <code>veraluz_document_ai_suggestions</code> ·
+      <code>veraluz_document_approvals</code> ·
+      <code>veraluz_document_signatures</code> ·
+      <code>veraluz_document_audit_logs</code>
+      — À créer dans PROMPT 022+.
+    </div>
+  </div>
 </div>
 
 <!-- MODAL DÉTAILS DOCUMENT -->
@@ -693,9 +772,11 @@ var SB_URL = (function(){
   return 'https://dfdmasejsoibxrvubegu.supabase.co';
 })();
 var SB_KEY = (function(){
+  /* PROMPT 019B — même pattern que RH_EMBEDDED / AI_CENTER (clé anon publique, RLS protège) */
   if(window.VERALUZ_SB_KEY) return window.VERALUZ_SB_KEY;
-  if(window.parent && window.parent.VERALUZ_SB_KEY) return window.parent.VERALUZ_SB_KEY;
-  return '';
+  try { if(window.parent && window.parent !== window && window.parent.VERALUZ_SB_KEY)
+    return window.parent.VERALUZ_SB_KEY; } catch(e){}
+  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 })();
 
 /* ── STATE ───────────────────────────────────────── */
@@ -900,8 +981,13 @@ function loadOverview(){
   }).catch(function(e){
     document.getElementById('overview-loading').style.display='none';
     document.getElementById('overview-empty').style.display='';
+    var _code=parseInt(e.message)||0;
+    var _msg=_code===401?'Connexion Supabase refusée (401). La clé anon est absente ou invalide. Rechargez la page.'
+      :_code===403?'Accès refusé par RLS (403). Vérifiez les policies de veraluz_documents.'
+      :_code===404||String(e.message).indexOf('veraluz_documents')>=0?'Table veraluz_documents introuvable. Vérifiez la migration PROMPT 019.'
+      :'Erreur Supabase ('+esc(e.message)+'). Vérifiez la connexion réseau.';
     document.getElementById('overview-empty').innerHTML=
-      '<div class="empty-icon">⚠️</div><p>Erreur de connexion Supabase.<br>Vérifiez la clé API et l\'URL.<br><small>'+esc(e.message)+'</small></p>';
+      '<div class="empty-icon">⚠️</div><p style="font-size:13px;">'+_msg+'</p>';
   });
 }
 
@@ -1266,6 +1352,45 @@ document.addEventListener('DOMContentLoaded', function(){
   } catch(e){}
   loadOverview();
 });
+
+/* ── PROMPT 019B — Diagnostic connexion Supabase ─────────────── */
+function runDocsDiag(){
+  var wrap = document.getElementById('docs-diag-result');
+  if(!wrap) return;
+  wrap.style.display = '';
+  wrap.innerHTML = '⏳ Test en cours…';
+
+  var url  = SB_URL || '';
+  var key  = SB_KEY || '';
+  var lines = [];
+
+  lines.push('URL Supabase : ' + (url ? '✅ ' + url : '❌ ABSENTE'));
+  lines.push('Clé anon détectée : ' + (key ? '✅ oui' : '❌ NON — 401 probable'));
+  if(key) lines.push('Longueur clé : ' + key.length + ' caractères');
+
+  if(!key){ wrap.innerHTML = lines.join('<br>'); return; }
+
+  fetch(url+'/rest/v1/veraluz_documents?select=id&limit=1',{
+    headers:{ 'apikey':key, 'Authorization':'Bearer '+key, 'Accept':'application/json' }
+  }).then(function(r){
+    lines.push('Requête GET veraluz_documents : HTTP ' + r.status);
+    if(r.status===200||r.status===206){
+      lines.push('✅ Connexion OK — la table est accessible');
+    } else if(r.status===401){
+      lines.push('❌ 401 — Clé anon rejetée par Supabase. Vérifiez la clé et les policies anon.');
+    } else if(r.status===403){
+      lines.push('\u274C 403 — RLS bloque l\'acc\u00e8s anon. Ajoutez GRANT SELECT \u2026 TO anon.');
+    } else if(r.status===404){
+      lines.push('❌ 404 — Table veraluz_documents introuvable. Migration PROMPT 019 non appliquée ?');
+    } else {
+      lines.push('⚠️ Code inattendu : '+r.status);
+    }
+    wrap.innerHTML = lines.join('<br>');
+  }).catch(function(err){
+    lines.push('❌ Erreur réseau : ' + err.message);
+    wrap.innerHTML = lines.join('<br>');
+  });
+}
 
 // Fermer modal sur overlay click
 document.getElementById('doc-modal').addEventListener('click',function(e){
