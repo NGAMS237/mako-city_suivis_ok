@@ -2654,6 +2654,44 @@ function switchAndPrint(reportId, src) {
   else { openChloeReport(reportId); setTimeout(chloePrintReport, 900); }
 }
 
+
+/* ============================================================
+   PROMPT 030 - Messagerie Operationnelle - createChloeMessage
+   Insert un message interne de type Chloe dans veraluz_internal_messages.
+   Jamais d'envoi automatique externe. Securite : aucun PIN dans messages.
+============================================================ */
+function createChloeMessage(payload) {
+  if (!_sbAvailable) { console.warn('[createChloeMessage] Supabase non dispo'); return Promise.resolve(null); }
+  var body = Object.assign({
+    tenant_id: 'veraluz-001',
+    sender_type: 'chloe',
+    sender_id: 'chloe-ai',
+    sender_name: 'Chloe IA',
+    is_internal: true,
+    status: 'sent',
+    message_type: 'text',
+    priority: 'normal',
+    context_type: 'general',
+    requires_action: false
+  }, payload || {});
+  return sbPost('veraluz_internal_messages', body)
+    .then(function(r) { console.log('[createChloeMessage] OK', r); return r; })
+    .catch(function(e) { console.warn('[createChloeMessage] Erreur', e); return null; });
+}
+
+/* PROMPT 030 - Alerte Chloe : livreur silencieux depuis 30 min */
+function chloeSendDeliveryAlert(driverId, driverName, orderId) {
+  return createChloeMessage({
+    recipient_type: 'admin',
+    department: 'operations',
+    message: 'Alerte : livreur ' + (driverName || driverId) + ' silencieux depuis 30 min (commande ' + (orderId || '?') + '). Verifiez svp.',
+    priority: 'urgent',
+    context_type: 'delivery',
+    context_id: orderId || null,
+    requires_action: true
+  });
+}
+
 </script>
 </body>
 </html>

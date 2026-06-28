@@ -10,7 +10,7 @@
  * À chaque changement important des fichiers statiques, incrémenter CACHE_NAME.
  */
 
-var CACHE_NAME = 'veraluz-pwa-v029-core'; /* PROMPT 025 — Food Lounge PWA + LIVREUR 6-chiffres */
+var CACHE_NAME = 'veraluz-pwa-v030'; /* PROMPT 030 — Messagerie Operationnelle */
 
 // Contrôle d'activation (mettre false pour désactiver en dev si besoin)
 var VERALUZ_PWA_ENABLED = true;

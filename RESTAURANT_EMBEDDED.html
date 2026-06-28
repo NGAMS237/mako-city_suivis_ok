@@ -638,6 +638,26 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 
 <div id="toast"></div>
 
+<!-- PROMPT 030 — KDS MESSAGES MODAL (Restaurant ↔ Livreur) -->
+<div class="ov" id="md-kds-msg">
+  <div class="md" style="max-height:85vh;display:flex;flex-direction:column;padding:0;border-radius:18px 18px 0 0;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;border-bottom:1px solid var(--bord2);">
+      <span style="font-size:15px;font-weight:800;">&#128172; Messages commande <span id="kds-msg-ref" style="font-weight:400;font-size:13px;color:var(--text3)"></span></span>
+      <button class="mdc" onclick="closeKdsMsg()">&#10005;</button>
+    </div>
+    <!-- Quick replies -->
+    <div style="display:flex;gap:7px;overflow-x:auto;padding:10px 14px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;" id="kds-qr-row"></div>
+    <!-- Messages list -->
+    <div id="kds-msg-list" style="flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px;"></div>
+    <!-- Compose -->
+    <div style="padding:10px 14px;border-top:1px solid var(--bord2);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;">
+      <input id="kds-msg-inp" class="inp" type="text" placeholder="Message au livreur..."
+        style="flex:1;font-size:13px;" onkeydown="if(event.key==='Enter')sendKdsMsg()">
+      <button class="btn bg" style="padding:8px 14px;font-size:13px;" onclick="sendKdsMsg()">Envoyer</button>
+    </div>
+  </div>
+</div>
+
 <!-- LIVREUR PICKER MODAL -->
 <div class="ov" id="md-livreur">
   <div class="md" style="max-height:82vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px;">
@@ -1845,6 +1865,15 @@ function kdsCard(o){
     }else if(o._kst==='handed')
       acts='<button class="btn bg bs" style="flex:1;font-size:10px;color:var(--text3)" data-id="'+o._id+'" data-st="delivered" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Confirm&#233;e</button>';
   }
+  /* PROMPT 030 — bouton Messages pour commandes livraison */
+  var msgBtn='';
+  if(o._src==='livraison'||o._src==='room'){
+    msgBtn='<button class="btn bw bs" style="flex:0 0 auto;font-size:11px;padding:4px 8px;" '
+      +'data-id="'+o._id+'" onclick="openKdsMsg(this.dataset.id)" title="Messagerie livreur">'
+      +'&#128172; Msg'
+      +'<span id="kds-msg-badge-'+o._id+'" style="display:none;background:#ef4444;color:#fff;border-radius:8px;font-size:9px;font-weight:800;padding:0 4px;margin-left:3px;"></span>'
+      +'</button>';
+  }
   return '<div class="kc2">'
     +'<div class="kc2-stripe '+sCls+'"></div>'
     +'<div class="kc2-top">'
@@ -1857,7 +1886,7 @@ function kdsCard(o){
     +(o.note?'<div class="kc2-note">&#128221; '+esc(o.note)+'</div>':'')
     +'<div class="kc2-prog">'+progBar+'</div>'
     +'<div class="kc2-prog-lbl">'+( STEP_LBL[si]||'')+'</div>'
-    +'<div class="kc2-acts">'+acts+'</div>'
+    +'<div class="kc2-acts">'+acts+(msgBtn?'<div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">'+msgBtn+'</div>':'')+'</div>'
     +'</div>';
 }
 
@@ -2057,7 +2086,132 @@ function copyMigrationSQL(){
   }
 }
 
-/* PROMPT 028 : log événement livraison côté Restaurant */
+/* ══════════════════════════════════════════
+   PROMPT 030 — MESSAGERIE KDS RESTAURANT ↔ LIVREUR
+══════════════════════════════════════════ */
+var _kdsMsgOrderId = null;
+
+/* Messages rapides Restaurant */
+var KDS_QUICK_REPLIES = [
+  'Commande prête',
+  'Merci de récupérer la commande',
+  'Client attend depuis longtemps',
+  'Vérifie le paiement',
+  'Appelle le restaurant',
+  'Adresse modifiée',
+  'Attention : commande prioritaire'
+];
+
+function openKdsMsg(orderId){
+  _kdsMsgOrderId = orderId;
+  var o = _foodOrders.find(function(x){return x.id===orderId;});
+  var ref = o ? (o.order_number||o.id||'').toString().slice(0,8) : orderId.slice(0,8);
+  document.getElementById('kds-msg-ref').textContent = '#'+ref;
+  /* Quick replies */
+  var qrEl = document.getElementById('kds-qr-row');
+  if(qrEl){
+    qrEl.innerHTML = KDS_QUICK_REPLIES.map(function(q){
+      return '<button style="flex-shrink:0;background:var(--bg3,#1c2333);border:1px solid var(--bord2,#30363d);color:var(--text3,#8b949e);padding:5px 10px;border-radius:14px;font-size:11px;cursor:pointer;white-space:nowrap;" '
+        +'onclick="sendKdsMsgText(\''+q.replace(/'/g,"\\'")+'\')">'
+        +q+'</button>';
+    }).join('');
+  }
+  var list = document.getElementById('kds-msg-list');
+  if(list) list.innerHTML = '<div style="text-align:center;color:var(--text3,#8b949e);padding:12px;font-size:12px;">Chargement…</div>';
+  openMd('md-kds-msg');
+  renderKdsMsgs(orderId);
+}
+
+function closeKdsMsg(){
+  closeMd('md-kds-msg');
+  _kdsMsgOrderId = null;
+}
+
+function renderKdsMsgs(orderId){
+  var list = document.getElementById('kds-msg-list');
+  if(!list)return;
+  fetch(SB+'/rest/v1/veraluz_delivery_messages?tenant_id=eq.veraluz-001&order_id=eq.'+encodeURIComponent(orderId)+'&order=created_at.asc',{headers:H()})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      if(!rows||!rows.length){
+        list.innerHTML='<div style="text-align:center;color:var(--text3,#8b949e);padding:20px;font-size:12px;">Aucun message pour cette commande</div>';
+        return;
+      }
+      list.innerHTML = rows.map(function(m){
+        var isRest = m.sender_type==='restaurant';
+        var dt = m.created_at ? new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : '';
+        var align = isRest ? 'flex-end' : 'flex-start';
+        var bg = isRest ? 'rgba(88,166,255,.18)' : 'var(--bg3,#1c2333)';
+        return '<div style="display:flex;justify-content:'+align+'">'
+          +'<div style="max-width:80%;padding:8px 12px;border-radius:10px;background:'+bg+';font-size:13px;">'
+          +'<div style="font-size:10px;color:var(--text3,#8b949e);margin-bottom:3px;">'
+          +(isRest?'🍽️ Restaurant':'🛵 '+esc(m.sender_name||'Livreur'))+' · '+dt+'</div>'
+          +esc(m.message||'')
+          +'</div></div>';
+      }).join('');
+      /* scroll to bottom */
+      setTimeout(function(){list.scrollTop=list.scrollHeight;},40);
+    }).catch(function(){
+      list.innerHTML='<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px;">Messages indisponibles</div>';
+    });
+}
+
+function sendKdsMsgText(text){
+  var inp = document.getElementById('kds-msg-inp');
+  if(inp) inp.value = text;
+  sendKdsMsg();
+}
+
+function sendKdsMsg(){
+  if(!_kdsMsgOrderId)return;
+  var inp = document.getElementById('kds-msg-inp');
+  var txt = inp ? (inp.value||'').trim() : '';
+  if(!txt)return;
+  if(inp)inp.value='';
+  inp.disabled = true;
+  fetch(SB+'/rest/v1/veraluz_delivery_messages',{
+    method:'POST',
+    headers:H({Prefer:'return=minimal'}),
+    body:JSON.stringify({
+      tenant_id:'veraluz-001',
+      order_id:_kdsMsgOrderId,
+      sender_type:'restaurant',
+      sender_name:'Restaurant Veraluz',
+      message:txt,
+      message_type:'text'
+    })
+  }).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    toast('Message envoyé','ok');
+    renderKdsMsgs(_kdsMsgOrderId);
+    /* Badge: effacer badge du livreur pour cet order */
+    var badge = document.getElementById('kds-msg-badge-'+_kdsMsgOrderId);
+    if(badge){badge.style.display='none';}
+  }).catch(function(){
+    toast('Erreur envoi message','er');
+    if(inp){inp.disabled=false;inp.value=txt;}
+  }).finally(function(){if(inp)inp.disabled=false;});
+}
+
+/* Polling messages non lus (toutes les 30s) — badge par commande */
+function pollKdsMsgBadges(){
+  if(!_foodOrders||!_foodOrders.length)return;
+  var today=new Date().toISOString().slice(0,10);
+  fetch(SB+'/rest/v1/veraluz_delivery_messages?tenant_id=eq.veraluz-001&created_at=gte.'+today+'T00:00:00&sender_type=eq.driver&order=created_at.desc&limit=40',{headers:H()})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      /* Compter messages livreur par order_id pour les commandes actives */
+      var counts={};
+      (rows||[]).forEach(function(m){if(m.order_id)counts[m.order_id]=(counts[m.order_id]||0)+1;});
+      Object.keys(counts).forEach(function(oid){
+        var badge=document.getElementById('kds-msg-badge-'+oid);
+        if(badge&&counts[oid]>0){badge.textContent=counts[oid];badge.style.display='';}
+      });
+    }).catch(function(){});
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 028 : log événement livraison côté Restaurant */
 function _logRestEvent(orderId,eventType){
   if(!orderId)return;
   var evtMap={
@@ -2119,6 +2273,8 @@ function startKdsPoll(){
       renderKDS();updateBdg();
     }).catch(function(){});
   },12000); /* PROMPT 027 : 12s → réactivité livraison */
+  /* PROMPT 030 : badge messages non lus toutes les 30s */
+  setInterval(pollKdsMsgBadges, 30000);
 }
 function stopKdsPoll(){if(_kdsInterval){clearInterval(_kdsInterval);_kdsInterval=null;}}
 

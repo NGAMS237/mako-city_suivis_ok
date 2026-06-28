@@ -1932,9 +1932,62 @@ function renderHistorique(){
     });
 }
 
-/* ══════════════════════════════════════════
+/* ══════════════════════════════════════════════
    PROMPT 027 — ONGLET MESSAGES
-══════════════════════════════════════════ */
+   PROMPT 030 — Quick replies + vibration + badge + logLivreurMsgEvent
+══════════════════════════════════════════════ */
+
+/* PROMPT 030 — 8 quick replies livreur */
+var LIVREUR_QR=[
+  {txt:'Commande récupérée',    ev:'driver_picked_up'},
+  {txt:'Je suis en route',      ev:'driver_en_route'},
+  {txt:'Je suis arrivé',        ev:'driver_arrived'},
+  {txt:'Client absent',         ev:'incident_client_absent'},
+  {txt:'Adresse introuvable',   ev:'incident_address_issue'},
+  {txt:'Problème paiement',     ev:'incident_payment'},
+  {txt:'Embouteillage / retard',ev:'incident_delay'},
+  {txt:'Commande livrée',       ev:'delivery_completed'}
+];
+
+/* PROMPT 030 — Log incident message vers veraluz_delivery_events */
+function logLivreurMsgEvent(message, orderId){
+  var evMap={
+    'Commande récupérée':'driver_picked_up',
+    'Je suis en route':'driver_en_route',
+    'Je suis arrivé':'driver_arrived',
+    'Client absent':'incident_client_absent',
+    'Adresse introuvable':'incident_address_issue',
+    'Problème paiement':'incident_payment',
+    'Embouteillage / retard':'incident_delay',
+    'Commande livrée':'delivery_completed'
+  };
+  var evType=evMap[message];
+  if(!evType||!LIVREUR_ACTIF)return;
+  sbInsert('veraluz_delivery_events',{
+    tenant_id:'veraluz-001',
+    order_id:orderId||null,
+    event_type:evType,
+    actor_type:'driver',
+    actor_id:String(LIVREUR_ACTIF.id||''),
+    actor_name:(LIVREUR_ACTIF.prenom||'')+' '+(LIVREUR_ACTIF.nom||''),
+    note:message
+  }).catch(function(){/* non bloquant */});
+}
+
+/* PROMPT 030 — Mise à jour badge onglet Messages */
+function updateMsgTabBadge(count){
+  var el=document.getElementById('mtab-badge-messages');
+  if(!el)return;
+  if(count>0){
+    el.textContent=count>9?'9+':String(count);
+    el.style.display='flex';
+  }else{
+    el.style.display='none';
+    el.textContent='';
+  }
+}
+
+var _lastMsgCount=0; /* PROMPT 030 */
 
 function renderMessagesTab(){
   if(!LIVREUR_ACTIF){
@@ -1946,28 +1999,78 @@ function renderMessagesTab(){
   var today=new Date().toISOString().slice(0,10);
   sbFetch('veraluz_delivery_messages?tenant_id=eq.veraluz-001&created_at=gte.'+today+'T00:00:00&order=created_at.desc')
     .then(function(msgs){
+      /* PROMPT 030 — Quick replies row */
+      var qrRow='<div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg2);">'
+        +LIVREUR_QR.map(function(q){
+          var isInc=q.ev.indexOf('incident')===0;
+          var isDone=q.ev==='delivery_completed';
+          var col=isInc?'#ef4444':isDone?'#16a34a':'var(--accent)';
+          return '<button style="font-size:11px;padding:5px 9px;border:1px solid '+col+';color:'+col
+            +';background:none;border-radius:12px;cursor:pointer;white-space:nowrap;" '
+            +'onclick="sendLivreurQR(this.textContent)">'
+            +q.txt+'</button>';
+        }).join('')
+        +'</div>';
+
       var sendRow='<div class="msg-send-row">'
-        +'<input class="msg-input" id="msg-input-tab" type="text" placeholder="Message au restaurant..." onkeydown="if(event.key===\u0027Enter\u0027)sendDeliveryMsgFromTab()">'
+        +'<input class="msg-input" id="msg-input-tab" type="text" placeholder="Message au restaurant..." onkeydown="if(event.key===\'Enter\')sendDeliveryMsgFromTab()">'
         +'<button class="msg-send-btn" onclick="sendDeliveryMsgFromTab()">Envoyer</button></div>';
+
       if(!msgs||!msgs.length){
-        body.innerHTML=sendRow+'<div style="padding:16px;text-align:center;color:var(--muted)">Aucun message aujourd&#39;hui.</div>';
+        body.innerHTML=qrRow+sendRow+'<div style="padding:16px;text-align:center;color:var(--muted)">Aucun message aujourd&#39;hui.</div>';
         return;
       }
+
+      /* PROMPT 030 — Vibration si nouveaux messages urgents du restaurant */
+      var fromResto=msgs.filter(function(m){return m.sender_type==='restaurant';});
+      if(fromResto.length>_lastMsgCount&&fromResto.length>0){
+        var newest=fromResto[0];
+        var isUrgent=newest&&(newest.message||'').toLowerCase().indexOf('urgent')!==-1;
+        if(isUrgent){try{if(navigator.vibrate)navigator.vibrate([200,100,200,100,400]);}catch(e){}}
+      }
+      /* PROMPT 030 — Badge */
+      var unread=fromResto.filter(function(m){return !m.read_at;}).length;
+      _lastMsgCount=fromResto.length;
+      updateMsgTabBadge(unread);
+
       var listHtml=msgs.map(function(m){
         var dt=m.created_at?new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
         var cls=m.sender_type==='restaurant'?'restaurant':m.sender_type==='driver'?'driver':'system';
-        var lbl=m.sender_type==='restaurant'?'Restaurant':m.sender_type==='driver'?'Vous':'Systeme';
+        var lbl=m.sender_type==='restaurant'?'Restaurant':m.sender_type==='driver'?'Vous':'Système';
         return '<div class="msg-card">'
-          +'<div class="msg-header"><span class="msg-sender '+cls+'">'+lbl+(m.sender_name&&m.sender_type!=='driver'?' - '+escH(String(m.sender_name)):'')+'</span><span class="msg-time">'+dt+'</span></div>'
+          +'<div class="msg-header"><span class="msg-sender '+cls+'">'
+          +lbl+(m.sender_name&&m.sender_type!=='driver'?' · '+escH(String(m.sender_name)):'')+
+          '</span><span class="msg-time">'+dt+'</span></div>'
           +'<div class="msg-text">'+escH(String(m.message||''))+'</div>'
           +'</div>';
       }).join('');
-      body.innerHTML=sendRow+listHtml;
+      body.innerHTML=qrRow+sendRow+listHtml;
     })
     .catch(function(){
       var sendRow='<div class="msg-send-row"><input class="msg-input" id="msg-input-tab" type="text" placeholder="Message au restaurant..." onkeydown="if(event.key===\'Enter\')sendDeliveryMsgFromTab()"><button class="msg-send-btn" onclick="sendDeliveryMsgFromTab()">Envoyer</button></div>';
       body.innerHTML=sendRow+'<div style="padding:16px;text-align:center;color:var(--muted)">Messages non disponibles.</div>';
     });
+}
+
+/* PROMPT 030 — Quick reply sender (livreur) */
+function sendLivreurQR(txt){
+  if(!LIVREUR_ACTIF||!txt)return;
+  var activeOrder=_orders.find(function(o){
+    return (o.status==='out_for_delivery'||o.status==='ready')&&String(o.livreur_id)===String(LIVREUR_ACTIF.id);
+  });
+  var ordId=activeOrder?String(activeOrder.id):null;
+  sbInsert('veraluz_delivery_messages',{
+    tenant_id:'veraluz-001',
+    order_id:ordId,
+    sender_type:'driver',
+    sender_id:String(LIVREUR_ACTIF.id||''),
+    sender_name:(LIVREUR_ACTIF.prenom||'')+' '+(LIVREUR_ACTIF.nom||''),
+    message:txt,message_type:'text'
+  }).then(function(){
+    logLivreurMsgEvent(txt, ordId);
+    toast(txt,'ok');
+    renderMessagesTab();
+  }).catch(function(){toast('Erreur envoi','err');});
 }
 
 function sendDeliveryMsgFromTab(){
@@ -1982,15 +2085,19 @@ function sendDeliveryMsgFromTab(){
   })||_orders.find(function(o){
     return o.status==='ready'&&String(o.livreur_id)===String(LIVREUR_ACTIF.id);
   });
+  var ordId=activeOrder?String(activeOrder.id):null;
   sbInsert('veraluz_delivery_messages',{
     tenant_id:'veraluz-001',
-    order_id:activeOrder?String(activeOrder.id):null,
+    order_id:ordId,
     sender_type:'driver',
     sender_id:String(LIVREUR_ACTIF.id||''),
     sender_name:(LIVREUR_ACTIF.prenom||'')+' '+(LIVREUR_ACTIF.nom||''),
     message:txt,message_type:'text'
-  }).then(function(){toast('Message envoye','ok');renderMessagesTab();})
-    .catch(function(){toast('Erreur envoi','err');inp.value=txt;});
+  }).then(function(){
+    logLivreurMsgEvent(txt, ordId);
+    toast('Message envoyé','ok');
+    renderMessagesTab();
+  }).catch(function(){toast('Erreur envoi','err');inp.value=txt;});
 }
 
 function renderProfil(){

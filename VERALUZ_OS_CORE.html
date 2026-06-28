@@ -797,6 +797,9 @@ var MODULES = [
   /* PROMPT 019 — Coffre Documentaire Minimal */
   { id:'documents',   label:'Documents',      icon:'🗂️',
     file:'DOCUMENTS_EMBEDDED.html',   desc:'Coffre · Métadonnées · Échéances · Juridique' },
+  /* PROMPT 030 — Messagerie Opérationnelle Interne */
+  { id:'messages',    label:'Messages',       icon:'💬',
+    file:'MESSAGES_EMBEDDED.html',    desc:'Messagerie interne · Commandes · Chloé · Brouillons' },
 ];
 
 /* ══════════════════════════════════════════════════════════════════
@@ -924,7 +927,9 @@ var SVG_ICONS = {
   notif_bell:    '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>',
   logout:        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
   refresh:       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>',
-  ai_center:     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 014 4v1h1a3 3 0 013 3v6a3 3 0 01-3 3H7a3 3 0 01-3-3v-6a3 3 0 013-3h1V6a4 4 0 014-4z"/><circle cx="9" cy="13" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.5" fill="currentColor" stroke="none"/><path d="M9 17c1 1 5 1 6 0"/></svg>'
+  ai_center:     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 014 4v1h1a3 3 0 013 3v6a3 3 0 01-3 3H7a3 3 0 01-3-3v-6a3 3 0 013-3h1V6a4 4 0 014-4z"/><circle cx="9" cy="13" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.5" fill="currentColor" stroke="none"/><path d="M9 17c1 1 5 1 6 0"/></svg>',
+  /* PROMPT 030 */
+  messages:      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>'
 };
 
 
@@ -2605,6 +2610,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 /* ── Notification Badge ──────────────────────────────────── */
 var _notifCount = 0;
+var _msgCount   = 0;  /* PROMPT 030 : messages internes non lus */
 function updateNotifBadge(count) {
   _notifCount = count || 0;
   var badge = document.getElementById('notif-badge');
@@ -2614,6 +2620,26 @@ function updateNotifBadge(count) {
     badge.classList.add('visible');
   } else {
     badge.classList.remove('visible');
+  }
+}
+function updateMsgBadge(count) {
+  /* PROMPT 030 : badge messages dans la sidebar sur le bouton nav */
+  _msgCount = count || 0;
+  var navBtn = document.getElementById('nav-messages');
+  if (!navBtn) return;
+  var existing = navBtn.querySelector('.nav-msg-badge');
+  if (_msgCount > 0) {
+    if (!existing) {
+      var b = document.createElement('span');
+      b.className = 'nav-msg-badge notif-badge visible';
+      b.style.cssText = 'top:-3px;right:-3px;font-size:9px;min-width:14px;height:14px;line-height:14px;';
+      navBtn.style.position = 'relative';
+      navBtn.appendChild(b);
+      existing = b;
+    }
+    existing.textContent = _msgCount > 99 ? '99+' : String(_msgCount);
+  } else {
+    if (existing) existing.remove();
   }
 }
 function openNotifications() { loadModule('notifications'); }
@@ -2864,6 +2890,10 @@ var EventBus = {
     /* ── Core-level side-effects ── */
     if (source === 'veraluz-notifications' && type === 'notification-count') {
       updateNotifBadge(data && data.unread ? data.unread : 0);
+    }
+    /* PROMPT 030 — badge messages internes */
+    if (source === 'veraluz-messages' && type === 'message-count') {
+      updateMsgBadge(data && data.unread ? data.unread : 0);
     }
 
     /* ── Envoi email depuis modules ── */
@@ -3340,29 +3370,4 @@ window.addEventListener('DOMContentLoaded', function(){
   <!-- Entête + bouton fermer -->
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
     <div style="font-size:13px;font-weight:700;color:#e2e8f0;">📲 Installer VERALUZ OS</div>
-    <button onclick="document.getElementById('vlz-pwa-install-banner').style.display='none'"
-      style="flex-shrink:0;padding:3px 9px;background:rgba(255,255,255,.08);color:#94a3b8;border:none;
-      border-radius:6px;font-size:14px;cursor:pointer;line-height:1.4;" title="Fermer">✕</button>
-  </div>
-  <!-- Description -->
-  <div style="font-size:11px;color:#94a3b8;line-height:1.5;">
-    Accès rapide depuis votre écran d'accueil, même hors ligne.
-  </div>
-  <!-- Bouton natif Chrome/Edge/Android — affiché si beforeinstallprompt disponible -->
-  <button id="vlz-pwa-install-btn" onclick="vlzTriggerInstall()" style="display:none;
-    width:100%;padding:11px;background:#22d3a5;color:#0d0d1a;border:none;border-radius:9px;
-    font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">⬇ Installer l'application</button>
-  <!-- Instructions manuelles par plateforme (masquées si API disponible) -->
-  <div id="vlz-pwa-instructions" style="font-size:11px;color:#64748b;background:rgba(255,255,255,.04);
-    border-radius:8px;padding:10px 12px;line-height:1.9;">
-    📱 <strong style="color:#94a3b8;">iPhone / iPad</strong><br>
-    &nbsp;&nbsp;Partager ⬆ → Ajouter à l'écran d'accueil<br>
-    🤖 <strong style="color:#94a3b8;">Android</strong><br>
-    &nbsp;&nbsp;Menu &#8942; → Ajouter à l'écran d'accueil<br>
-    🖥 <strong style="color:#94a3b8;">Chrome / Edge</strong><br>
-    &nbsp;&nbsp;Icône &#8853; dans la barre d'adresse
-  </div>
-</div>
-
-</body>
-</html>
+    <button onclick="docum
