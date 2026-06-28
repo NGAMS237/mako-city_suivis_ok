@@ -242,10 +242,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
     <!-- PAIE WORKFLOW -->
     <div class="pane" id="pane-pay">
+      <!-- PROMPT 020B — M7: Bandeau legacy informatif -->
+      <div style="background:rgba(245,158,11,0.1);border:1px solid var(--warn);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;line-height:1.5;">
+        <strong>&#9888; Historique paie legacy</strong> &mdash; Cet onglet affiche les fiches de l&rsquo;ancienne table <code>veraluz_payroll</code>. Pour le cycle de paie formel avec workflow multi-niveaux, CNPS, IRPP et tra&#231;abilit&#233;, utilisez l&rsquo;onglet <strong>&#128197; P&eacute;riodes</strong>. Les actions d&rsquo;&eacute;criture sont <strong>d&eacute;sactiv&eacute;es</strong> ici.
+      </div>
       <div class="pay-step">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <span class="step-num">1</span>
-          <span style="font-size:14px;font-weight:700;">Cycle de paie</span>
+          <span style="font-size:14px;font-weight:700;">Aper&#231;u paie legacy (lecture seule)</span>
         </div>
         <div class="card-row">
           <div class="kpi"><div class="kpi-v" id="pay-mass">&#8212;</div><div class="kpi-l">Masse salariale</div></div>
@@ -253,20 +257,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <div class="kpi ok"><div class="kpi-v" id="pay-paid">&#8212;</div><div class="kpi-l">Pay&#233;es</div></div>
         </div>
         <div class="btn-row">
-          <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" /><button class="btn btn-primary" onclick="calcPayroll()">&#128200; Calculer la paie du mois</button>
-          <button class="btn btn-sec"     onclick="openAddPay()">&#43; Fiche manuelle</button>
-          <button class="btn btn-sec"     onclick="exportPayCSV()">&#128438; Export banque</button>
+          <!-- PROMPT 020B — M6: calcPayroll garde son rôle de preview (lecture), les écrits sont désactivés -->
+          <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" /><button class="btn btn-primary" onclick="calcPayroll()">&#128200; Aper&#231;u legacy</button>
+          <button class="btn btn-sec" disabled title="D&eacute;sactiv&eacute; — utilisez l&rsquo;onglet P&eacute;riodes" style="opacity:.4;cursor:not-allowed;">&#43; Fiche manuelle</button>
+          <button class="btn btn-sec" disabled title="Export banque d&eacute;sactiv&eacute; &mdash; PROMPT 021" style="opacity:.4;cursor:not-allowed;">&#128438; Export banque</button>
         </div>
       </div>
       <div id="payroll-preview" style="display:none;" class="pay-step">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <span class="step-num">2</span>
-          <span style="font-size:14px;font-weight:700;">V&#233;rifier &amp; Approuver</span>
+          <span style="font-size:14px;font-weight:700;">Aper&#231;u &mdash; consultation uniquement</span>
         </div>
         <div id="payroll-table-wrap"></div>
         <div class="btn-row" style="margin-top:12px;">
-          <button class="btn btn-primary" onclick="approveAllPayroll()">&#9989; Approuver tout</button>
-          <button class="btn btn-sec"     onclick="document.getElementById('payroll-preview').style.display='none'">Annuler</button>
+          <!-- PROMPT 020B — M6: approveAllPayroll désactivé — écriture via onglet Périodes -->
+          <button class="btn btn-sec" disabled title="Approbation d&eacute;sactiv&eacute;e &mdash; utilisez l&rsquo;onglet P&eacute;riodes" style="opacity:.4;cursor:not-allowed;">&#9989; Approuver tout</button>
+          <button class="btn btn-sec" onclick="document.getElementById('payroll-preview').style.display='none'">Fermer</button>
         </div>
       </div>
       <div id="pay-list"><div class="empty"><div class="empty-ico">&#128176;</div>Chargement&#8230;</div></div>
@@ -848,8 +854,16 @@ function initParamSelects(){
   var calEl=document.getElementById('calc-month');if(calEl&&!calEl.value)calEl.value=new Date().toISOString().slice(0,7);
 }
 function safeGet(t){
+  /* PROMPT 020B — M10: erreurs Supabase enrichies avec code HTTP */
   return GET(t).catch(function(e){
-    console.warn('RH load failed ['+t+']:', e.message||e);
+    var raw=e.message||String(e);
+    var m=raw.match(/\b(4\d{2}|5\d{2})\b/);
+    var code=m?m[1]:'';
+    var hint=code==='401'?' — clé anon invalide (vérifier SUPA_KEY)':
+             code==='403'?' — RLS bloque l\'accès anon':
+             code==='404'?' — table introuvable (vérifier migration)':
+             code==='429'?' — trop de requêtes (rate limit Supabase)':'';
+    console.warn('RH safeGet ['+t+']'+(code?' HTTP '+code:'')+hint+':', raw);
     return [];
   });
 }
@@ -900,8 +914,15 @@ function loadAll(){
       }
     }
   }).catch(function(e){
-    var msg='Erreur chargement: '+(e.message||e);
-    if(banner){banner.textContent=msg;banner.style.display='block';banner.style.color='var(--danger)';}
+    /* PROMPT 020B — M10: message Supabase avec code HTTP */
+    var raw=e.message||String(e);
+    var m=raw.match(/\b(4\d{2}|5\d{2})\b/);
+    var code=m?m[1]:'';
+    var hint=code==='401'?' — clé anon manquante ou invalide':
+             code==='403'?' — RLS bloque l\'accès anon':
+             code==='404'?' — table introuvable (vérifier migrations)':'';
+    var msg='Erreur Supabase'+(code?' ('+code+')':'')+hint;
+    if(banner){banner.textContent=msg+'. '+raw;banner.style.display='block';banner.style.color='var(--danger)';}
     toast(msg,'err');
   });
 }
@@ -1439,23 +1460,23 @@ function loadPay(){
   renderPay();
 }
 function renderPay(){
+  /* PROMPT 020B — M9: libellés statuts legacy normalisés */
+  var payStatusLabel={'en_attente':'En attente','approuve':'Approuvé','paye':'Payé'};
   var list=PAYROLLS;
   var el=document.getElementById('pay-list');
   if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128176;</div>Aucune fiche de paie</div>';return;}
   el.innerHTML=list.map(function(p){
     var emp=EMPS.find(function(e){return e.id===p.employee_id;});
+    var stLbl=payStatusLabel[p.status]||esc(p.status);
     return '<div class="card" style="margin-bottom:8px;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
       +'<span style="font-weight:700;">'+esc(emp?emp.full_name:'—')+'</span>'
-      +'<span class="bdg '+(p.status==='paye'?'ok':p.status==='approuve'?'acc':'warn')+'">'+esc(p.status)+'</span>'
+      +'<span class="bdg '+(p.status==='paye'?'ok':p.status==='approuve'?'acc':'warn')+'">'+stLbl+'</span>'
       +'</div>'
       +'<div style="font-size:12px;color:var(--text3);">'+esc(payM(p)||'')+'</div>'
       +'<div style="font-size:16px;font-weight:800;color:var(--acc1);margin-top:4px;">'+fmt(netOf(p))+' FCFA</div>'
-      +'<div class="btn-row" style="margin-top:8px;margin-bottom:0;">'
-      +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; PDF</button>'
-      +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="sendPayslipEmail(this.dataset.pid)">&#128140; Email</button>'
-      +(p.status!=='paye'?'<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">&#9989; Payer</button>':'')
-      +'</div>'
+      /* PROMPT 020B — M6: PDF/Email/Payer désactivés — consultation uniquement */
+      +'<div style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic;">Lecture seule — utilisez l’onglet Périodes pour les actions</div>'
       +'</div>';
   }).join('');
 }
@@ -1702,18 +1723,46 @@ function loadAdv(){
   document.getElementById('adv-repaid').textContent=ADVANCES.filter(function(a){return a.status==='rembourse';}).length;
   var el=document.getElementById('adv-list');
   if(!ADVANCES.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128180;</div>Aucune avance</div>';return;}
+  /* PROMPT 020B — M4: libellés statuts avances + boutons approve/reject */
+  var advStatusLabel={'en_attente':'En attente','approuve':'Approuvée','rembourse':'Remboursée','rejete':'Rejetée'};
   el.innerHTML=ADVANCES.map(function(a){
     var emp=EMPS.find(function(e){return e.id===a.employee_id;});
+    var stLbl=advStatusLabel[a.status]||esc(a.status);
+    var stCls=a.status==='rembourse'||a.status==='approuve'?'ok':a.status==='rejete'?'danger':'warn';
     return '<div class="entry"><div class="entry-ico warn">&#128180;</div>'
       +'<div class="entry-body"><div class="entry-title">'+esc(emp?emp.full_name:'—')+'</div>'
-      +'<div class="entry-sub">'+fdate(a.date)+(a.reason?' · '+esc(a.reason):'')+'</div></div>'
+      /* PROMPT 020B — M8: colonne requested_at (pas date) dans veraluz_advances */
+      +'<div class="entry-sub">'+fdate(a.requested_at||a.date)+(a.reason?' · '+esc(a.reason):'')+'</div>'
+      +(a.status==='en_attente'?'<div class="btn-row" style="margin-top:4px;margin-bottom:0;">'
+        +'<button class="btn btn-primary btn-sm" data-aid="'+esc(a.id)+'" onclick="approveAdv(this.dataset.aid)">&#10003; Approuver</button>'
+        +'<button class="btn btn-sec btn-sm" data-aid="'+esc(a.id)+'" onclick="rejectAdv(this.dataset.aid)">&#10005; Rejeter</button>'
+        +'</div>':'')
+      +'</div>'
       +'<div><div class="entry-amt amt-neg">'+fmt(a.amount)+' F</div>'
-      +'<span class="bdg '+(a.status==='rembourse'?'ok':'warn')+'">'+esc(a.status)+'</span></div>'
+      +'<span class="bdg '+stCls+'">'+stLbl+'</span></div>'
       +'</div>';
   }).join('');
 }
+/* PROMPT 020B — M4: Approbation / Rejet des avances */
+function approveAdv(id){
+  if(!confirm('Approuver cette avance ? Elle sera déduite lors du prochain calcul de paie.'))return;
+  PATCH('veraluz_advances',id,{status:'approuve'}).then(function(){
+    var a=ADVANCES.find(function(x){return x.id===id;});
+    if(a)a.status='approuve';
+    loadAdv();toast('Avance approuvée ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+function rejectAdv(id){
+  if(!confirm('Rejeter cette avance ?'))return;
+  PATCH('veraluz_advances',id,{status:'rejete'}).then(function(){
+    var a=ADVANCES.find(function(x){return x.id===id;});
+    if(a)a.status='rejete';
+    loadAdv();toast('Avance rejetée','warn');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
 function saveAdv(){
-  var d={id:gid(),employee_id:document.getElementById('adv-emp').value,amount:parseFloat(document.getElementById('adv-amount').value)||0,date:document.getElementById('adv-date').value,reason:document.getElementById('adv-reason').value.trim()||null,status:'en_attente'};
+  /* PROMPT 020B — M8: colonne requested_at (pas date) dans veraluz_advances */
+  var d={id:gid(),employee_id:document.getElementById('adv-emp').value,amount:parseFloat(document.getElementById('adv-amount').value)||0,requested_at:document.getElementById('adv-date').value,reason:document.getElementById('adv-reason').value.trim()||null,status:'en_attente'};
   if(!d.employee_id||!d.amount){toast('Employ&#233; et montant requis','err');return;}
   POST('veraluz_advances',d).then(function(r){ADVANCES.unshift(r[0]||d);closeMd('md-add-adv');loadAdv();toast('Avance enregistr&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
@@ -1778,7 +1827,8 @@ function setHistFilter(f,btn){_histFilter=f;document.querySelectorAll('#pane-his
 function loadHist(){
   var all=[];
   PAYROLLS.forEach(function(p){var emp=EMPS.find(function(e){return e.id===p.employee_id;});all.push({date:p.created_at,type:'payroll',desc:'Paie '+(payM(p)||'')+(emp?' — '+emp.full_name:''),amount:netOf(p),status:p.status});});
-  ADVANCES.forEach(function(a){var emp=EMPS.find(function(e){return e.id===a.employee_id;});all.push({date:a.date+'T12:00:00Z',type:'advance',desc:'Avance'+(emp?' — '+emp.full_name:''),amount:a.amount||0,status:a.status});});
+  /* PROMPT 020B — M8: requested_at est la colonne date dans veraluz_advances */
+  ADVANCES.forEach(function(a){var emp=EMPS.find(function(e){return e.id===a.employee_id;});all.push({date:(a.requested_at||a.date||'1970-01-01')+'T12:00:00Z',type:'advance',desc:'Avance'+(emp?' — '+emp.full_name:''),amount:a.amount||0,status:a.status});});
   TASKS.forEach(function(t){var emp=EMPS.find(function(e){return e.id===t.employee_id;});all.push({date:t.created_at||t.due_date+'T12:00:00Z',type:'task',desc:t.title+(emp?' — '+emp.full_name:''),amount:0,status:t.status});});
   ATTS.forEach(function(a){var emp=EMPS.find(function(e){return e.id===a.employee_id;});all.push({date:a.date+'T08:00:00Z',type:'attendance',desc:'Pointage '+(emp?emp.full_name:''),amount:0,status:a.status});});
   all.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
@@ -2152,6 +2202,15 @@ document.addEventListener('DOMContentLoaded',function(){
   var td=new Date().toISOString().slice(0,10);
   var tm=new Date().toISOString().slice(0,7);
   setVal('att-date',td);setVal('adv-date',td);setVal('att-md-date',td);
+  setVal('calc-month',tm);setVal('pay-month',tm);setVal('bonus-month',tm);
+  /* PROMPT 020B — M3: Fermer modal au clic sur l'overlay (en dehors du .md) */
+  document.querySelectorAll('.ov').forEach(function(ov){
+    ov.addEventListener('click',function(e){
+      if(e.target!==ov)return;
+      if(ov.id==='md-dossier'){closeDossier();}
+      else if(ov.id){closeMd(ov.id);}
+    });
+  });
   loadAll();
 });
 
@@ -2316,6 +2375,10 @@ function calcPeriode(pid){
   if(period.status==='validated_owner'||period.status==='paid'){
     toast('Impossible de recalculer : période validée propriétaire ou payée. Créez une correction.','err');return;
   }
+  /* PROMPT 020B — M5: confirmation si validée manager (recalcul efface la validation) */
+  if(period.status==='validated_manager'){
+    if(!confirm('Attention : cette période est déjà validée par le manager.\nRecalculer effacera la validation et remettra la période à l\'état Calculée.\n\nContinuer ?'))return;
+  }
   var month=period.start_date?period.start_date.slice(0,7):'';
   var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
   var who=sess.username||sess.email||'DEV';
@@ -2475,7 +2538,81 @@ function validateMgrPeriode(pid){
   var updates={status:'validated_manager',validated_by_manager:who,validated_by_manager_at:now};
   var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
   var proms=its.map(function(item){
-    return PATCH('veraluz_payroll_items',item.id,{status:'validated_manager'}).then(function(){item.status='validated_manager';});
+    return PATCH('veraluz_payroll_items',item.d,{status:'paid'}).then(function(){item.status='paid';});
+  });
+  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
+  .then(function(){
+    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
+    toast('Période marquée comme payée ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+/* FIN PROMPT 020 — PAIE FORMELLE */
+
+// ─── Auto-login depuis le Core Veraluz OS (postMessage) ─────────────────────
+window.addEventListener('message', function(ev) {
+  if (!ev.data || ev.data.source !== 'veraluz-core') return;
+  if (ev.data.type !== 'auth-context') return;
+  var d = ev.data.data || {};
+  var empId = d.employee_id || null;
+  if (!empId) return;
+  function tryAutoLogin(attempts) {
+    var emp = EMPS.find(function(e) { return e.id === empId; });
+    if (emp) {
+      LOGGED_EMP = emp;
+      var ls = document.getElementById('login-screen');
+      if (ls) ls.classList.remove('on');
+      showClockScreen();
+    } else if ((attempts || 0) < 10) {
+      setTimeout(function() { tryAutoLogin((attempts || 0) + 1); }, 500);
+    } else {
+      console.warn('RH auto-login: employé introuvable dans EMPS pour id=' + empId);
+    }
+  }
+  tryAutoLogin(0);
+});
+</script>
+
+<!-- PROMPT 020 — Modal nouvelle période -->
+<div class="ov" id="md-new-periode">
+  <div class="md">
+    <div class="mdhdr"><h3>&#128197; Nouvelle p&eacute;riode de paie</h3><button class="mdc" onclick="closeMd('md-new-periode')">&#10005;</button></div>
+    <label class="fl">Libell&eacute; de la p&eacute;riode</label>
+    <input class="fi" id="per-label" type="text" placeholder="Ex : Juin 2026" />
+    <div class="fg">
+      <div><label class="fl">Date de d&eacute;but</label><input class="fi" id="per-start" type="date" style="margin-bottom:0;"></div>
+      <div><label class="fl">Date de fin</label><input class="fi" id="per-end" type="date" style="margin-bottom:0;"></div>
+    </div>
+    <label class="fl">Notes (optionnel)</label>
+    <input class="fi" id="per-notes" type="text" placeholder="Observations sur cette p&eacute;riode..." />
+    <div style="font-size:11px;color:var(--text3);margin:8px 0;padding:6px 10px;background:rgba(99,102,241,0.06);border-radius:6px;">
+      La p&eacute;riode sera cr&eacute;&eacute;e en statut <strong>Brouillon</strong>. Le calcul se fera depuis la liste.
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="createPeriode()">&#10003; Cr&eacute;er la p&eacute;riode</button>
+      <button class="btn btn-sec" onclick="closeMd('md-new-periode')">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal signature électronique -->
+<div class="ov" id="md-sign-contract">
+  <div class="md" style="max-width:600px;">
+    <div class="mdhdr"><h3>&#9997;&#65039; Signature &eacute;lectronique</h3><button class="mdc" onclick="closeMd('md-sign-contract')">&#10005;</button></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <span style="font-weight:600;" id="sign-emp-name">&#8212;</span>
+      <span class="bdg warn" id="sign-status">Non sign&eacute;</span>
+    </div>
+    <div style="max-height:180px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;font-family:monospace;white-space:pre-wrap;margin-bottom:10px;" id="sign-contract-body"></div>
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;">Signature :</div>
+    <canvas id="sign-pad" width="500" height="150" style="border:1px solid var(--border);border-radius:6px;cursor:crosshair;width:100%;background:#f8f8f8;touch-action:none;"></canvas>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn btn-primary" onclick="signContract()">&#9989; Valider la signature</button>
+      <button class="btn btn-sec" onclick="clearSignPad()">&#128465; Effacer</button>
+      <button class="btn btn-sec" onclick="closeMd('md-sign-contract')">Fermer</button>
+    </div>
+  </div>
+</div>
+</body></html>d,{status:'validated_manager'}).then(function(){item.status='validated_manager';});
   });
   Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
   .then(function(){
@@ -2523,85 +2660,4 @@ function markPeriodePaid(pid){
   var updates={status:'paid',paid_by:who,paid_at:now};
   var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
   var proms=its.map(function(item){
-    return PATCH('veraluz_payroll_items',item.id,{status:'paid'}).then(function(){item.status='paid';});
-  });
-  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
-  .then(function(){
-    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
-    toast('Période marquée comme payée ✅','ok');
-  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
-}
-/* FIN PROMPT 020 — PAIE FORMELLE */
-
-// ─── Auto-login depuis le Core Veraluz OS (postMessage) ─────────────────────
-// Quand l'employé se connecte via le NIP dans le Core, le Core envoie
-// l'employee_id ici via postMessage. On définit LOGGED_EMP automatiquement
-// et on affiche l'écran de pointage sans repasser par le login interne.
-window.addEventListener('message', function(ev) {
-  if (!ev.data || ev.data.source !== 'veraluz-core') return;
-  if (ev.data.type !== 'auth-context') return;
-  var d = ev.data.data || {};
-  var empId = d.employee_id || null;
-  if (!empId) return;
-
-  // EMPS peut encore être en cours de chargement depuis Supabase.
-  // On réessaie jusqu'à 10 fois (toutes les 500 ms = 5 secondes max).
-  function tryAutoLogin(attempts) {
-    var emp = EMPS.find(function(e) { return e.id === empId; });
-    if (emp) {
-      LOGGED_EMP = emp;
-      // Fermer l'écran de login interne s'il est affiché
-      var ls = document.getElementById('login-screen');
-      if (ls) ls.classList.remove('on');
-      // Afficher directement l'écran de pointage
-      showClockScreen();
-    } else if ((attempts || 0) < 10) {
-      setTimeout(function() { tryAutoLogin((attempts || 0) + 1); }, 500);
-    } else {
-      console.warn('RH auto-login: employé introuvable dans EMPS pour id=' + empId);
-    }
-  }
-  tryAutoLogin(0);
-});
-</script>
-
-<!-- PROMPT 020 — Modal nouvelle période de paie -->
-<div class="ov" id="md-new-periode">
-  <div class="md">
-    <div class="mdhdr"><h3>&#128197; Nouvelle p&eacute;riode de paie</h3><button class="mdc" onclick="closeMd('md-new-periode')">&#10005;</button></div>
-    <label class="fl">Libell&eacute; de la p&eacute;riode</label>
-    <input class="fi" id="per-label" type="text" placeholder="Ex : Juin 2026" />
-    <div class="fg">
-      <div><label class="fl">Date de d&eacute;but</label><input class="fi" id="per-start" type="date" style="margin-bottom:0;"></div>
-      <div><label class="fl">Date de fin</label><input class="fi" id="per-end" type="date" style="margin-bottom:0;"></div>
-    </div>
-    <label class="fl">Notes (optionnel)</label>
-    <input class="fi" id="per-notes" type="text" placeholder="Observations sur cette p&eacute;riode..." />
-    <div style="font-size:11px;color:var(--text3);margin:8px 0;padding:6px 10px;background:rgba(99,102,241,0.06);border-radius:6px;">
-      La p&eacute;riode sera cr&eacute;&eacute;e en statut <strong>Brouillon</strong>. Le calcul se fera depuis la liste.
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="createPeriode()">&#10003; Cr&eacute;er la p&eacute;riode</button>
-      <button class="btn btn-sec" onclick="closeMd('md-new-periode')">Annuler</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal signature électronique -->
-<div class="ov" id="md-sign-contract">
-  <div class="md" style="max-width:600px;">
-    <div class="mdhdr"><h3>&#9997;&#65039; Signature &eacute;lectronique</h3><button class="mdc" onclick="closeMd('md-sign-contract')">&#10005;</button></div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-      <span style="font-weight:600;" id="sign-emp-name">&#8212;</span>
-      <span class="bdg warn" id="sign-status">Non sign&eacute;</span>
-    </div>
-    <div style="max-height:180px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;font-family:monospace;white-space:pre-wrap;margin-bottom:10px;" id="sign-contract-body"></div>
-    <div style="margin-bottom:8px;font-size:12px;font-weight:700;">Signature :</div>
-    <canvas id="sign-pad" width="500" height="150" style="border:1px solid var(--border);border-radius:6px;cursor:crosshair;width:100%;background:#f8f8f8;touch-action:none;"></canvas>
-    <div class="btn-row" style="margin-top:10px;">
-      <button class="btn btn-primary" onclick="signContract()">&#9989; Valider la signature</button>
-      <button class="btn btn-sec" onclick="clearSignPad()">&#128465; Effacer</button>
-      <button class="btn btn-sec" onclick="closeMd('md-sign-contract')">Fermer</button>
-    </div>
-  </div>
-</div>
+    return PATCH('veraluz_payroll_items',item.i
