@@ -609,6 +609,7 @@ function sbPatch(table,id,data){
    STATE
 ══════════════════════════════════════════ */
 var LIVREURS=[], LIVREUR_ACTIF=null;
+var LIVREUR_BUILD = 'v031-final-day-2026-06-28'; /* PROMPT 031 */
 var _orders=[], _orderTab='pickup', _online=navigator.onLine, _curId=null, _interval=null;
 var _pointages=[], _pinBuffer='';
 var _lastSync=null;  // PROMPT 005: dernière synchronisation réussie
@@ -686,27 +687,66 @@ function toast(msg,type){
 /* ══════════════════════════════════════════
    PIN — LOAD LIVREURS
 ══════════════════════════════════════════ */
+/* PROMPT 031 : loadLivreurs avec fallback veraluz_employees + erreurs detaillees */
 function loadLivreurs(){
   var sel=document.getElementById('pin-livreur-sel');
   var lbl=document.getElementById('pin-loading');
   lbl.textContent='Chargement…';
-  /* PROMPT 009: vue publique sans pin_code — PIN vérifié par Edge Function uniquement */
-  /* PROMPT 006: return Promise pour que DOMContentLoaded puisse attendre */
+
+  /* Helper : peupler le select depuis un tableau de lignes */
+  function _populate(rows){
+    var livrows=rows.filter(isDeliveryEmployee);
+    LIVREURS=livrows.map(normalizeEmployee);
+    sel.innerHTML='<option value="">— Sélectionnez —</option>';
+    if(!LIVREURS.length){
+      var o=document.createElement('option');
+      o.disabled=true;
+      o.textContent='Aucun livreur actif — ajoutez-en dans RH';
+      sel.appendChild(o);
+      lbl.textContent='Aucun livreur actif trouvé.';
+      return;
+    }
+    LIVREURS.forEach(function(lv){
+      var o=document.createElement('option');
+      o.value=lv.id;
+      o.textContent=lv.full_name||(lv.prenom+' '+lv.nom).trim()||lv.id;
+      sel.appendChild(o);
+    });
+    lbl.textContent='';
+  }
+
+  /* Tentative 1 : vue veraluz_employees_public (public_display_name + identity_verified) */
   return sbFetch('veraluz_employees_public?select=id,full_name,role,status,team_id,team_name,phone,email,hire_date,photo_url,public_display_name,identity_verified&order=full_name.asc')
     .then(function(rows){
-      /* Filtre via isDeliveryEmployee() : équipe OU rôle */
-      var livrows = rows.filter(isDeliveryEmployee);
-      LIVREURS = livrows.map(normalizeEmployee);
-      sel.innerHTML='<option value="">— Sélectionnez —</option>';
-      LIVREURS.forEach(function(lv){
-        var o=document.createElement('option');
-        o.value=lv.id;
-        o.textContent=lv.full_name;
-        sel.appendChild(o);
-      });
-      lbl.textContent='';
+      _populate(rows||[]);
     })
-    .catch(function(){lbl.textContent='Erreur réseau — vérifiez la connexion.';});
+    .catch(function(e1){
+      /* Tentative 2 : fallback direct veraluz_employees */
+      console.warn('[LIVREUR] veraluz_employees_public echec:',e1&&e1.message||e1,'— fallback veraluz_employees');
+      return sbFetch('veraluz_employees?select=id,full_name,role,status,team_id,phone,photo_url,public_display_name,identity_verified&status=eq.actif&order=full_name.asc')
+        .then(function(rows2){
+          console.log('[LIVREUR] Fallback veraluz_employees OK:',rows2&&rows2.length,'lignes');
+          _populate(rows2||[]);
+        })
+        .catch(function(e2){
+          /* Tentative 3 : fallback sans colonnes optionnelles */
+          console.warn('[LIVREUR] Fallback veraluz_employees echec:',e2&&e2.message||e2,'— fallback minimal');
+          return sbFetch('veraluz_employees?select=id,full_name,role,status,team_id,phone&status=eq.actif&order=full_name.asc')
+            .then(function(rows3){
+              _populate(rows3||[]);
+            })
+            .catch(function(e3){
+              var msg='Erreur chargement livreurs';
+              var hint='';
+              if(e3&&e3.status===401||e3&&String(e3).indexOf('401')>=0){msg='Acces bloque (RLS/auth).';hint=' Contactez ladmin.';}
+              else if(e3&&e3.status===400||e3&&String(e3).indexOf('400')>=0){msg='Colonne manquante (400).';hint=' Exécutez MIGRATION_SQL.';}
+              else if(!navigator.onLine){msg='Hors ligne.';hint=' Vérifiez connexion.';}
+              console.error('[LIVREUR] Echec total chargement livreurs:',{e1:e1&&e1.message,e2:e2&&e2.message,e3:e3&&e3.message});
+              lbl.textContent=msg+hint;
+              sel.innerHTML='<option value="">'+(navigator.onLine?'Erreur chargement':'Hors ligne')+'</option>';
+            });
+        });
+    });
 }
 
 function buildPinPad(){

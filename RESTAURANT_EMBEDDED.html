@@ -990,6 +990,7 @@ var payMeth='cash',payOid=null;
 var _tt=null;
 var APP_PROMOS=[], _appSub='promos';
 var LIVREURS=[], _assignOid=null;
+var RESTAURANT_BUILD = 'v031-final-day-2026-06-28'; /* PROMPT 031 */
 
 /* ══════════════════════════════════════════
    NORMALIZE UTILS — VERALUZ CORE v0.3.0
@@ -2018,6 +2019,15 @@ function pickLivreur(btn){
     assigned_at: lid?now027:null,
     delivery_status: lid?'assigned':'waiting_assignment'
   };
+  /* PROMPT 031 : debug log avant PATCH + toast détaillé */
+  console.log('[Restaurant] pickLivreur PATCH', {
+    table: 'veraluz_food_orders',
+    filter: 'id=eq.'+oid,
+    livreur_id: lid,
+    assigned_to: lnom,
+    payload: assignPatch,
+    order: o ? {id:o.id,num:o.order_number,status:o.status} : null
+  });
   PATCH('veraluz_food_orders',oid,assignPatch)
     .then(function(){
       if(o){o.assigned_to=lnom;o.livreur_id=lid;o.assigned_at=lid?now027:null;}
@@ -2025,15 +2035,27 @@ function pickLivreur(btn){
       toast(lnom?'&#128667; '+lnom+' assign&#233;':'Livreur retiré','ok');
     })
     .catch(function(e){
+      console.error('[Restaurant] Erreur assignation:', {
+        message: e&&e.message, code: e&&e.sbCode,
+        details: e&&e.sbDetails, http: e&&e.httpStatus,
+        oid: oid, lid: lid, lnom: lnom, payload: assignPatch
+      });
       if(e&&e.sbCode==='PGRST204'){
-        console.warn('[Restaurant] Colonne manquante assignation. Exécutez MIGRATION_SQL_PROMPT_028.sql');
+        console.warn('[Restaurant] Colonne manquante assignation. Exécutez MIGRATION_SQL_PROMPT_031.sql');
         /* Fallback : assigner sans delivery_status/assigned_at */
         PATCH('veraluz_food_orders',oid,{assigned_to:lnom||null,livreur_id:lid||null})
           .then(function(){if(o){o.assigned_to=lnom;o.livreur_id=lid;}renderKDS();toast(lnom?'&#128667; '+lnom+' assign&#233; (partiel)':'Livreur retiré','ok');})
-          .catch(function(e2){toast('Erreur assignation: '+(e2&&e2.message||'?'),'er');});
+          .catch(function(e2){
+            var msg2='Erreur assignation [F]: '+(e2&&e2.message||'?');
+            if(e2&&e2.sbCode)msg2+=' ['+e2.sbCode+']';
+            toast(msg2,'er');
+          });
         return;
       }
-      toast('Erreur assignation: '+(e&&e.message||'?'),'er');
+      var msg='Erreur assignation: '+(e&&e.message||'?');
+      if(e&&e.sbCode)msg+=' (code: '+e.sbCode+')';
+      if(e&&e.sbDetails)msg+=' — '+e.sbDetails.slice(0,60);
+      toast(msg,'er');
     });
 }
 
