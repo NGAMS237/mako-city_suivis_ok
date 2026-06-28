@@ -1840,10 +1840,19 @@ var TRACK_STATUSES=[
   {id:'out_for_delivery', lbl:'En livraison',   ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>'},
   {id:'delivered',  lbl:'Livrée',         ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'}
 ];
+/* PROMPT 027 : auto-refresh tracking 15s */
+var _trackAutoRefresh=null;
+function startTrackAutoRefresh(){
+  stopTrackAutoRefresh();
+  _trackAutoRefresh=setInterval(function(){if(_trackNum)loadTrackOrder(_trackNum,true);},15000);
+}
+function stopTrackAutoRefresh(){
+  if(_trackAutoRefresh){clearInterval(_trackAutoRefresh);_trackAutoRefresh=null;}
+}
 function openTrack(num){
   _trackNum=num||null;
   document.getElementById('trackOverlay').classList.add('open');
-  if(_trackNum)loadTrackOrder(_trackNum);
+  if(_trackNum){loadTrackOrder(_trackNum);startTrackAutoRefresh();}
 }
 function openTrackFromConfirm(){
   var num=document.getElementById('confirm-num').textContent;
@@ -1908,21 +1917,24 @@ function renderTrackOrder(o){
     +infoHtml
     +'<div class="track-refresh-row" id="trackRefBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Actualiser</div>';
   var rbtn=document.getElementById('trackRefBtn');if(rbtn){rbtn.dataset.num=o.order_number;rbtn.onclick=function(){loadTrackOrder(this.dataset.num);};}
+  /* PROMPT 027 : stopper auto-refresh si livraison terminée */
+  if(o.status==='delivered'||o.status==='cancelled')stopTrackAutoRefresh();
 }
 /* Construit la carte livreur visible côté client — PROMPT 026
    NE PAS AFFICHER : salaire, email, adresse, données RH, tel perso (sauf décision admin) */
 function renderDriverSection(o){
+  /* PROMPT 027 : statuts dynamiques */
   var STATUS_LABELS={
-    pending:          'En attente d\'assignation',
-    confirmed:        'En attente d\'assignation',
+    pending:          'Commande reçue',
+    confirmed:        'Commande confirmée',
     preparing:        'En préparation',
-    ready:            'Livreur bientôt assigné',
+    ready:            'Prêt · Livreur assigné',
     out_for_delivery: 'En route vers vous',
-    delivered:        'Livraison effectuée'
+    delivered:        'Livraison effectuée !'
   };
-  if(o.accepted_at) STATUS_LABELS.out_for_delivery='Commande acceptée · En route';
-  if(o.picked_up_at) STATUS_LABELS.out_for_delivery='Commande récupérée · En route';
-  if(o.arrived_at) STATUS_LABELS.out_for_delivery='Arrivé à destination';
+  if(o.accepted_at)    STATUS_LABELS.ready='Livreur a accepté la commande';
+  if(o.picked_up_at)   STATUS_LABELS.out_for_delivery='Commande récupérée · En route';
+  if(o.arrived_at)     STATUS_LABELS.out_for_delivery='Livreur arrivé à destination !';
   var name=esc(o.assigned_to||'');
   var photoUrl=o.driver_photo_url||'';
   var deliveryStatus=STATUS_LABELS[o.status]||'';

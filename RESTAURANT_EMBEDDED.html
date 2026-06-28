@@ -157,6 +157,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 .snd-btn{padding:3px 7px;border-radius:6px;border:1px solid var(--bord2);background:transparent;
   color:var(--text3);font-size:10px;cursor:pointer;display:flex;align-items:center;gap:3px;flex-shrink:0;transition:all .15s}
 .snd-btn.on{border-color:var(--accent);color:var(--accent)}
+/* PROMPT 027 — Alerte nouvelle commande Food */
+.order-alert-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:#16a34a;color:#fff;
+  padding:10px 14px;display:none;align-items:center;gap:8px;font-size:.82rem;font-weight:700;
+  box-shadow:0 4px 12px rgba(0,0,0,.25);animation:slideDown .3s ease}
+.order-alert-banner.show{display:flex}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+.order-alert-close{margin-left:auto;background:rgba(255,255,255,.2);border:none;color:#fff;
+  border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.9rem;display:flex;
+  align-items:center;justify-content:center;flex-shrink:0}
 .kds-stk-alert{display:flex;align-items:center;gap:7px;padding:5px 10px;
   background:rgba(244,63,94,.08);border-bottom:1px solid rgba(244,63,94,.18);
   font-size:10px;color:var(--danger);flex-shrink:0;line-height:1.4}
@@ -1478,6 +1487,19 @@ var _kdsSnd=true;
 var _kdsInterval=null;
 var _kdsKnownIds=[];
 
+/* ══ PROMPT 027 — Alerte visuelle nouvelles commandes Food ══ */
+function showOrderAlert(n,name){
+  var banner=document.getElementById('order-alert-banner');
+  var txt=document.getElementById('order-alert-txt');
+  if(!banner||!txt)return;
+  txt.textContent=n+' nouvelle(s) commande(s) Food'+(name?' : '+name:'');
+  banner.classList.add('show');
+  setTimeout(function(){banner.classList.remove('show');},8000);
+}
+function dismissOrderAlert(){
+  var b=document.getElementById('order-alert-banner');if(b)b.classList.remove('show');
+}
+
 /* Sound notification */
 function kdsBeep(){
   if(!_kdsSnd)return;
@@ -1596,7 +1618,17 @@ function renderKDS(){
   var ids=all.map(function(o){return o._table+'_'+o._id;});
   if(_kdsKnownIds.length){
     var added=ids.filter(function(id){return _kdsKnownIds.indexOf(id)<0;});
-    if(added.length)kdsBeep();
+    if(added.length){
+      kdsBeep();
+      /* PROMPT 027 : bannière pour nouvelles commandes Food */
+      var newFoodOrd=all.filter(function(o){
+        return o._src==='livraison'&&_kdsKnownIds.indexOf(o._table+'_'+o._id)<0;
+      });
+      if(newFoodOrd.length){
+        var nm=newFoodOrd[0]&&(newFoodOrd[0].customer||newFoodOrd[0].ref||'');
+        showOrderAlert(newFoodOrd.length,nm);
+      }
+    }
   }
   _kdsKnownIds=ids;
   /* Stats */
@@ -1722,8 +1754,12 @@ function kdsUpd(oid,st){
 
 /* Update food web app order status */
 function kdsFoodUpd(oid,st){
+  /* PROMPT 027 : horodatages + delivery_status */
+  var now=new Date().toISOString();
   var patchData={status:st};
-  if(st==='delivered')patchData.delivered_at=new Date().toISOString();
+  var dsMap={'ready':'waiting_assignment','out_for_delivery':'out_for_delivery','delivered':'delivered'};
+  if(dsMap[st])patchData.delivery_status=dsMap[st];
+  if(st==='delivered')patchData.delivered_at=now;
   PATCH('veraluz_food_orders',oid,patchData).then(function(){
     var o=FOOD_ORDERS.find(function(x){return x.id===oid;});if(o)o.status=st;
     renderKDS();toast('&#10003; '+st,'ok');
@@ -1784,9 +1820,18 @@ function pickLivreur(btn){
   closeMd('md-livreur');
   /* PROMPT 026 : copier driver_photo_url au moment de l'assignation */
   var lphoto=btn?btn.dataset.lphoto||null:null;
-  PATCH('veraluz_food_orders',oid,{assigned_to:lnom||null,livreur_id:lid||null,driver_photo_url:lphoto||null})
+  /* PROMPT 027 : enregistrer assigned_at + delivery_status */
+  var now027=new Date().toISOString();
+  var assignPatch={
+    assigned_to: lnom||null,
+    livreur_id:  lid||null,
+    driver_photo_url: lphoto||null,
+    assigned_at: lid?now027:null,
+    delivery_status: lid?'assigned':'waiting_assignment'
+  };
+  PATCH('veraluz_food_orders',oid,assignPatch)
     .then(function(){
-      if(o){o.assigned_to=lnom;o.livreur_id=lid;}
+      if(o){o.assigned_to=lnom;o.livreur_id=lid;o.assigned_at=lid?now027:null;}
       renderKDS();
       toast(lnom?'&#128667; '+lnom+' assign&#233;':'Livreur retiré','ok');
     })
@@ -1837,7 +1882,7 @@ function startKdsPoll(){
       ORDERS=r[0]||[];FOOD_ORDERS=r[1]||[];
       renderKDS();updateBdg();
     }).catch(function(){});
-  },20000);
+  },12000); /* PROMPT 027 : 12s → réactivité livraison */
 }
 function stopKdsPoll(){if(_kdsInterval){clearInterval(_kdsInterval);_kdsInterval=null;}}
 
@@ -3272,6 +3317,12 @@ function saveAppCfg(){
       <button class="btn bp" onclick="savePromo()" style="flex:2">&#128190; Sauvegarder</button>
     </div>
   </div>
+</div>
+<!-- PROMPT 027 — Bannière alerte nouvelle commande Food -->
+<div class="order-alert-banner" id="order-alert-banner">
+  <span>🔔</span>
+  <span id="order-alert-txt">Nouvelle commande Food !</span>
+  <button class="order-alert-close" onclick="dismissOrderAlert()">✕</button>
 </div>
 </body>
 </html>

@@ -1922,7 +1922,11 @@ function generateChloeMorningReport() {
     sbGet('/rest/v1/veraluz_chloe_approvals?tenant_id=eq.veraluz-001&status=eq.pending&limit=20'),
     sbGet('/rest/v1/veraluz_chloe_reminders?tenant_id=eq.veraluz-001&status=eq.active&due_at=lte.'+(today+'T23:59:59Z')+'&limit=20'),
     sbGet('/rest/v1/veraluz_employees?role=eq.livreur&status=eq.actif&photo_url=is.null&select=id,full_name,role&limit=20').catch(function(){return[];}),
-    sbGet('/rest/v1/veraluz_food_orders?status=eq.delivered&proof_photo_url=is.null&select=id,order_number,assigned_to,delivered_at&limit=20').catch(function(){return[];})
+    sbGet('/rest/v1/veraluz_food_orders?status=eq.delivered&proof_photo_url=is.null&select=id,order_number,assigned_to,delivered_at&limit=20').catch(function(){return[];}),
+    /* PROMPT 027 : commandes livrées au-delà de 45 min sans preuve */
+    sbGet('/rest/v1/veraluz_food_orders?delivery_type=eq.delivery&status=not.in.(delivered,cancelled)&created_at=lte.'+new Date(Date.now()-45*60*1000).toISOString()+'&select=id,order_number,status,assigned_to,created_at&limit=20').catch(function(){return[];}),
+    /* PROMPT 027 : livraisons en cours depuis plus de 90 min */
+    sbGet('/rest/v1/veraluz_food_orders?status=eq.out_for_delivery&out_for_delivery_at=lte.'+new Date(Date.now()-90*60*1000).toISOString()+'&select=id,order_number,assigned_to,out_for_delivery_at&limit=10').catch(function(){return[];})
   ]).then(function(results) {
     var arrivals    = results[0]||[];
     var departures  = results[1]||[];
@@ -1933,6 +1937,9 @@ function generateChloeMorningReport() {
     var reminders   = results[6]||[];
     var livreursNoPhoto  = results[7]||[];
     var livraisonsNoProof= results[8]||[];
+    /* PROMPT 027 : blocages */
+    var commandesBloquees = results[9]||[];
+    var livraisonsLongues = results[10]||[];
 
     var totalPay = payPending.reduce(function(s,p){ return s+(parseFloat(p.amount)||0); }, 0);
     var fmtXAF = function(n){ return n.toLocaleString('fr-FR')+' XAF'; };
@@ -1944,6 +1951,9 @@ function generateChloeMorningReport() {
     if (payPending.length) urgents.push(payPending.length+' paiement(s) à traiter ('+fmtXAF(totalPay)+')');
     if (livreursNoPhoto.length)   urgents.push('⚠️ '+livreursNoPhoto.length+' livreur(s) sans photo profil : '+livreursNoPhoto.slice(0,3).map(function(l){return l.full_name||'ID '+String(l.id).slice(0,6);}).join(', '));
     if (livraisonsNoProof.length) urgents.push('📦 '+livraisonsNoProof.length+' livraison(s) sans preuve photo (vérification manuelle requise)');
+    /* PROMPT 027 : blocages */
+    if (commandesBloquees.length) urgents.push('🚨 '+commandesBloquees.length+' commande(s) en retard +45 min — intervention requise');
+    if (livraisonsLongues.length)  urgents.push('⚠️ '+livraisonsLongues.length+' livraison(s) en cours +90 min — contacter livreur');
 
     var score = urgents.length === 0 ? 'Bonne' : urgents.length <= 2 ? 'Attention requise' : 'Critique';
     var scoreColor = urgents.length === 0 ? 'var(--accent)' : urgents.length <= 2 ? 'var(--yellow)' : 'var(--red)';
@@ -2515,7 +2525,17 @@ function generateTechOpsReport() {
     if (btn) { btn.disabled=false; btn.textContent='📊 Générer rapport TechOps'; }
     showToast('Rapport TechOps généré — Sévérité : '+severity.toUpperCase(), severity==='critical'?'err':severity==='medium'?'warn':'ok');
     loadTechOpsAlerts();
-  }).catch(function(e) {
+
+    /* PROMPT 027 — Agent Restaurant : blocages détectés */
+    if(r.commandes_bloquees > 0 || r.livraisons_longues > 0){
+      var blocHtml='<div class="chloe-section"><div class="chloe-section-title">🚨 Blocages Livraison</div>';
+      if(r.commandes_bloquees) blocHtml+='<div class="chloe-urgency"><strong>'+r.commandes_bloquees+' commande(s) en retard &gt;45 min</strong><br>Intervention manuelle requise — vérifier avec le restaurant.</div>';
+      if(r.livraisons_longues) blocHtml+='<div class="chloe-urgency"><strong>'+r.livraisons_longues+' livraison(s) en cours depuis +90 min</strong><br>Contacter le livreur pour un point de situation.</div>';
+      blocHtml+='<div class="chloe-note">Chloé signale. Le directeur agit. Aucune action automatique.</div></div>';
+      parts.push(blocHtml);
+    }
+
+      }).catch(function(e) {
     console.warn('[TechOps]', e);
     if (btn) { btn.disabled=false; btn.textContent='📊 Générer rapport TechOps'; }
     showToast('Erreur génération rapport TechOps','err');
