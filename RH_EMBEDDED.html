@@ -410,13 +410,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div style="background:var(--bg3);border-radius:20px;padding:24px;width:100%;max-width:320px;border:1px solid var(--border);">
     <label class="fl">Votre nom</label>
     <select class="fi" id="login-emp-sel"></select>
-    <!-- PROMPT 020C — M8 : label mis à jour compatibilité 4 chiffres -->
-    <label class="fl" style="margin-top:8px;">Code PIN employé <span style="font-size:10px;color:var(--text3);">(4 chiffres legacy / pointage local)</span></label>
+    <!-- PROMPT 020D — M10 : login pointage 6 chiffres -->
+    <label class="fl" style="margin-top:8px;">Code PIN employé <span style="font-size:10px;color:var(--text3);">(4 ou 6 chiffres)</span></label>
     <div class="pin-dots" id="pin-dots">
       <div class="pin-dot" id="pd0"></div>
       <div class="pin-dot" id="pd1"></div>
       <div class="pin-dot" id="pd2"></div>
       <div class="pin-dot" id="pd3"></div>
+      <div class="pin-dot" id="pd4"></div>
+      <div class="pin-dot" id="pd5"></div>
     </div>
     <div class="pin-pad" id="pin-pad"></div>
     <div id="login-err" style="color:var(--danger);font-size:12px;text-align:center;margin-top:10px;min-height:18px;"></div>
@@ -992,24 +994,27 @@ function saveEmp(){
     hire_date:document.getElementById('emp-hire').value||null,
     base_salary:parseFloat(document.getElementById('emp-salary').value)||0,
     momo_number:document.getElementById('emp-momo').value.trim()||null,
-    pin_code:document.getElementById('emp-pin').value||SETTINGS.default_pin||'1234',
     status:document.getElementById('emp-status').value,
     notes:document.getElementById('emp-notes').value.trim()||null
   };
   if(!d.full_name){toast('Nom requis','err');return;}
   if(id){
+    /* PROMPT 020D — M9 : modification sans pin_code — géré via Auth > Réinitialiser PIN */
     PATCH('veraluz_employees',id,d).then(function(){
       var idx=EMPS.findIndex(function(e){return e.id===id;});
       if(idx>=0)Object.assign(EMPS[idx],d);
       closeMd('md-add-emp');renderEmps();toast('Employ&#233; mis &#224; jour &#9989;','ok');
-    }).catch(function(e){toast('Erreur: '+e,'err');});
+    }).catch(function(e){toast(explainSupabaseError('Mise à jour','veraluz_employees',e),'err');});
   } else {
     d.id=gid();
+    /* PROMPT 020D — M9 : PIN initial + must_change_pin=true à la création */
+    d.pin_code=document.getElementById('emp-pin').value||SETTINGS.default_pin||'123456';
+    d.must_change_pin=true;
     POST('veraluz_employees',d).then(function(r){
       EMPS.push(r[0]||d);
       populateSelects();
       closeMd('md-add-emp');renderEmps();toast('Employ&#233; ajout&#233; &#9989;','ok');
-    }).catch(function(e){toast('Erreur: '+e,'err');});
+    }).catch(function(e){toast(explainSupabaseError('Création','veraluz_employees',e),'err');});
   }
 }
 function openAddEmp(){
@@ -1200,7 +1205,7 @@ function toggleEmpStatus(eid,cur){
 function renderDosContrat(){
   var list=CONTRACTS.filter(function(c){return c.employee_id===_dosEmpId;});
   var el=document.getElementById('dos-contrat');
-  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openAddContract()">&#43; Contrat</button></div>';
+  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" data-eid="'+esc(_dosEmpId)+'" onclick="openAddContractForEmp(this.dataset.eid)">&#43; Contrat</button></div>';
   if(!list.length){el.innerHTML+='<div class="empty"><div class="empty-ico">&#128203;</div>Aucun contrat</div>';return;}
   el.innerHTML+=list.map(function(c){
     return '<div class="card" style="margin-bottom:8px;">'
@@ -1229,7 +1234,7 @@ function renderDosSalaire(){
     +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--danger);"><span>&#8722; Retenues/Absences</span><span>-'+fmt(totalDeduct)+' FCFA</span></div>'
     +'<div style="display:flex;justify-content:space-between;padding:10px 0;font-size:16px;font-weight:800;color:var(--acc1);"><span>Net &#224; payer</span><span>'+fmt(net)+' FCFA</span></div>'
     +'</div>'
-    +'<div class="btn-row"><button class="btn btn-primary btn-sm" data-eid="'+esc(e.id)+'" onclick="openBonusForEmp(this.dataset.eid)">&#43; Prime / Retenue</button></div>'
+    +'<div class="btn-row"><button class="btn btn-sec btn-sm" data-eid="'+esc(e.id)+'" onclick="openEditSalaryForEmp(this.dataset.eid)">&#9998; Modifier salaire</button>'+'<button class="btn btn-primary btn-sm" data-eid="'+esc(e.id)+'" onclick="openBonusForEmp(this.dataset.eid)">&#43; Prime / Retenue</button></div>'
     +(bonuses.length?'<div class="card"><div class="sec-title" style="margin-bottom:8px;">D&#233;tail</div>'
       +bonuses.map(function(b){return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);"><span><span class="bdg '+(b.type==='prime'?'ok':'danger')+'">'+esc(b.type)+'</span> '+esc(b.label)+'</span><span style="color:'+(b.type==='prime'?'var(--ok)':'var(--danger)')+';">'+(b.type==='prime'?'+':'-')+fmt(b.amount)+' F</span></div>';}).join('')
       +'</div>':'');
@@ -1250,7 +1255,7 @@ function renderDosPaie(){
       +'<div class="btn-row" style="margin-top:8px;margin-bottom:0;">'
       +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; PDF</button>'
       +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="sendPayslipEmail(this.dataset.pid)">&#128140; Email</button>'
-      +(p.status!=='paye'?'<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">&#9989; Marquer pay&#233;</button>':'')
+      +(p.status!=='paye'?'<button class="btn btn-sec btn-sm" title="G&#233;rez les paiements via l&#39;onglet P&#233;riodes de paie" disabled>&#9888; Paiement via Paie</button>':'')
       +'</div>'
       +'</div>';
   }).join('');
@@ -1258,7 +1263,7 @@ function renderDosPaie(){
 function renderDosTaches(){
   var list=TASKS.filter(function(t){return t.employee_id===_dosEmpId;});
   var el=document.getElementById('dos-taches');
-  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openAddTask()">&#43; T&#226;che</button></div>';
+  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" data-eid="'+esc(_dosEmpId)+'" onclick="openAddTaskForEmp(this.dataset.eid)">&#43; T&#226;che</button></div>';
   if(!list.length){el.innerHTML+='<div class="empty"><div class="empty-ico">&#9989;</div>Aucune t&#226;che</div>';return;}
   el.innerHTML+=list.map(function(t){
     var ico=t.status==='termine'?'&#9989;':t.status==='en_cours'?'&#9654;':'&#9723;';
@@ -1289,13 +1294,13 @@ function renderDosAtt(){
 function renderDosDocs(){
   var list=DOCS.filter(function(d){return d.employee_id===_dosEmpId;});
   var el=document.getElementById('dos-docs');
-  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openAddDoc()">&#43; Document</button></div>';
+  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" data-eid="'+esc(_dosEmpId)+'" onclick="openAddDocForEmp(this.dataset.eid)">&#43; Document</button></div>';
   if(!list.length){el.innerHTML+='<div class="empty"><div class="empty-ico">&#128196;</div>Aucun document</div>';return;}
   el.innerHTML+=list.map(function(d){
     return '<div class="entry"><div class="entry-ico acc">&#128196;</div>'
-      +'<div class="entry-body"><div class="entry-title">'+esc(d.title||d.type)+'</div>'
-      +'<div class="entry-sub"><span class="bdg acc">'+esc(d.type)+'</span> · '+fdate(d.date)+'</div></div>'
-      +(d.url?'<a href="'+esc(d.url)+'" target="_blank" class="btn btn-sec btn-sm">&#128279;</a>':'')
+      +'<div class="entry-body"><div class="entry-title">'+esc(d.name||d.type)+'</div>'
+      +'<div class="entry-sub"><span class="bdg acc">'+esc(d.type)+'</span> · '+fdate(d.expires_at)+'</div></div>'
+      +(d.file_url?'<a href="'+esc(d.file_url)+'" target="_blank" class="btn btn-sec btn-sm">&#128279;</a>':'')
       +'</div>';
   }).join('');
 }
@@ -1359,6 +1364,39 @@ function openAddAtt(){openMd('md-add-att');}
 function openAddAdv(){openMd('md-add-adv');}
 function openAddDoc(){openMd('md-add-doc');}
 function openAddTask(){openMd('md-add-task');}
+/* PROMPT 020D — M3/M4/M5 : pré-sélection employé depuis dossier */
+function openAddContractForEmp(eid){var sel=document.getElementById('contract-emp');if(sel)sel.value=eid;openMd('md-add-contract');}
+function openAddTaskForEmp(eid){var sel=document.getElementById('task-emp');if(sel)sel.value=eid;openMd('md-add-task');}
+function openAddDocForEmp(eid){var sel=document.getElementById('doc-emp');if(sel)sel.value=eid;openMd('md-add-doc');}
+/* PROMPT 020D — M7 : modification salaire depuis dossier */
+function openEditSalaryForEmp(eid){
+  var emp=EMPS.find(function(e){return e.id===eid;});
+  if(!emp)return;
+  var cur=emp.base_salary||0;
+  var val=window.prompt('Nouveau salaire de base (FCFA)\nActuel : '+fmt(cur)+' FCFA',String(cur));
+  if(val===null)return;
+  var newSal=parseFloat(val);
+  if(isNaN(newSal)||newSal<0){toast('Montant invalide','err');return;}
+  PATCH('veraluz_employees',eid,{base_salary:newSal}).then(function(){
+    emp.base_salary=newSal;
+    renderDosSalaire();
+    toast('Salaire mis à jour ✅','ok');
+  }).catch(function(e){toast(explainSupabaseError('Salaire','veraluz_employees',e),'err');});
+}
+/* PROMPT 020D — M11/M14 : erreurs unifiées et couche adaptateurs */
+function explainSupabaseError(action,table,err){
+  var msg=String(err||'Erreur inconnue');
+  if(msg.includes('42501'))return action+' — Permission refusée (RLS).';
+  if(msg.includes('23503'))return action+' — Référence introuvable.';
+  if(msg.includes('23505'))return action+' — Enregistrement déjà existant.';
+  if(msg.includes('PGRST'))return action+' — Erreur API: '+msg.slice(0,80);
+  return action+' ('+table+'): '+msg.slice(0,100);
+}
+var RH_TABLES={EMP:'veraluz_employees',CTR:'veraluz_contracts',TSK:'veraluz_hr_tasks',DOC:'veraluz_hr_documents',BON:'veraluz_employee_bonuses',PAY:'veraluz_payroll_records',ADV:'veraluz_advances'};
+function rhGetContracts(empId){return CONTRACTS.filter(function(c){return c.employee_id===empId;});}
+function rhGetTasks(empId){return TASKS.filter(function(t){return t.employee_id===empId;});}
+function rhGetDocs(empId){return DOCS.filter(function(d){return d.employee_id===empId;});}
+function rhGetBonuses(empId,month){return BONUSES.filter(function(b){return b.employee_id===empId&&(!month||b.month===month);});}
 function openAddPay(){openMd('md-add-pay');}
 function saveContract(){
   var emp=EMPS.find(function(e){return e.id===document.getElementById('contract-emp').value;});
@@ -1781,22 +1819,22 @@ var _docFilter='all';
 function setDocFilter(f,btn){_docFilter=f;document.querySelectorAll('#pane-docs .fchip').forEach(function(b){b.classList.remove('on');});if(btn)btn.classList.add('on');filterDocs();}
 function filterDocs(){
   var q=(document.getElementById('doc-search').value||'').toLowerCase();
-  var list=DOCS.filter(function(d){return(_docFilter==='all'||d.type===_docFilter)&&(!q||(d.title||'').toLowerCase().includes(q));});
+  var list=DOCS.filter(function(d){return(_docFilter==='all'||d.type===_docFilter)&&(!q||(d.name||'').toLowerCase().includes(q));});
   var el=document.getElementById('docs-list');
   if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128196;</div>Aucun document</div>';return;}
   el.innerHTML=list.map(function(d){
     var emp=EMPS.find(function(e){return e.id===d.employee_id;});
     return '<div class="entry"><div class="entry-ico acc">&#128196;</div>'
-      +'<div class="entry-body"><div class="entry-title">'+esc(d.title||d.type)+'</div>'
-      +'<div class="entry-sub">'+esc(emp?emp.full_name:'—')+' · <span class="bdg acc">'+esc(d.type)+'</span> · '+fdate(d.date)+'</div></div>'
-      +(d.url?'<a href="'+esc(d.url)+'" target="_blank" class="btn btn-sec btn-sm">&#128279;</a>':'')
+      +'<div class="entry-body"><div class="entry-title">'+esc(d.name||d.type)+'</div>'
+      +'<div class="entry-sub">'+esc(emp?emp.full_name:'—')+' · <span class="bdg acc">'+esc(d.type)+'</span> · '+fdate(d.expires_at)+'</div></div>'
+      +(d.file_url?'<a href="'+esc(d.file_url)+'" target="_blank" class="btn btn-sec btn-sm">&#128279;</a>':'')
       +'</div>';
   }).join('');
 }
 function loadDocs(){filterDocs();}
 function saveDoc(){
-  var d={id:gid(),employee_id:document.getElementById('doc-emp').value,type:document.getElementById('doc-type').value,date:document.getElementById('doc-date').value||null,title:document.getElementById('doc-title').value.trim(),url:document.getElementById('doc-url').value.trim()||null};
-  if(!d.title||!d.employee_id){toast('Employ&#233; et titre requis','err');return;}
+  var d={id:gid(),employee_id:document.getElementById('doc-emp').value,type:document.getElementById('doc-type').value,expires_at:document.getElementById('doc-date').value||null,name:document.getElementById('doc-title').value.trim(),file_url:document.getElementById('doc-url').value.trim()||null};
+  if(!d.name||!d.employee_id){toast('Employ&#233; et nom du document requis','err');return;}
   POST('veraluz_hr_documents',d).then(function(r){DOCS.unshift(r[0]||d);closeMd('md-add-doc');filterDocs();toast('Document ajout&#233; &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 
@@ -1898,26 +1936,42 @@ function buildPinPad(){
   }).join('');
 }
 function pinPress(k){
-  if(_pinBuffer.length>=4)return;
+  if(_pinBuffer.length>=6)return;
   _pinBuffer+=k;updatePinDots();
-  if(_pinBuffer.length===4)setTimeout(doLogin,200);
+  if(_pinBuffer.length===4||_pinBuffer.length===6)setTimeout(doLogin,200);
 }
 function pinDel(){_pinBuffer=_pinBuffer.slice(0,-1);updatePinDots();}
 function updatePinDots(){
-  for(var i=0;i<4;i++){var d=document.getElementById('pd'+i);if(d)d.className='pin-dot'+(i<_pinBuffer.length?' filled':'');}
+  for(var i=0;i<6;i++){var d=document.getElementById('pd'+i);if(d)d.className='pin-dot'+(i<_pinBuffer.length?' filled':'');}
 }
 function doLogin(){
   var eid=document.getElementById('login-emp-sel').value;
   if(!eid){document.getElementById('login-err').textContent='Choisissez votre nom';_pinBuffer='';updatePinDots();return;}
   var emp=EMPS.find(function(e){return e.id===eid;});
   if(!emp){document.getElementById('login-err').textContent=(EMPS.length===0?'Module non chargé — cliquez Actualiser':'Employé introuvable');_pinBuffer='';updatePinDots();return;}
-  if((emp.pin_code||SETTINGS.default_pin||'1234')!==_pinBuffer){
-    document.getElementById('login-err').textContent='PIN incorrect &#10006;';
-    _pinBuffer='';updatePinDots();return;
-  }
-  LOGGED_EMP=emp;
-  document.getElementById('login-screen').classList.remove('on');
-  showClockScreen();
+  if(_pinBuffer.length===5){document.getElementById('login-err').textContent='PIN incomplet — saisissez le 6ᵉ chiffre ou ⌫';return;}
+  if(_pinBuffer.length<4){document.getElementById('login-err').textContent='PIN trop court';return;}
+  /* PROMPT 020D — M10 : vérification via Edge Function verify-employee-pin */
+  var errEl=document.getElementById('login-err');
+  errEl.textContent='Vérification…';
+  fetch(SUPA_URL+'/functions/v1/verify-employee-pin',{
+    method:'POST',mode:'cors',credentials:'omit',
+    headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
+    body:JSON.stringify({employee_id:eid,pin:_pinBuffer})
+  }).then(function(r){return r.json();}).then(function(res){
+    if(!res.ok){errEl.textContent='PIN incorrect ✗';_pinBuffer='';updatePinDots();return;}
+    LOGGED_EMP=emp;errEl.textContent='';
+    document.getElementById('login-screen').classList.remove('on');
+    showClockScreen();
+    if(res.must_change_pin){setTimeout(function(){toast('⚠️ PIN temporaire — changez votre PIN dans Mon PIN');},600);}
+  }).catch(function(){
+    /* Fallback local si Edge Function indisponible */
+    if((emp.pin_code||SETTINGS.default_pin||'1234')===_pinBuffer){
+      LOGGED_EMP=emp;errEl.textContent='';
+      document.getElementById('login-screen').classList.remove('on');
+      showClockScreen();
+    } else {errEl.textContent='PIN incorrect ✗';_pinBuffer='';updatePinDots();}
+  });
 }
 function logoutEmp(){
   LOGGED_EMP=null;
@@ -2632,4 +2686,60 @@ window.addEventListener('message', function(ev) {
     </div>
     <div style="max-height:180px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;font-family:monospace;white-space:pre-wrap;margin-bottom:10px;" id="sign-contract-body"></div>
     <div style="margin-bottom:8px;font-size:12px;font-weight:700;">Signature :</div>
-    <canvas id="sign-pad" width="500" height="150" style="border:1px solid var(--border);border-radius:6px;cursor:crosshair;width:100%;background:#f8f8f8;touch-action:n
+    <canvas id="sign-pad" width="500" height="150" style="border:1px solid var(--border);border-radius:6px;cursor:crosshair;width:100%;background:#f8f8f8;touch-action:none;"></canvas>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn btn-primary" onclick="signContract()">&#9989; Valider la signature</button>
+      <button class="btn btn-sec" onclick="clearSignPad()">&#128465; Effacer</button>
+      <button class="btn btn-sec" onclick="closeMd('md-sign-contract')">Fermer</button>
+    </div>
+  </div>
+</div>
+</body></html>d,{status:'validated_manager'}).then(function(){item.status='validated_manager';});
+  });
+  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
+  .then(function(){
+    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
+    toast('Période validée par le manager ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+
+/* ═══ Validation propriétaire (M12) ═══ */
+function validateOwnerPeriode(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  if(period.status!=='validated_manager'){
+    toast('Impossible : la période doit être validée par le manager en premier','err');return;
+  }
+  var msg='Validation propriétaire\n\n"'+period.period_label+'"\n\nCette validation autorise la préparation future des bulletins et du fichier banque. Aucun paiement n\'est effectué.\n\nConfirmer ?';
+  if(!confirm(msg))return;
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'Propriétaire DEV';
+  var now=new Date().toISOString();
+  var updates={status:'validated_owner',validated_by_owner:who,validated_by_owner_at:now};
+  var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var proms=its.map(function(item){
+    return PATCH('veraluz_payroll_items',item.id,{status:'validated_owner'}).then(function(){item.status='validated_owner';});
+  });
+  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
+  .then(function(){
+    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
+    toast('Période validée par le propriétaire ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+
+/* ═══ Marquer payée (M13) ═══ */
+function markPeriodePaid(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  if(period.status!=='validated_owner'){
+    toast('Impossible : la période doit être validée par le propriétaire','err');return;
+  }
+  var msg='Marquer comme payée\n\n"'+period.period_label+'"\n\nConfirmez uniquement si le paiement externe a réellement été effectué par la banque ou le moyen choisi.\n\nLE SYSTÈME NE PAIE JAMAIS AUTOMATIQUEMENT.\n\nConfirmer ?';
+  if(!confirm(msg))return;
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'DEV';
+  var now=new Date().toISOString();
+  var updates={status:'paid',paid_by:who,paid_at:now};
+  var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var proms=its.map(function(item){
+    return PATCH('veraluz_payroll_items',item.i
