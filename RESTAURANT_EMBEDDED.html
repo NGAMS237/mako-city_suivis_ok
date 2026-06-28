@@ -990,7 +990,7 @@ var payMeth='cash',payOid=null;
 var _tt=null;
 var APP_PROMOS=[], _appSub='promos';
 var LIVREURS=[], _assignOid=null;
-var RESTAURANT_BUILD = 'v031-final-day-2026-06-28'; /* PROMPT 031 */
+var RESTAURANT_BUILD = 'v031c-messages-hotfix-2026-06-28'; /* PROMPT 031 */
 
 /* ══════════════════════════════════════════
    NORMALIZE UTILS — VERALUZ CORE v0.3.0
@@ -2191,6 +2191,7 @@ function sendKdsMsg(){
   if(!txt)return;
   if(inp)inp.value='';
   inp.disabled = true;
+  console.log('[KDS MSG] Envoi vers veraluz_delivery_messages order='+_kdsMsgOrderId+' txt='+txt.substring(0,30));
   fetch(SB+'/rest/v1/veraluz_delivery_messages',{
     method:'POST',
     headers:H({Prefer:'return=minimal'}),
@@ -2203,14 +2204,27 @@ function sendKdsMsg(){
       message_type:'text'
     })
   }).then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    toast('Message envoyé','ok');
+    if(!r.ok){
+      return r.text().then(function(body){
+        var detail='';
+        try{var j=JSON.parse(body);detail=j.message||j.error||j.hint||j.code||JSON.stringify(j);}
+        catch(e){detail=body?body.substring(0,120):'HTTP '+r.status;}
+        throw {status:r.status, detail:detail};
+      });
+    }
+    return r.json().catch(function(){return {};});
+  }).then(function(){
+    toast('Message envoyé ✓','ok');
+    console.log('[KDS MSG] OK order='+_kdsMsgOrderId);
     renderKdsMsgs(_kdsMsgOrderId);
     /* Badge: effacer badge du livreur pour cet order */
     var badge = document.getElementById('kds-msg-badge-'+_kdsMsgOrderId);
     if(badge){badge.style.display='none';}
-  }).catch(function(){
-    toast('Erreur envoi message','er');
+  }).catch(function(e){
+    var msg=e&&(e.detail||e.message||JSON.stringify(e))||'Erreur inconnue';
+    var code=e&&e.status?' [HTTP '+e.status+']':'';
+    toast('Erreur: '+msg+code,'er');
+    console.error('[KDS MSG] Erreur:', e, 'order='+_kdsMsgOrderId);
     if(inp){inp.disabled=false;inp.value=txt;}
   }).finally(function(){if(inp)inp.disabled=false;});
 }

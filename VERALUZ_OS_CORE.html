@@ -858,9 +858,16 @@ function loadTenantModules() {
         _TENANT_MODULES[r.module_key] = (r.is_enabled === true || r.is_enabled === 'true');
       });
       _TENANT_LOADED = true;
-      console.info('[Tenant] Modules chargés :', Object.keys(_TENANT_MODULES).length);
+      console.info('[Tenant] Modules chargés :', Object.keys(_TENANT_MODULES).length,
+        '| messages=', _TENANT_MODULES['messages']);
+      /* PROMPT 031C — reconstruire la nav avec les modules tenant corrects */
+      try { renderSidebar(); } catch(e2){}
     })
-    .catch(function(e) { console.warn('[Tenant] loadTenantModules — failsafe (tous actifs)', e); });
+    .catch(function(e) {
+      console.warn('[Tenant] loadTenantModules — failsafe (tous actifs)', e);
+      /* En failsafe : forcer rebuild pour s assurer que messages est visible */
+      try { renderSidebar(); } catch(e2){}
+    });
 }
 
 /* ── isModuleEnabled ──────────────────────────────────────────────── */
@@ -1188,7 +1195,7 @@ function closeMobileSidebar(){
 }
 
 /* PROMPT 029 */
-var OS_BUILD = 'v031-final-day-2026-06-28';
+var OS_BUILD = 'v031c-messages-hotfix-2026-06-28';
 /* Afficher build version */
 setTimeout(function(){
   var el=document.getElementById('build-ver');
@@ -2544,6 +2551,11 @@ document.addEventListener('DOMContentLoaded', function(){
       if (s.allowed_modules.indexOf('documents') < 0) {
         s.allowed_modules.push('documents'); patched = true;
         console.warn('[VERALUZ 019] Session DEV patchée — documents ajouté à allowed_modules');
+      }
+      /* PROMPT 031C — ajouter messages en DEV */
+      if (s.allowed_modules.indexOf('messages') < 0) {
+        s.allowed_modules.push('messages'); patched = true;
+        console.warn('[VERALUZ 031C] Session DEV patchée — messages ajouté à allowed_modules');
       }
       if (patched) localStorage.setItem('veraluz_auth_v1', JSON.stringify(s));
     } catch(e) { console.warn('[VERALUZ 016A] Patch session DEV échoué :', e); }
