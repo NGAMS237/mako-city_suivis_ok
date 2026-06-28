@@ -580,6 +580,9 @@ var MODULES = [
     file:'INTEGRATIONS_EMBEDDED.html', desc:'WhatsApp · CinetPay · Journal' },
   { id:'ai_center',   label:'Intelligence IA', icon:'🧠',
     file:'AI_CENTER_EMBEDDED.html',   desc:'Agents IA · Rapports · Recommandations' },
+  /* PROMPT 019 — Coffre Documentaire Minimal */
+  { id:'documents',   label:'Documents',      icon:'🗂️',
+    file:'DOCUMENTS_EMBEDDED.html',   desc:'Coffre · Métadonnées · Échéances · Juridique' },
 ];
 
 /* ── Monochrome SVG icons for sidebar ─────────────────────────────── */
@@ -910,18 +913,20 @@ var ROLE_MAP = {
 var ROLES = {
   superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
-             'notifications','analytics','audit','settings','eventbus','auth','contacts','appro','integrations','ai_center'] },
+             'notifications','analytics','audit','settings','eventbus','auth','contacts','appro','integrations','ai_center',
+             'documents'] /* PROMPT 019 */ },
   manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
-             'notifications','analytics','contacts','appro','ai_center'] },
+             'notifications','analytics','contacts','appro','ai_center',
+             'documents'] /* PROMPT 019 */ },
   reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981', primaryModule:'employee_home',
     modules:['reservations','paiements','notifications','contacts','housekeeping'] },
   rh:          { label:'RH',               icon:'👥',  color:'#f59e0b', primaryModule:'employee_home',
-    modules:['rh','notifications','analytics'] },
+    modules:['rh','notifications','analytics','documents'] /* PROMPT 019 */ },
   accountant:  { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'employee_home',
-    modules:['finance','paiements','analytics'] },
+    modules:['finance','paiements','analytics','documents'] /* PROMPT 019 */ },
   comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'employee_home',
-    modules:['finance','paiements','analytics'] },
+    modules:['finance','paiements','analytics','documents'] /* PROMPT 019 */ },
   restaurant:  { label:'Restaurant',       icon:'🍽️',  color:'#f97316', primaryModule:'employee_home',
     modules:['restaurant'] },
   kitchen:     { label:'Cuisine',          icon:'🍳',  color:'#ec4899', primaryModule:'employee_home',
@@ -1402,7 +1407,8 @@ function handleDevUnlock() {
     allowed_modules: [
       'dashboard','employee_home','reservations','payments','housekeeping',
       'restaurant','finance','rh','contacts','notifications','analytics',
-      'audit','settings','eventbus','auth','appro','integrations','ai_center'
+      'audit','settings','eventbus','auth','appro','integrations','ai_center',
+      'documents' /* PROMPT 019 */
     ],
     primaryModule: 'dashboard', /* PROMPT 010C — corrigé (était 'auth') */
     loginAt:       Date.now(),
@@ -1532,7 +1538,8 @@ function enterDevMode() {
     allowed_modules: [
       'dashboard','employee_home','reservations','payments','housekeeping',
       'restaurant','finance','rh','contacts','notifications','analytics',
-      'audit','settings','eventbus','auth','appro','integrations','ai_center'
+      'audit','settings','eventbus','auth','appro','integrations','ai_center',
+      'documents' /* PROMPT 019 */
     ],
     primaryModule: 'dashboard',
     loginAt:       Date.now(),
@@ -2144,7 +2151,7 @@ function sendAuthContext(iframe) {
 document.addEventListener('DOMContentLoaded', function(){
   purgeLegacyPinCache(); /* PROMPT 008B — purge cache PIN legacy */
 
-  /* PROMPT 016A — Migration auto session DEV existante : ajouter ai_center si absent */
+  /* PROMPT 016A + PROMPT 019 — Migration auto session DEV existante */
   (function patchDevSessionModules(){
     try {
       var raw = localStorage.getItem('veraluz_auth_v1');
@@ -2152,11 +2159,17 @@ document.addEventListener('DOMContentLoaded', function(){
       var s = JSON.parse(raw);
       if (!s.dev_mode) return; /* Toucher uniquement les sessions DEV */
       if (!Array.isArray(s.allowed_modules)) return;
+      var patched = false;
       if (s.allowed_modules.indexOf('ai_center') < 0) {
-        s.allowed_modules.push('ai_center');
-        localStorage.setItem('veraluz_auth_v1', JSON.stringify(s));
-        console.warn('[VERALUZ 016A] Session DEV patchée — ai_center ajouté à allowed_modules');
+        s.allowed_modules.push('ai_center'); patched = true;
+        console.warn('[VERALUZ 016A] Session DEV patchée — ai_center ajouté');
       }
+      /* PROMPT 019 — ajouter documents en DEV */
+      if (s.allowed_modules.indexOf('documents') < 0) {
+        s.allowed_modules.push('documents'); patched = true;
+        console.warn('[VERALUZ 019] Session DEV patchée — documents ajouté à allowed_modules');
+      }
+      if (patched) localStorage.setItem('veraluz_auth_v1', JSON.stringify(s));
     } catch(e) { console.warn('[VERALUZ 016A] Patch session DEV échoué :', e); }
   })();
 
@@ -2918,22 +2931,3 @@ window.addEventListener('DOMContentLoaded', function(){
       banner.style.display = 'flex';
     }
   }
-  // Si déjà installée en standalone : masquer toutes les bannières installation
-  if(_vlzIsStandalone){
-    var b = document.getElementById('vlz-pwa-install-banner');
-    if(b) b.style.display = 'none';
-  }
-});
-</script>
-
-<!-- ── PWA : masquer les bannières si app déjà installée (standalone) ── -->
-<style>
-@media (display-mode: standalone) {
-  #vlz-pwa-install-banner { display:none !important; }
-}
-</style>
-
-<!-- ── PWA Bannière offline ────────────────────────────────── -->
-<div id="vlz-offline-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
-  background:#f59e0b;color:#0d0d1a;padding:8px 16px;font-size:12px;font-weight:600;
-  al
