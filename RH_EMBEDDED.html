@@ -143,6 +143,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="tab"    data-p="sched"    onclick="goTab('sched')">&#128197; Horaires</button>
     <button class="tab"    data-p="att"      onclick="goTab('att')">&#9200; Pr&#233;sences</button>
     <button class="tab"    data-p="pay"      onclick="goTab('pay')">&#128176; Paie</button>
+    <button class="tab"    data-p="periodes" onclick="goTab('periodes')">&#128197; P&eacute;riodes</button>
     <button class="tab"    data-p="adv"      onclick="goTab('adv')">&#128180; Avances</button>
     <button class="tab"    data-p="docs"     onclick="goTab('docs')">&#128196; Documents</button>
     <button class="tab"    data-p="tasks"    onclick="goTab('tasks')">&#9989; T&#226;ches</button>
@@ -269,6 +270,26 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         </div>
       </div>
       <div id="pay-list"><div class="empty"><div class="empty-ico">&#128176;</div>Chargement&#8230;</div></div>
+    </div>
+
+    <!-- PÉRIODES DE PAIE — PROMPT 020 -->
+    <div class="pane" id="pane-periodes">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openNewPeriode()">&#43; Nouvelle p&eacute;riode</button>
+        <button class="btn btn-sec" onclick="loadPeriodes()">&#8635; Actualiser</button>
+      </div>
+      <div class="card-row" style="margin-bottom:8px;">
+        <div class="kpi"><div class="kpi-v" id="kpi-per-total">&#8212;</div><div class="kpi-l">P&eacute;riodes</div></div>
+        <div class="kpi warn"><div class="kpi-v" id="kpi-per-draft">&#8212;</div><div class="kpi-l">En cours</div></div>
+        <div class="kpi ok"><div class="kpi-v" id="kpi-per-paid">&#8212;</div><div class="kpi-l">Pay&eacute;es</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;padding:6px 10px;background:rgba(99,102,241,0.06);border-radius:6px;border-left:3px solid var(--acc2);">
+        Workflow : <strong>Brouillon</strong> &#8594; <strong>Calcul&eacute;e</strong> &#8594; <strong>Valid&eacute;e manager</strong> &#8594; <strong>Valid&eacute;e propri&eacute;taire</strong> &#8594; <strong>Pay&eacute;e</strong>. Aucun paiement automatique. Validation humaine obligatoire.
+      </div>
+      <div id="per-list-wrap">
+        <div id="per-list"><div class="empty"><div class="empty-ico">&#128197;</div>Chargement&#8230;</div></div>
+      </div>
+      <div id="per-detail" style="display:none;"></div>
     </div>
 
     <!-- AVANCES -->
@@ -781,6 +802,8 @@ function toast(msg,type){var t=document.getElementById('toast');t.textContent=ms
 
 /* ═══════════════ STATE ═══════════════ */
 var EMPS=[],TEAMS=[],CONTRACTS=[],SCHEDS=[],ATTS=[],PAYROLLS=[],ADVANCES=[],DOCS=[],TASKS=[],HIST=[],BONUSES=[],SETTINGS={};
+/* PROMPT 020 — Paie formelle */
+var PAY_PERIODS=[],PAY_ITEMS=[],PAY_ADJ=[];
 var empFilter='all',cFilter='all',attFilter='all',payFilter='all',advFilter='all',docFilter='all',taskFilter='all',histFilter='all';
 var schedWeekOffset=0;
 var LOGGED_EMP=null;
@@ -805,6 +828,7 @@ function goTab(p){
   else if(p==='sched'){renderSched();}
   else if(p==='att'){loadAtt();}
   else if(p==='pay'){loadPay();}
+  else if(p==='periodes'){loadPeriodes();}  /* PROMPT 020 */
   else if(p==='adv'){loadAdv();}
   else if(p==='docs'){loadDocs();}
   else if(p==='tasks'){loadTasks();}
@@ -843,7 +867,9 @@ function loadAll(){
     safeGet('veraluz_hr_documents?select=*&order=created_at.desc&limit=100'),
     safeGet('veraluz_hr_tasks?select=*&order=created_at.desc&limit=200'),
     safeGet('veraluz_employee_bonuses?select=*&order=created_at.desc&limit=200'),
-    safeGet('veraluz_hr_settings?select=*')
+    safeGet('veraluz_hr_settings?select=*'),
+    safeGet('veraluz_pay_periods?select=*&order=start_date.desc&limit=50'),        /* PROMPT 020 r[11] */
+    safeGet('veraluz_payroll_items?select=*&order=created_at.asc&limit=500')       /* PROMPT 020 r[12] */
   ]).then(function(r){
     EMPS=Array.isArray(r[0])?r[0]:[];
     TEAMS=Array.isArray(r[1])?r[1]:[];
@@ -858,6 +884,8 @@ function loadAll(){
     var sets=Array.isArray(r[10])?r[10]:[];
     SETTINGS={};
     sets.forEach(function(s){SETTINGS[s.key]=s.value;});
+    PAY_PERIODS=Array.isArray(r[11])?r[11]:[];   /* PROMPT 020 */
+    PAY_ITEMS=Array.isArray(r[12])?r[12]:[];     /* PROMPT 020 */
     if(banner){banner.style.display='none';}
     renderEmps();
     populateSelects();
@@ -2124,18 +2152,386 @@ document.addEventListener('DOMContentLoaded',function(){
   var td=new Date().toISOString().slice(0,10);
   var tm=new Date().toISOString().slice(0,7);
   setVal('att-date',td);setVal('adv-date',td);setVal('att-md-date',td);
-  setVal('pay-month',tm);setVal('bonus-month',tm);
-  setVal('sched-date',td);setVal('emp-hire',td);setVal('doc-date',td);
-  try{loadAll();}catch(e){console.error('loadAll error:',e);}
-  try{initSignPad();}catch(e){console.warn('initSignPad error:',e);}
+  loadAll();
 });
 
-window.onerror=function(msg,src,line,col,err){
-  console.error('RH JS Error:',msg,'at',src+':'+line);
-  var banner=document.getElementById('load-banner');
-  if(banner&&banner.style.display==='none')return;
-  if(banner){banner.style.display='block';banner.textContent='Erreur JS: '+msg;banner.style.color='var(--danger)';}
-};
+/* ══════════════════════════════════════════════════════════════
+   PROMPT 020 — PAIE FORMELLE : Périodes, Items, Validations
+   Workflow : draft → calculated → validated_manager → validated_owner → paid
+   Aucun paiement automatique. Validation humaine obligatoire.
+   Aucun PDF/export banque dans ce prompt (PROMPT 021).
+   RLS DEV permissive — à durcir dans PROMPT 023.
+══════════════════════════════════════════════════════════════ */
+
+/* ═══ Utilitaires statut ═══ */
+function perStatusLabel(s){
+  var m={draft:'&#9711; Brouillon',calculated:'&#128200; Calcul&eacute;e',
+    validated_manager:'&#10003; Valid&eacute;e manager',validated_owner:'&#10004; Valid&eacute;e propri&eacute;taire',
+    paid:'&#128181; Pay&eacute;e',archived:'&#128193; Archiv&eacute;e'};
+  return m[s]||s;
+}
+function perStatusColor(s){
+  var m={draft:'var(--text3)',calculated:'#3b82f6',validated_manager:'var(--warn)',
+    validated_owner:'var(--ok)',paid:'#166534',archived:'#6b7280'};
+  return m[s]||'var(--text3)';
+}
+
+/* ═══ Charger périodes (refresh Supabase) ═══ */
+function loadPeriodes(){
+  Promise.all([
+    safeGet('veraluz_pay_periods?select=*&order=start_date.desc&limit=50'),
+    safeGet('veraluz_payroll_items?select=*&order=created_at.asc&limit=500')
+  ]).then(function(r){
+    PAY_PERIODS=Array.isArray(r[0])?r[0]:[];
+    PAY_ITEMS=Array.isArray(r[1])?r[1]:[];
+    updatePerKPIs();
+    renderPeriodes();
+  }).catch(function(e){toast('Erreur périodes: '+(e.message||e),'err');});
+}
+
+function updatePerKPIs(){
+  var total=PAY_PERIODS.length;
+  var inprog=PAY_PERIODS.filter(function(p){return p.status==='draft'||p.status==='calculated'||p.status==='validated_manager';}).length;
+  var paid=PAY_PERIODS.filter(function(p){return p.status==='paid';}).length;
+  var el1=document.getElementById('kpi-per-total');
+  var el2=document.getElementById('kpi-per-draft');
+  var el3=document.getElementById('kpi-per-paid');
+  if(el1)el1.textContent=total;
+  if(el2)el2.textContent=inprog;
+  if(el3)el3.textContent=paid;
+}
+
+/* ═══ Afficher liste des périodes ═══ */
+function renderPeriodes(){
+  var det=document.getElementById('per-detail');
+  var listWrap=document.getElementById('per-list-wrap');
+  if(det)det.style.display='none';
+  if(listWrap)listWrap.style.display='block';
+  var el=document.getElementById('per-list');
+  if(!el)return;
+  if(!PAY_PERIODS.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">&#128197;</div>Aucune p&eacute;riode de paie. Cr&eacute;ez la premi&egrave;re p&eacute;riode ci-dessus.</div>';
+    return;
+  }
+  el.innerHTML=PAY_PERIODS.map(function(p){
+    var sc=perStatusColor(p.status);
+    var sl=perStatusLabel(p.status);
+    var canCalc=p.status==='draft'||p.status==='calculated';
+    var canMgr=p.status==='calculated';
+    var canOwner=p.status==='validated_manager';
+    var canPay=p.status==='validated_owner';
+    var isPaid=p.status==='paid';
+    return '<div class="card" style="margin-bottom:8px;">'
+      +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+      +'<div style="flex:1;min-width:150px;">'
+      +'<div style="font-weight:700;font-size:15px;">'+esc(p.period_label)+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+esc(p.start_date||'')+'&#8594;'+esc(p.end_date||'')+'</div>'
+      +'</div>'
+      +'<div style="text-align:center;min-width:90px;">'
+      +'<div style="font-size:11px;font-weight:700;color:'+sc+';">'+sl+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+(p.employee_count||0)+' employ&eacute;(s)</div>'
+      +'</div>'
+      +'<div style="text-align:right;min-width:110px;">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--acc1);">Net '+fmt(p.total_net||0)+' F</div>'
+      +'<div style="font-size:11px;color:var(--text3);">Brut '+fmt(p.total_gross||0)+' F</div>'
+      +'</div>'
+      +'<div class="btn-row" style="margin:0;gap:4px;flex-wrap:wrap;">'
+      +'<button class="btn btn-sec btn-sm" onclick="showPeriodeDetail(\''+esc(p.id)+'\')">&#128269; D&eacute;tail</button>'
+      +(canCalc?'<button class="btn btn-primary btn-sm" onclick="calcPeriode(\''+esc(p.id)+'\')">&#128200; Calculer</button>':'')
+      +(canMgr?'<button class="btn btn-primary btn-sm" style="background:var(--warn);color:#000;" onclick="validateMgrPeriode(\''+esc(p.id)+'\')">&#10003; Manager</button>':'')
+      +(canOwner?'<button class="btn btn-primary btn-sm" style="background:var(--ok);" onclick="validateOwnerPeriode(\''+esc(p.id)+'\')">&#10003; Propri&eacute;t.</button>':'')
+      +(canPay?'<button class="btn btn-primary btn-sm" style="background:#166534;" onclick="markPeriodePaid(\''+esc(p.id)+'\')">&#128181; Pay&eacute;e</button>':'')
+      +'</div>'
+      +'</div>'
+      +(isPaid?'<div style="font-size:11px;color:#166534;margin-top:4px;">&#10004; Pay&eacute;e le '+(p.paid_at?p.paid_at.slice(0,10):'?')+(p.paid_by?' par '+esc(p.paid_by):'')+'</div>':'')
+      +(p.notes?'<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic;">'+esc(p.notes)+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+/* ═══ Créer une période ═══ */
+function openNewPeriode(){
+  var now=new Date();
+  var y=now.getFullYear(),m=now.getMonth();
+  var pad=function(n){return('0'+n).slice(-2);};
+  var lastDay=new Date(y,m+1,0).getDate();
+  var mname=new Date(y,m,1).toLocaleString('fr-FR',{month:'long',year:'numeric'});
+  mname=mname.charAt(0).toUpperCase()+mname.slice(1);
+  var elL=document.getElementById('per-label');
+  var elS=document.getElementById('per-start');
+  var elE=document.getElementById('per-end');
+  var elN=document.getElementById('per-notes');
+  if(elL)elL.value=mname;
+  if(elS)elS.value=y+'-'+pad(m+1)+'-01';
+  if(elE)elE.value=y+'-'+pad(m+1)+'-'+pad(lastDay);
+  if(elN)elN.value='';
+  openMd('md-new-periode');
+}
+
+function createPeriode(){
+  var label=(document.getElementById('per-label').value||'').trim();
+  var start=document.getElementById('per-start').value;
+  var end=document.getElementById('per-end').value;
+  var notes=(document.getElementById('per-notes').value||'').trim();
+  if(!label){toast('Libellé obligatoire','err');return;}
+  if(!start||!end){toast('Dates de début et fin obligatoires','err');return;}
+  if(start>=end){toast('La date de fin doit être après la date de début','err');return;}
+  var dup=PAY_PERIODS.find(function(p){return p.period_label===label;});
+  if(dup){toast('Une période "'+label+'" existe déjà','err');return;}
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'DEV';
+  var d={period_label:label,start_date:start,end_date:end,status:'draft',created_by:who,notes:notes||null};
+  POST('veraluz_pay_periods',d).then(function(r){
+    var rec=(Array.isArray(r)?r[0]:r)||d;
+    PAY_PERIODS.unshift(rec);
+    updatePerKPIs();
+    closeMd('md-new-periode');
+    renderPeriodes();
+    toast('Période "'+label+'" créée ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+
+/* ═══ Détection anomalies (M9) ═══ */
+function checkAnomalies020(emp,bonusList,advList){
+  var flags=[];
+  if(!emp.base_salary||emp.base_salary<=0)
+    flags.push({code:'NO_SALARY',msg:'Salaire de base manquant ou nul'});
+  var today=new Date().toISOString().slice(0,10);
+  var hasCtr=CONTRACTS.some(function(c){
+    return c.employee_id===emp.id&&c.status==='actif'&&(!c.end_date||c.end_date>=today);
+  });
+  if(!hasCtr)flags.push({code:'NO_CONTRACT',msg:'Aucun contrat actif'});
+  var pendAdv=advList.filter(function(a){return a.status==='en_attente';});
+  if(pendAdv.length>0)flags.push({code:'PENDING_ADV',msg:pendAdv.length+' avance(s) en attente non validée(s)'});
+  var negDed=bonusList.filter(function(b){return b.type!=='prime'&&(b.amount||0)<0;});
+  if(negDed.length>0)flags.push({code:'NEG_DED',msg:'Retenue négative suspecte'});
+  if(!Object.keys(SETTINGS).length)flags.push({code:'NO_SETTINGS',msg:'Paramètres CNPS/IRPP non configurés'});
+  return flags;
+}
+
+/* ═══ Calculer une période (M8) ═══ */
+function calcPeriode(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  if(period.status==='validated_owner'||period.status==='paid'){
+    toast('Impossible de recalculer : période validée propriétaire ou payée. Créez une correction.','err');return;
+  }
+  var month=period.start_date?period.start_date.slice(0,7):'';
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'DEV';
+  var items=[];
+  EMPS.filter(function(e){return e.status==='actif';}).forEach(function(emp){
+    var bList=BONUSES.filter(function(b){return b.employee_id===emp.id&&b.month===month;});
+    var bonus=bList.filter(function(b){return b.type==='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
+    var deduct=bList.filter(function(b){return b.type!=='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
+    var aList=ADVANCES.filter(function(a){return a.employee_id===emp.id;});
+    var adv=aList.filter(function(a){return a.status==='en_attente';}).reduce(function(s,a){return s+(a.amount||0);},0);
+    var t=calcTaxes(emp.base_salary||0,bonus,SETTINGS);
+    var net=Math.max(0,t.gross-deduct-adv-(t.apply_cnps?t.cnps_emp:0)-(t.apply_irpp?t.irpp:0));
+    var anom=checkAnomalies020(emp,bList,aList);
+    if(net<=0)anom.push({code:'NET_ZERO',msg:'Net à payer nul ou négatif'});
+    var team=TEAMS.find(function(tm){return tm.id===emp.team_id;});
+    items.push({pay_period_id:pid,employee_id:emp.id,
+      employee_name_snapshot:emp.full_name,role_snapshot:emp.role||null,
+      team_snapshot:team?team.name:null,base_salary:emp.base_salary||0,
+      bonus_amount:bonus,advance_amount:adv,deduction_amount:deduct,
+      gross_amount:t.gross,cnps_employee:t.apply_cnps?t.cnps_emp:0,
+      cnps_employer:t.apply_cnps?t.cnps_empr:0,irpp:t.apply_irpp?t.irpp:0,
+      taxable_income:t.taxable,net_amount:net,status:'draft',anomaly_flags:anom});
+  });
+  if(!items.length){toast('Aucun employé actif trouvé','err');return;}
+  var totGross=items.reduce(function(s,i){return s+i.gross_amount;},0);
+  var totNet=items.reduce(function(s,i){return s+i.net_amount;},0);
+  var totCE=items.reduce(function(s,i){return s+i.cnps_employee;},0);
+  var totCEr=items.reduce(function(s,i){return s+i.cnps_employer;},0);
+  var totI=items.reduce(function(s,i){return s+i.irpp;},0);
+  var existing=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var promises=items.map(function(item){
+    var ex=existing.find(function(x){return x.employee_id===item.employee_id;});
+    if(ex){
+      return PATCH('veraluz_payroll_items',ex.id,item).then(function(r){
+        var upd=(Array.isArray(r)?r[0]:r)||item;upd.id=ex.id;
+        var idx=PAY_ITEMS.findIndex(function(x){return x.id===ex.id;});
+        if(idx>=0)PAY_ITEMS[idx]=upd;
+      });
+    }else{
+      return POST('veraluz_payroll_items',item).then(function(r){
+        var rec=(Array.isArray(r)?r[0]:r)||item;PAY_ITEMS.push(rec);
+      });
+    }
+  });
+  Promise.all(promises).then(function(){
+    var pu={status:'calculated',total_gross:Math.round(totGross*100)/100,
+      total_net:Math.round(totNet*100)/100,total_cnps_employee:Math.round(totCE*100)/100,
+      total_cnps_employer:Math.round(totCEr*100)/100,total_irpp:Math.round(totI*100)/100,
+      employee_count:items.length,calculated_by:who,calculated_at:new Date().toISOString()};
+    return PATCH('veraluz_pay_periods',pid,pu).then(function(){
+      Object.assign(period,pu);
+      updatePerKPIs();renderPeriodes();
+      toast('Paie calculée pour '+items.length+' employé(s) ✅','ok');
+      showPeriodeDetail(pid);
+    });
+  }).catch(function(e){toast('Erreur calcul: '+(e.message||e),'err');});
+}
+
+/* ═══ Détail d'une période (M10) ═══ */
+function showPeriodeDetail(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  var items=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var sC=(SETTINGS.apply_cnps||'true')==='true';
+  var sI=(SETTINGS.apply_irpp||'false')==='true';
+  var det=document.getElementById('per-detail');
+  var lw=document.getElementById('per-list-wrap');
+  if(lw)lw.style.display='none';
+  if(!det)return;
+  det.style.display='block';
+  var sc=perStatusColor(period.status);
+  var sl=perStatusLabel(period.status);
+  var h='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
+    +'<button class="btn btn-sec btn-sm" onclick="renderPeriodes()">&#8592; Retour</button>'
+    +'<h3 style="margin:0;flex:1;">'+esc(period.period_label)+'</h3>'
+    +'<span style="font-size:12px;font-weight:700;color:'+sc+';">'+sl+'</span>'
+    +'</div>'
+    +'<div class="card-row" style="margin-bottom:10px;">'
+    +'<div class="kpi"><div class="kpi-v">'+fmt(period.total_gross||0)+' F</div><div class="kpi-l">Masse brute</div></div>'
+    +'<div class="kpi ok"><div class="kpi-v">'+fmt(period.total_net||0)+' F</div><div class="kpi-l">Masse nette</div></div>'
+    +(sC?'<div class="kpi warn"><div class="kpi-v">'+fmt(period.total_cnps_employer||0)+' F</div><div class="kpi-l">CNPS patronal</div></div>':'')
+    +(sI?'<div class="kpi danger"><div class="kpi-v">'+fmt(period.total_irpp||0)+' F</div><div class="kpi-l">IRPP total</div></div>':'')
+    +'<div class="kpi"><div class="kpi-v">'+(period.employee_count||0)+'</div><div class="kpi-l">Employ&eacute;s</div></div>'
+    +'</div>';
+  if(period.status==='validated_owner'||period.status==='paid'){
+    h+='<div style="margin-bottom:10px;padding:8px 12px;background:rgba(34,211,165,0.08);border:1px solid var(--ok);border-radius:6px;font-size:12px;">'
+      +'&#10004; Apr&egrave;s validation propri&eacute;taire, une &eacute;criture "salaires" pourra &ecirc;tre pr&eacute;par&eacute;e dans Finance dans une &eacute;tape future (PROMPT 021).'
+      +'</div>';
+  }
+  if(!items.length){
+    h+='<div class="empty"><div class="empty-ico">&#128200;</div>Aucune ligne calcul&eacute;e. Cliquez "Calculer" depuis la liste.</div>';
+  }else{
+    var hasAnom=items.some(function(i){return(i.anomaly_flags||[]).length>0;});
+    if(hasAnom){
+      var totA=items.reduce(function(s,i){return s+(i.anomaly_flags||[]).length;},0);
+      h+='<div style="background:rgba(245,158,11,0.12);border:1px solid var(--warn);border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;">'
+        +'&#9888; '+totA+' anomalie(s) d&eacute;tect&eacute;e(s) &mdash; v&eacute;rifier avant validation.'+'</div>';
+    }
+    h+='<div style="overflow-x:auto;"><table class="tbl"><thead><tr>'
+      +'<th>Employ&eacute;</th><th>Brut</th><th>Primes</th><th>Ret.</th><th>Av.</th>'
+      +(sC?'<th>CNPS sal.</th><th>CNPS pat.</th>':'')
+      +(sI?'<th>IRPP</th>':'')
+      +'<th style="color:var(--acc1);">NET</th><th>Anomalies</th>'
+      +'</tr></thead><tbody>'
+      +items.map(function(item){
+        var anom=item.anomaly_flags||[];
+        var hasA=anom.length>0;
+        return '<tr style="'+(hasA?'background:rgba(245,158,11,0.06);':'')+'">'
+          +'<td style="font-weight:600;white-space:nowrap;">'+esc(item.employee_name_snapshot)
+          +(item.role_snapshot?'<br><span style="font-size:10px;color:var(--text3);">'+esc(item.role_snapshot)+'</span>':'')
+          +'</td>'
+          +'<td>'+fmt(item.gross_amount)+'</td>'
+          +'<td style="color:var(--ok);">+'+fmt(item.bonus_amount)+'</td>'
+          +'<td style="color:var(--danger);">-'+fmt(item.deduction_amount)+'</td>'
+          +'<td style="color:var(--warn);">-'+fmt(item.advance_amount)+'</td>'
+          +(sC?'<td style="color:var(--danger);">-'+fmt(item.cnps_employee)+'</td><td style="color:var(--text3);">'+fmt(item.cnps_employer)+'</td>':'')
+          +(sI?'<td style="color:var(--danger);">-'+fmt(item.irpp)+'</td>':'')
+          +'<td style="font-weight:800;color:var(--acc1);">'+fmt(item.net_amount)+'</td>'
+          +'<td style="font-size:11px;color:'+(hasA?'var(--warn)':'var(--ok)')+';">'
+          +(hasA?anom.map(function(a){return'&#9888; '+esc(a.msg||a.code);}).join('<br>'):'&#10004; OK')
+          +'</td></tr>';
+      }).join('')
+      +'</tbody></table></div>';
+  }
+  h+='<div class="btn-row" style="margin-top:12px;">';
+  if(period.status==='draft'||period.status==='calculated')
+    h+='<button class="btn btn-primary" onclick="calcPeriode(\''+esc(pid)+'\')">&#128200; Recalculer</button>';
+  if(period.status==='calculated')
+    h+='<button class="btn btn-primary" style="background:var(--warn);color:#000;" onclick="validateMgrPeriode(\''+esc(pid)+'\')">&#10003; Valider (manager)</button>';
+  if(period.status==='validated_manager')
+    h+='<button class="btn btn-primary" style="background:var(--ok);" onclick="validateOwnerPeriode(\''+esc(pid)+'\')">&#10003; Valider (propri&eacute;taire)</button>';
+  if(period.status==='validated_owner')
+    h+='<button class="btn btn-primary" style="background:#166534;" onclick="markPeriodePaid(\''+esc(pid)+'\')">&#128181; Marquer pay&eacute;e</button>';
+  h+='</div>';
+  h+='<div style="margin-top:12px;font-size:11px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;">';
+  if(period.created_by)h+='Cr&eacute;&eacute;e par '+esc(period.created_by)+(period.created_at?' le '+period.created_at.slice(0,10):'')+'<br>';
+  if(period.calculated_at)h+='&#128200; Calcul&eacute;e le '+period.calculated_at.slice(0,10)+(period.calculated_by?' par '+esc(period.calculated_by):'')+'<br>';
+  if(period.validated_by_manager_at)h+='&#10003; Valid&eacute;e manager le '+period.validated_by_manager_at.slice(0,10)+(period.validated_by_manager?' par '+esc(period.validated_by_manager):'')+'<br>';
+  if(period.validated_by_owner_at)h+='&#10004; Valid&eacute;e propri&eacute;taire le '+period.validated_by_owner_at.slice(0,10)+(period.validated_by_owner?' par '+esc(period.validated_by_owner):'')+'<br>';
+  if(period.paid_at)h+='&#128181; Pay&eacute;e le '+period.paid_at.slice(0,10)+(period.paid_by?' par '+esc(period.paid_by):'')+'<br>';
+  h+='</div>';
+  det.innerHTML=h;
+}
+
+/* ═══ Validation manager (M11) ═══ */
+function validateMgrPeriode(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  if(period.status!=='calculated'){
+    toast('Impossible : la période doit être à l\'état Calculée','err');return;
+  }
+  var msg='Validation manager\n\n"'+period.period_label+'"\n\nCette validation confirme que le manager a vérifié les lignes de paie. Aucun paiement n\'est effectué.\n\nConfirmer ?';
+  if(!confirm(msg))return;
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'Manager DEV';
+  var now=new Date().toISOString();
+  var updates={status:'validated_manager',validated_by_manager:who,validated_by_manager_at:now};
+  var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var proms=its.map(function(item){
+    return PATCH('veraluz_payroll_items',item.id,{status:'validated_manager'}).then(function(){item.status='validated_manager';});
+  });
+  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
+  .then(function(){
+    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
+    toast('Période validée par le manager ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+
+/* ═══ Validation propriétaire (M12) ═══ */
+function validateOwnerPeriode(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  if(period.status!=='validated_manager'){
+    toast('Impossible : la période doit être validée par le manager en premier','err');return;
+  }
+  var msg='Validation propriétaire\n\n"'+period.period_label+'"\n\nCette validation autorise la préparation future des bulletins et du fichier banque. Aucun paiement n\'est effectué.\n\nConfirmer ?';
+  if(!confirm(msg))return;
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'Propriétaire DEV';
+  var now=new Date().toISOString();
+  var updates={status:'validated_owner',validated_by_owner:who,validated_by_owner_at:now};
+  var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var proms=its.map(function(item){
+    return PATCH('veraluz_payroll_items',item.id,{status:'validated_owner'}).then(function(){item.status='validated_owner';});
+  });
+  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
+  .then(function(){
+    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
+    toast('Période validée par le propriétaire ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+
+/* ═══ Marquer payée (M13) ═══ */
+function markPeriodePaid(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  if(period.status!=='validated_owner'){
+    toast('Impossible : la période doit être validée par le propriétaire','err');return;
+  }
+  var msg='Marquer comme payée\n\n"'+period.period_label+'"\n\nConfirmez uniquement si le paiement externe a réellement été effectué par la banque ou le moyen choisi.\n\nLE SYSTÈME NE PAIE JAMAIS AUTOMATIQUEMENT.\n\nConfirmer ?';
+  if(!confirm(msg))return;
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'DEV';
+  var now=new Date().toISOString();
+  var updates={status:'paid',paid_by:who,paid_at:now};
+  var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var proms=its.map(function(item){
+    return PATCH('veraluz_payroll_items',item.id,{status:'paid'}).then(function(){item.status='paid';});
+  });
+  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
+  .then(function(){
+    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
+    toast('Période marquée comme payée ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+/* FIN PROMPT 020 — PAIE FORMELLE */
 
 // ─── Auto-login depuis le Core Veraluz OS (postMessage) ─────────────────────
 // Quand l'employé se connecte via le NIP dans le Core, le Core envoie
@@ -2169,5 +2565,43 @@ window.addEventListener('message', function(ev) {
 });
 </script>
 
+<!-- PROMPT 020 — Modal nouvelle période de paie -->
+<div class="ov" id="md-new-periode">
+  <div class="md">
+    <div class="mdhdr"><h3>&#128197; Nouvelle p&eacute;riode de paie</h3><button class="mdc" onclick="closeMd('md-new-periode')">&#10005;</button></div>
+    <label class="fl">Libell&eacute; de la p&eacute;riode</label>
+    <input class="fi" id="per-label" type="text" placeholder="Ex : Juin 2026" />
+    <div class="fg">
+      <div><label class="fl">Date de d&eacute;but</label><input class="fi" id="per-start" type="date" style="margin-bottom:0;"></div>
+      <div><label class="fl">Date de fin</label><input class="fi" id="per-end" type="date" style="margin-bottom:0;"></div>
+    </div>
+    <label class="fl">Notes (optionnel)</label>
+    <input class="fi" id="per-notes" type="text" placeholder="Observations sur cette p&eacute;riode..." />
+    <div style="font-size:11px;color:var(--text3);margin:8px 0;padding:6px 10px;background:rgba(99,102,241,0.06);border-radius:6px;">
+      La p&eacute;riode sera cr&eacute;&eacute;e en statut <strong>Brouillon</strong>. Le calcul se fera depuis la liste.
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="createPeriode()">&#10003; Cr&eacute;er la p&eacute;riode</button>
+      <button class="btn btn-sec" onclick="closeMd('md-new-periode')">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal signature électronique -->
-<div class="ov" id="md-sign-contract
+<div class="ov" id="md-sign-contract">
+  <div class="md" style="max-width:600px;">
+    <div class="mdhdr"><h3>&#9997;&#65039; Signature &eacute;lectronique</h3><button class="mdc" onclick="closeMd('md-sign-contract')">&#10005;</button></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <span style="font-weight:600;" id="sign-emp-name">&#8212;</span>
+      <span class="bdg warn" id="sign-status">Non sign&eacute;</span>
+    </div>
+    <div style="max-height:180px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;font-family:monospace;white-space:pre-wrap;margin-bottom:10px;" id="sign-contract-body"></div>
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;">Signature :</div>
+    <canvas id="sign-pad" width="500" height="150" style="border:1px solid var(--border);border-radius:6px;cursor:crosshair;width:100%;background:#f8f8f8;touch-action:none;"></canvas>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn btn-primary" onclick="signContract()">&#9989; Valider la signature</button>
+      <button class="btn btn-sec" onclick="clearSignPad()">&#128465; Effacer</button>
+      <button class="btn btn-sec" onclick="closeMd('md-sign-contract')">Fermer</button>
+    </div>
+  </div>
+</div>
