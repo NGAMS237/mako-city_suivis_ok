@@ -156,6 +156,19 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
 .btn-photo-skip{padding:12px 16px;border-radius:var(--r12);background:var(--bg3);border:1px solid var(--border);color:var(--tx2);font-size:.82rem;font-weight:600}
 .photo-status-lbl{font-size:.72rem;color:var(--green);font-weight:700;margin-top:6px;display:none;text-align:center}
 .photo-status-lbl.show{display:block}
+/* ── Profil photo avatar — PROMPT 026 ── */
+.profil-avatar{width:72px;height:72px;border-radius:50%;background:var(--bg3);border:3px solid var(--gold);
+  overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.6rem;
+  font-weight:800;color:var(--gold);margin:0 auto 10px;flex-shrink:0}
+.profil-avatar img{width:100%;height:100%;object-fit:cover}
+.identity-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;
+  font-size:.68rem;font-weight:700;margin-top:4px}
+.identity-badge.ok{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25)}
+.identity-badge.warn{background:rgba(234,179,8,.1);color:#eab308;border:1px solid rgba(234,179,8,.2)}
+.identity-badge.missing{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2)}
+/* ── Selfie modal — PROMPT 026 ── */
+.selfie-policy{font-size:.72rem;color:var(--tx3);line-height:1.6;padding:10px 18px;
+  background:var(--bg3);border-radius:8px;margin:0 18px 12px}
 
 /* ── POINTAGE TAB ── */
 .punch-hero{background:var(--dk);border-radius:var(--r16);padding:20px;margin-bottom:14px;text-align:center}
@@ -609,7 +622,7 @@ function loadLivreurs(){
   lbl.textContent='Chargement…';
   /* PROMPT 009: vue publique sans pin_code — PIN vérifié par Edge Function uniquement */
   /* PROMPT 006: return Promise pour que DOMContentLoaded puisse attendre */
-  return sbFetch('veraluz_employees_public?select=id,full_name,role,status,team_id,team_name,phone,email,hire_date&order=full_name.asc')
+  return sbFetch('veraluz_employees_public?select=id,full_name,role,status,team_id,team_name,phone,email,hire_date,photo_url,public_display_name,identity_verified&order=full_name.asc')
     .then(function(rows){
       /* Filtre via isDeliveryEmployee() : équipe OU rôle */
       var livrows = rows.filter(isDeliveryEmployee);
@@ -1345,7 +1358,13 @@ function pickStatus(oid,status,elBtn){
   var o=_orders.find(function(x){return x.id===oid;});
   if(o){o.status=status;renderOrders();updateStats();}
   closeMod();
-  sbPatch('veraluz_food_orders',oid,{status:status})
+  /* PROMPT 026 : horodatage transitions livraison */
+  var tsField=null;
+  var now=new Date().toISOString();
+  if(status==='out_for_delivery') tsField={accepted_at:now,out_for_delivery_at:now};
+  if(status==='delivered') tsField={delivered_at:now};
+  var patchPayload=Object.assign({status:status},tsField||{});
+  sbPatch('veraluz_food_orders',oid,patchPayload)
     .then(function(){
       _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
       updateSyncStrip();
@@ -1361,6 +1380,7 @@ function pickStatus(oid,status,elBtn){
    PHOTO PROOF MODAL
 ══════════════════════════════════════════ */
 var _photoB64=null;
+var _photoFile=null;   /* PROMPT 026 : File objet pour upload Storage */
 
 function openPhotoMod(oid){
   if(oid)_currentOrderId=oid;
@@ -1380,18 +1400,17 @@ function openPhotoMod(oid){
 
 function onPhotoSelected(inp){
   if(!inp.files||!inp.files[0])return;
+  /* PROMPT 026 : stocker le File objet, pas base64 — upload Storage direct */
+  _photoFile=inp.files[0];
   var reader=new FileReader();
   reader.onload=function(e){
-    /* PROMPT 006: compresser avant stockage offline (limite localStorage ~5MB) */
-    compressImageDataUrl(e.target.result, 1024, 0.7).then(function(compressed){
-      _photoB64=compressed;
-      var prev=document.getElementById('photoPreview');
-      if(prev){prev.src=_photoB64;prev.style.display='block';}
-      var lbl=document.getElementById('photoStatusLbl');
-      if(lbl)lbl.style.display='block';
-    });
+    _photoB64=e.target.result; /* Preview local uniquement — jamais envoyé en DB */
+    var prev=document.getElementById('photoPreview');
+    if(prev){prev.src=_photoB64;prev.style.display='block';}
+    var lbl=document.getElementById('photoStatusLbl');
+    if(lbl)lbl.style.display='block';
   };
-  reader.readAsDataURL(inp.files[0]);
+  reader.readAsDataURL(_photoFile);
 }
 
 function cancelPhoto(){
@@ -1402,20 +1421,44 @@ function cancelPhoto(){
 /* PROMPT 005: livraison AVEC photo — optimiste + queue */
 function confirmDeliveryWithPhoto(){
   var oid=_currentOrderId;
-  var photo=_photoB64;
+  var file=_photoFile||null;   /* PROMPT 026 : utiliser File, pas base64 */
   closeMod();
   var o=_orders.find(function(x){return x.id===oid;});
-  if(o){o.status='delivered';if(photo)o.delivery_photo_b64=photo;renderOrders();updateStats();}
-  var payload={status:'delivered'};
-  if(photo)payload.delivery_photo_b64=photo;
-  sbPatch('veraluz_food_orders',oid,payload)
-    .then(function(){
-      _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-      updateSyncStrip();
-      toast('✅ Livraison + photo confirmées','ok');
-    })
-    .catch(function(){queueAction('patch_order',oid,payload);});
-  _photoB64=null;
+  if(o){o.status='delivered';renderOrders();updateStats();}
+  var now=new Date().toISOString();
+  if(file){
+    /* Upload vers Supabase Storage delivery-proofs — pas de base64 en DB */
+    uploadToStorage(file,'delivery-proofs/'+now.slice(0,10)+'_'+oid+'.jpg')
+      .then(function(url){
+        var payload={status:'delivered',proof_photo_url:url,delivered_at:now};
+        sbPatch('veraluz_food_orders',oid,payload)
+          .then(function(){
+            _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+            updateSyncStrip();
+            toast('✅ Livraison + photo confirmées','ok');
+          })
+          .catch(function(){queueAction('patch_order',oid,payload);});
+      })
+      .catch(function(){
+        /* Storage indisponible — confirmer sans photo plutôt que stocker base64 */
+        var payload={status:'delivered',delivered_at:now};
+        sbPatch('veraluz_food_orders',oid,payload)
+          .then(function(){
+            toast('✅ Livraison confirmée (photo non envoyée — Storage indisponible)','ok');
+          })
+          .catch(function(){queueAction('patch_order',oid,payload);});
+      });
+  } else {
+    var payload={status:'delivered',delivered_at:now};
+    sbPatch('veraluz_food_orders',oid,payload)
+      .then(function(){
+        _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        updateSyncStrip();
+        toast('✅ Livraison confirmée','ok');
+      })
+      .catch(function(){queueAction('patch_order',oid,payload);});
+  }
+  _photoB64=null; _photoFile=null;
 }
 
 /* PROMPT 005: livraison SANS photo — optimiste + queue */
@@ -1473,6 +1516,10 @@ function doPunch(type){
   if(type==='arrivee'){if(btnA)btnA.disabled=true;if(btnD)btnD.disabled=false;}
   else{if(btnA)btnA.disabled=false;if(btnD)btnD.disabled=true;}
   savePunch(payload);
+  /* PROMPT 026 : proposer selfie à la prise de service (non bloquant) */
+  if(type==='arrivee'){
+    openSelfieModal(null);
+  }
 }
 
 /* PROMPT 005/006: savePunch avec file d'attente offline */
@@ -1536,16 +1583,151 @@ function renderPointageToday(){
 /* ══════════════════════════════════════════
    PROFIL
 ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   PROMPT 026 — SELFIE PRISE DE SERVICE
+   Politique : aucune reconnaissance faciale auto. Aucune vidéo. Fallback si caméra refusée.
+══════════════════════════════════════════ */
+var _selfieFile=null;       /* File sélectionné avant upload */
+var _selfieCallback=null;   /* Callback après selfie ou skip */
+
+function openSelfieModal(cb){
+  _selfieCallback=cb||null;
+  _selfieFile=null;
+  var prev=document.getElementById('selfiePreview');
+  if(prev){prev.src='';prev.classList.remove('show');}
+  var lbl=document.getElementById('selfieStatusLbl');
+  if(lbl)lbl.classList.remove('show');
+  var btn=document.getElementById('selfieConfirmBtn');
+  if(btn)btn.disabled=true;
+  var inp=document.getElementById('selfieInput');
+  if(inp)inp.value='';
+  document.getElementById('selfieOv').classList.add('open');
+  document.getElementById('selfieMod').classList.add('open');
+}
+
+function closeSelfieModal(){
+  document.getElementById('selfieOv').classList.remove('open');
+  document.getElementById('selfieMod').classList.remove('open');
+  _selfieFile=null;
+}
+
+function onSelfieSelected(inp){
+  if(!inp.files||!inp.files[0])return;
+  _selfieFile=inp.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var prev=document.getElementById('selfiePreview');
+    if(prev){prev.src=e.target.result;prev.classList.add('show');}
+    var lbl=document.getElementById('selfieStatusLbl');
+    if(lbl)lbl.classList.add('show');
+    var btn=document.getElementById('selfieConfirmBtn');
+    if(btn)btn.disabled=false;
+  };
+  reader.readAsDataURL(_selfieFile);
+}
+
+function confirmSelfie(){
+  if(!_selfieFile){skipSelfie();return;}
+  closeSelfieModal();
+  /* Upload vers Supabase Storage employee-selfies — PROMPT 026
+     Ne pas stocker en localStorage ni en base64 dans la table */
+  uploadToStorage(_selfieFile,'employee-selfies/'+Date.now()+'_'+String(LIVREUR_ACTIF&&LIVREUR_ACTIF.id||'unknown')+'.jpg')
+    .then(function(url){
+      postCheckin('shift_start', url);
+      if(_selfieCallback) _selfieCallback(url);
+      _selfieCallback=null;
+    })
+    .catch(function(){
+      /* Fallback : enregistrer le checkin sans selfie_url si Storage indisponible */
+      postCheckin('shift_start', null);
+      if(_selfieCallback) _selfieCallback(null);
+      _selfieCallback=null;
+      toast('Selfie non envoyé — Storage indisponible. Présence enregistrée sans photo.','err');
+    });
+}
+
+function skipSelfie(){
+  closeSelfieModal();
+  /* Enregistrer un checkin sans selfie */
+  postCheckin('shift_start', null);
+  if(_selfieCallback) _selfieCallback(null);
+  _selfieCallback=null;
+}
+
+/* Upload vers Supabase Storage (anon key) — le bucket doit exister avec policy INSERT public
+   Buckets recommandés : employee-selfies (privé), delivery-proofs (privé) */
+function uploadToStorage(file, path){
+  return fetch(SB+'/storage/v1/object/'+path,{
+    method:'POST',
+    headers:{
+      'apikey':KEY,
+      'Authorization':'Bearer '+KEY,
+      'Content-Type':file.type||'image/jpeg',
+      'x-upsert':'true'
+    },
+    body:file
+  }).then(function(r){
+    if(!r.ok) throw new Error('Storage '+r.status);
+    /* URL publique — à utiliser uniquement si le bucket a une politique de lecture publique */
+    return SB+'/storage/v1/object/public/'+path;
+  });
+}
+
+/* Enregistrer un checkin dans veraluz_employee_checkins — PROMPT 026 */
+function postCheckin(type, selfieUrl){
+  if(!LIVREUR_ACTIF) return;
+  var payload={
+    tenant_id:'veraluz-001',
+    employee_id:String(LIVREUR_ACTIF.id||''),
+    employee_name:(LIVREUR_ACTIF.prenom||'')+' '+(LIVREUR_ACTIF.nom||''),
+    role:LIVREUR_ACTIF.role||'livreur',
+    checkin_type:type,
+    selfie_url:selfieUrl||null,
+    device_info:navigator.userAgent?navigator.userAgent.slice(0,120):null,
+    status:'pending'
+  };
+  sbPost('veraluz_employee_checkins',payload)
+    .catch(function(){/* Non bloquant — checkin sans selfie en cas d'erreur */});
+}
+
 function renderProfil(){
   if(!LIVREUR_ACTIF)return;
   var el=document.getElementById('profil-body');
   if(!el)return;
-  el.innerHTML='<div style="padding:16px">'
-    +'<div style="font-size:1.3rem;font-weight:700;margin-bottom:4px">'+escH(LIVREUR_ACTIF.prenom+' '+LIVREUR_ACTIF.nom)+'</div>'
-    +'<div style="color:var(--muted);margin-bottom:12px">'+escH(LIVREUR_ACTIF.role||'Livreur')+'</div>'
-    +(LIVREUR_ACTIF.telephone?'<div style="margin-bottom:8px">📞 '+escH(LIVREUR_ACTIF.telephone)+'</div>':'')
-    +(LIVREUR_ACTIF.email?'<div style="margin-bottom:8px">✉️ '+escH(LIVREUR_ACTIF.email)+'</div>':'')
-    +'<button class="act-btn" style="margin-top:20px;background:var(--bg3);color:var(--tx);border:1px solid var(--border)" onclick="logout()">🚪 Déconnexion</button>'
+  /* Photo avatar — PROMPT 026 */
+  var photoUrl=LIVREUR_ACTIF.photo_url||'';
+  var displayName=LIVREUR_ACTIF.public_display_name||(LIVREUR_ACTIF.prenom+' '+LIVREUR_ACTIF.nom);
+  var initials=((LIVREUR_ACTIF.prenom||'').charAt(0)+(LIVREUR_ACTIF.nom||'').charAt(0)).toUpperCase();
+  var avatarInner=photoUrl
+    ?'<img src="'+escH(photoUrl)+'" alt="Photo profil" onerror="this.style.display=\'none\'">'
+    :escH(initials||'?');
+  /* Statut identité */
+  var verified=LIVREUR_ACTIF.identity_verified;
+  var badgeHtml=photoUrl&&verified
+    ?'<span class="identity-badge ok">✓ Identité vérifiée</span>'
+    :!photoUrl
+      ?'<span class="identity-badge missing">Photo manquante</span>'
+      :'<span class="identity-badge warn">À vérifier</span>';
+  /* Stats livraisons du jour */
+  var today=_orders.filter(function(o){return o.status==='delivered';}).length;
+  var active=_orders.filter(function(o){return o.status==='out_for_delivery';}).length;
+  el.innerHTML='<div style="padding:18px;text-align:center">'
+    +'<div class="profil-avatar">'+avatarInner+'</div>'
+    +'<div style="font-size:1.2rem;font-weight:700;margin-bottom:2px">'+escH(displayName)+'</div>'
+    +'<div style="color:var(--muted);font-size:.82rem;margin-bottom:4px">'+escH(LIVREUR_ACTIF.role||'Livreur')+'</div>'
+    +badgeHtml
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 16px">'
+    +'<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center">'
+    +'<div style="font-size:1.5rem;font-weight:800;color:var(--gold)">'+today+'</div>'
+    +'<div style="font-size:.68rem;color:var(--tx3);margin-top:2px">Livrées aujourd\'hui</div></div>'
+    +'<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center">'
+    +'<div style="font-size:1.5rem;font-weight:800;color:var(--green)">'+active+'</div>'
+    +'<div style="font-size:.68rem;color:var(--tx3);margin-top:2px">En cours</div></div>'
+    +'</div>'
+    +'<div style="padding:0 16px 8px">'
+    +(LIVREUR_ACTIF.telephone?'<div style="margin-bottom:8px;font-size:.84rem">📞 '+escH(LIVREUR_ACTIF.telephone)+'</div>':'')
+    +'<button class="act-btn" style="background:var(--bg3);color:var(--tx);border:1px solid var(--border)" onclick="logout()">Déconnexion</button>'
     +'</div>';
 }
 
@@ -1734,5 +1916,28 @@ document.addEventListener('DOMContentLoaded',function(){
   </div>
 </div>
 
+<!-- SELFIE PRISE DE SERVICE — PROMPT 026 -->
+<div class="modal-ov" id="selfieOv"></div>
+<div class="modal" id="selfieMod" style="max-height:85vh">
+  <div class="modal-head">
+    <span class="modal-title">Prise de service</span>
+    <button class="icon-close" onclick="skipSelfie()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <p class="selfie-policy">Prenez une photo rapide pour confirmer votre présence. Cette photo est utilisée uniquement pour la sécurité interne et la traçabilité du service.</p>
+  <div class="photo-zone" id="selfieZone">
+    <input type="file" accept="image/*" capture="user" id="selfieInput" onchange="onSelfieSelected(this)">
+    <div class="photo-zone-ico"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+    <div class="photo-zone-lbl">Prendre une photo (selfie)</div>
+    <div class="photo-zone-sub">Caméra frontale — usage interne uniquement</div>
+  </div>
+  <img id="selfiePreview" class="photo-preview" alt="Aperçu selfie">
+  <div class="photo-status-lbl" id="selfieStatusLbl">Photo prête</div>
+  <div class="photo-confirm-row">
+    <button class="btn-photo-ok" id="selfieConfirmBtn" onclick="confirmSelfie()" disabled>Confirmer</button>
+    <button class="btn-photo-skip" onclick="skipSelfie()">Passer</button>
+  </div>
+</div>
 </body>
 </html>

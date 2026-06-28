@@ -74,7 +74,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 #md-dossier{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:150;overflow:hidden;}
 #md-dossier.on{display:flex;}
 .dos-hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
-.dos-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;}
+.dos-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden;position:relative;}
+.dos-avatar img,.emp-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;top:0;left:0;}
+.id-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:12px;margin-left:4px;vertical-align:middle}
+.id-badge.ok{background:rgba(34,211,165,.12);color:#22d3a5;border:1px solid rgba(34,211,165,.25)}
+.id-badge.warn{background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2)}
+.id-badge.missing{background:rgba(244,63,94,.1);color:#f43f5e;border:1px solid rgba(244,63,94,.2)}
+.checkin-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.checkin-icon{font-size:1.1rem;flex-shrink:0}
+.checkin-info{flex:1}
+.checkin-time{color:var(--text3);font-size:10px}
+.checkin-selfie{width:36px;height:36px;border-radius:8px;object-fit:cover;cursor:pointer;flex-shrink:0}
 .dos-tabs{display:flex;overflow-x:auto;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;scrollbar-width:none;}
 .dos-tabs::-webkit-scrollbar{display:none;}
 .dos-tab{flex-shrink:0;padding:9px 13px;font-size:11px;font-weight:600;color:var(--text3);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;}
@@ -516,6 +526,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
   <div class="dos-tabs">
     <button class="dos-tab on" onclick="goDosTb('dos-profil',this)">&#128100; Profil</button>
+    <button class="dos-tab"    onclick="goDosTb('dos-checkins',this)">&#128247; Checkins</button>
     <button class="dos-tab"    onclick="goDosTb('dos-contrat',this)">&#128203; Contrat</button>
     <button class="dos-tab"    onclick="goDosTb('dos-salaire',this)">&#128176; Salaire</button>
     <button class="dos-tab"    onclick="goDosTb('dos-paie',this)">&#128196; Fiches paie</button>
@@ -525,6 +536,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
   <div class="dos-body">
     <div class="dos-pane on" id="dos-profil"></div>
+    <div class="dos-pane"    id="dos-checkins"><div id="dos-checkins-body"></div></div>
     <div class="dos-pane"    id="dos-contrat"></div>
     <div class="dos-pane"    id="dos-salaire"></div>
     <div class="dos-pane"    id="dos-paie"></div>
@@ -975,9 +987,11 @@ function renderEmps(){
     var color=avatarColor(e.full_name);
     var initials=avatarInitials(e.full_name);
     var team=TEAMS.find(function(t){return t.id===e.team_id;});
+    var photoUrl=e.photo_url||'';
+    var photoImg=photoUrl?'<img src="'+esc(photoUrl)+'" alt="'+esc(initials)+'" onerror="this.style.display=\'none\'">':'';
     return '<div class="emp-card" data-eid="'+esc(e.id)+'" onclick="openDossier(this.dataset.eid)">'
       +'<div class="emp-status-dot '+esc(e.status||'inactif')+'"></div>'
-      +'<div class="emp-avatar" style="background:'+color+'">'+initials+'</div>'
+      +'<div class="emp-avatar" style="background:'+color+'">'+initials+photoImg+'</div>'
       +'<div class="emp-name">'+esc(e.full_name)+'</div>'
       +'<div class="emp-role">'+esc(e.role||'—')+(team?' · <span style="color:'+esc(team.color||'#22d3a5')+'">'+esc(team.name)+'</span>':'')+'</div>'
       +'</div>';
@@ -1126,8 +1140,9 @@ function openDossier(eid){
   var color=avatarColor(e.full_name);
   var initials=avatarInitials(e.full_name);
   var team=TEAMS.find(function(t){return t.id===e.team_id;});
-  document.getElementById('dos-avatar').style.background=color;
-  document.getElementById('dos-avatar').textContent=initials;
+  var dosAv=document.getElementById('dos-avatar');
+  dosAv.style.background=color;
+  dosAv.innerHTML=initials+(e.photo_url?'<img src="'+esc(e.photo_url)+'" alt="'+esc(initials)+'" onerror="this.style.display=\'none\'">':'');
   document.getElementById('dos-name').textContent=e.full_name;
   document.getElementById('dos-sub').textContent=(e.role||'')+(team?' · '+team.name:'')+(e.status?' · '+e.status:'');
   var sd=document.getElementById('dos-status-dot');
@@ -1143,18 +1158,66 @@ function goDosTb(pane,btn){
   document.querySelectorAll('.dos-pane').forEach(function(p){p.classList.remove('on');});
   var p=document.getElementById(pane);if(p)p.classList.add('on');
   if(pane==='dos-contrat')renderDosContrat();
+  else if(pane==='dos-checkins')renderDosCheckins();
   else if(pane==='dos-salaire')renderDosSalaire();
   else if(pane==='dos-paie')renderDosPaie();
   else if(pane==='dos-taches')renderDosTaches();
   else if(pane==='dos-att')renderDosAtt();
   else if(pane==='dos-docs')renderDosDocs();
 }
+/* PROMPT 026 — Historique présences / checkins livreur */
+function renderDosCheckins(){
+  var el=document.getElementById('dos-checkins-body');
+  if(!el)return;
+  el.innerHTML='<div style="padding:10px 0;text-align:center;color:var(--text3);font-size:12px;">Chargement...</div>';
+  safeGet('veraluz_employee_checkins?employee_id=eq.'+encodeURIComponent(_dosEmpId)+'&order=created_at.desc&limit=40')
+    .then(function(rows){
+      if(!rows||!rows.length){
+        el.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3)"><div style="font-size:1.5rem;margin-bottom:6px">&#128247;</div>Aucun pointage enregistr&#233;</div>';
+        return;
+      }
+      var TYPE_LBL={shift_start:'Prise de service',shift_end:'Fin de service',break_start:'D&#233;but pause',break_end:'Fin pause'};
+      var TYPE_ICO={shift_start:'🟢',shift_end:'🔴',break_start:'🟡',break_end:'🔵'};
+      el.innerHTML=rows.map(function(c){
+        var lbl=TYPE_LBL[c.checkin_type]||c.checkin_type||'Pointage';
+        var ico=TYPE_ICO[c.checkin_type]||'📍';
+        var dt=c.created_at?new Date(c.created_at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+        var selfieHtml=c.selfie_url
+          ?'<img class="checkin-selfie" src="'+esc(c.selfie_url)+'" alt="Selfie" onclick="window.open(\''+esc(c.selfie_url)+'\',\'_blank\')" title="Voir selfie" onerror="this.style.display=\'none\'">'
+          :'<div style="width:36px;height:36px;background:var(--bg4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3)">—</div>';
+        return '<div class="checkin-row">'
+          +'<div class="checkin-icon">'+ico+'</div>'
+          +'<div class="checkin-info">'
+            +'<div style="font-weight:600">'+lbl+'</div>'
+            +'<div class="checkin-time">'+dt+(c.device_info?' · '+esc(c.device_info.slice(0,40)):'')+'</div>'
+          +'</div>'
+          +selfieHtml
+          +'</div>';
+      }).join('');
+    })
+    .catch(function(){
+      el.innerHTML='<div style="padding:16px;color:var(--text3);font-size:12px">Impossible de charger. Table veraluz_employee_checkins absente ou inaccessible.</div>';
+    });
+}
+
 function renderDosProfil(e){
   if(!e){e=EMPS.find(function(x){return x.id===_dosEmpId;});}
   if(!e)return;
   var team=TEAMS.find(function(t){return t.id===e.team_id;});
   var el=document.getElementById('dos-profil');
+  var idBadge=e.identity_verified
+    ?'<span class="id-badge ok">&#10003; Identit&#233; v&#233;rifi&#233;e</span>'
+    :!e.photo_url
+      ?'<span class="id-badge missing">&#128247; Photo manquante</span>'
+      :'<span class="id-badge warn">&#9888; &#192; v&#233;rifier</span>';
+  var photoRow=e.photo_url
+    ?'<div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;">'
+      +'<img src="'+esc(e.photo_url)+'" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--acc1)" alt="Photo">'
+      +'<div><div style="font-weight:700;font-size:13px;">'+esc(e.public_display_name||e.full_name)+'</div>'+idBadge+'</div>'
+      +'</div>'
+    :'<div style="margin-bottom:10px;">'+idBadge+'</div>';
   el.innerHTML='<div class="card">'
+    +photoRow
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">'
     +'<div><div style="color:var(--text3);font-size:10px;">T&#233;l&#233;phone</div><div>'+esc(e.phone||'—')+'</div></div>'
     +'<div><div style="color:var(--text3);font-size:10px;">Email</div><div>'+esc(e.email||'—')+'</div></div>'

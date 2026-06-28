@@ -1920,7 +1920,9 @@ function generateChloeMorningReport() {
     sbGet('/rest/v1/veraluz_payments?status=eq.pending&order=created_at.desc&limit=20'),
     sbGet('/rest/v1/veraluz_employees?status=eq.active&limit=50'),
     sbGet('/rest/v1/veraluz_chloe_approvals?tenant_id=eq.veraluz-001&status=eq.pending&limit=20'),
-    sbGet('/rest/v1/veraluz_chloe_reminders?tenant_id=eq.veraluz-001&status=eq.active&due_at=lte.'+(today+'T23:59:59Z')+'&limit=20')
+    sbGet('/rest/v1/veraluz_chloe_reminders?tenant_id=eq.veraluz-001&status=eq.active&due_at=lte.'+(today+'T23:59:59Z')+'&limit=20'),
+    sbGet('/rest/v1/veraluz_employees?role=eq.livreur&status=eq.actif&photo_url=is.null&select=id,full_name,role&limit=20').catch(function(){return[];}),
+    sbGet('/rest/v1/veraluz_food_orders?status=eq.delivered&proof_photo_url=is.null&select=id,order_number,assigned_to,delivered_at&limit=20').catch(function(){return[];})
   ]).then(function(results) {
     var arrivals    = results[0]||[];
     var departures  = results[1]||[];
@@ -1929,6 +1931,8 @@ function generateChloeMorningReport() {
     var employees   = results[4]||[];
     var approvals   = results[5]||[];
     var reminders   = results[6]||[];
+    var livreursNoPhoto  = results[7]||[];
+    var livraisonsNoProof= results[8]||[];
 
     var totalPay = payPending.reduce(function(s,p){ return s+(parseFloat(p.amount)||0); }, 0);
     var fmtXAF = function(n){ return n.toLocaleString('fr-FR')+' XAF'; };
@@ -1938,6 +1942,8 @@ function generateChloeMorningReport() {
     if (reminders.length) urgents.push(reminders.length+' rappel(s) du jour');
     if (hkPending.length > 5) urgents.push(hkPending.length+' tâches ménage en retard');
     if (payPending.length) urgents.push(payPending.length+' paiement(s) à traiter ('+fmtXAF(totalPay)+')');
+    if (livreursNoPhoto.length)   urgents.push('⚠️ '+livreursNoPhoto.length+' livreur(s) sans photo profil : '+livreursNoPhoto.slice(0,3).map(function(l){return l.full_name||'ID '+String(l.id).slice(0,6);}).join(', '));
+    if (livraisonsNoProof.length) urgents.push('📦 '+livraisonsNoProof.length+' livraison(s) sans preuve photo (vérification manuelle requise)');
 
     var score = urgents.length === 0 ? 'Bonne' : urgents.length <= 2 ? 'Attention requise' : 'Critique';
     var scoreColor = urgents.length === 0 ? 'var(--accent)' : urgents.length <= 2 ? 'var(--yellow)' : 'var(--red)';
@@ -1968,7 +1974,9 @@ function generateChloeMorningReport() {
         pay_amount: totalPay,
         employees_active: employees.length,
         approvals_pending: approvals.length,
-        reminders_today: reminders.length
+        reminders_today: reminders.length,
+        livreurs_sans_photo: livreursNoPhoto.length,
+        livraisons_sans_preuve: livraisonsNoProof.length
       },
       urgents: urgents,
       arrivals_list: arrivals.slice(0,5).map(function(r){ return {name:r.guest_name||'—',room:r.room_number||'—'}; }),
@@ -2060,6 +2068,16 @@ function renderChloeReportHTML(r, scoreColor) {
     r.approvals_list.forEach(function(a){
       parts.push('<div style="font-size:11px;color:var(--text2);padding:3px 0;">— '+priBdg(a.priority)+' '+typeBdg(a.type||'approbation')+esc(a.title)+'</div>');
     });
+    parts.push('</div>');
+  }
+  /* PROMPT 026 — Section photo livreurs */
+  if (r.metrics && (r.metrics.livreurs_sans_photo||0)+(r.metrics.livraisons_sans_preuve||0) > 0) {
+    parts.push('<div class="chloe-section">');
+    parts.push('<div class="chloe-section-title">📸 Suivi Photo Livreurs</div>');
+    if (r.metrics.livreurs_sans_photo > 0)
+      parts.push('<div style="font-size:11px;color:var(--text2);padding:3px 0;">— ⚠️ <strong>'+r.metrics.livreurs_sans_photo+' livreur(s)</strong> sans photo profil — compléter dans RH</div>');
+    if (r.metrics.livraisons_sans_preuve > 0)
+      parts.push('<div style="font-size:11px;color:var(--text2);padding:3px 0;">— 📦 <strong>'+r.metrics.livraisons_sans_preuve+' livraison(s)</strong> sans preuve photo — vérification manuelle</div>');
     parts.push('</div>');
   }
   if (r.arrivals_list && r.arrivals_list.length) {

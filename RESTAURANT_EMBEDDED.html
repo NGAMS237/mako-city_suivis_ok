@@ -1157,7 +1157,8 @@ function loadAll(){
     _safe(GET('/rest/v1/veraluz_food_promotions?select=*&order=created_at.desc')),
     /* P0 FIX: veraluz_employees (table officielle) + join equipe */
     /* PROMPT 025 SÉCURITÉ: code PIN retiré du select — jamais exposé côté frontend */
-    _safe(GET('/rest/v1/veraluz_employees?select=id,full_name,role,status,phone,email,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')),
+    /* PROMPT 026 : photo_url + identity_verified pour affichage livreur */
+    _safe(GET('/rest/v1/veraluz_employees?select=id,full_name,role,status,phone,email,photo_url,public_display_name,identity_verified,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')),
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
     RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];APP_PROMOS=r[9]||[];
@@ -1656,7 +1657,20 @@ function kdsCard(o){
   var infoHtml='';
   if(o.info)infoHtml+='<div class="kc2-info">'+esc(o.info)+'</div>';
   if(o.phone)infoHtml+='<div class="kc2-info"><strong>&#128222;</strong> '+esc(o.phone)+'</div>';
-  if(o.assigned)infoHtml+='<div class="kc2-info" style="color:#a78bfa"><strong>&#128100;</strong> '+esc(o.assigned)+'</div>';
+  if(o.assigned){
+    /* PROMPT 026 : afficher photo + identité livreur dans la carte KDS */
+    var livreurData=LIVREURS.find(function(l){return String(l.id)===String(o.livreur_id||'');});
+    var driverAvatar='';
+    if(livreurData&&livreurData.photo_url){
+      driverAvatar='<img src="'+esc(livreurData.photo_url)+'" style="width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px" alt="">';
+    }
+    var idBadge=(livreurData&&livreurData.identity_verified)
+      ?'<span style="font-size:9px;color:#22d3a5;font-weight:700;margin-left:4px">&#10003;</span>'
+      :(livreurData&&!livreurData.photo_url)
+        ?'<span style="font-size:9px;color:#f59e0b;margin-left:4px">📷</span>'
+        :'';
+    infoHtml+='<div class="kc2-info" style="color:#a78bfa;display:flex;align-items:center">'+driverAvatar+'<strong>&#128667;</strong> '+esc(o.assigned)+idBadge+'</div>';
+  }
   if(o.zone)infoHtml+='<div class="kc2-info"><strong>&#128506;</strong> Zone: '+esc(o.zone)+'</div>';
   /* Action buttons */
   var acts='';
@@ -1733,9 +1747,21 @@ function kdsAssignLivreur(oid){
       var colors=['#22d3a5','#818cf8','#f59e0b','#f43f5e','#10b981','#3b82f6'];
       var hsh=0;for(var i=0;i<(l.nom||'').length;i++){hsh=(hsh*31+l.nom.charCodeAt(i))%colors.length;}
       var col=colors[Math.abs(hsh)%colors.length];
-      return '<button class="liv-card'+(isCur?' liv-cur':'')+'" data-lid="'+esc(l.id)+'" data-lnom="'+esc(l.prenom+' '+l.nom)+'" onclick="pickLivreur(this)">'
-        +'<div class="liv-av" style="background:'+col+'">'+initials+'</div>'
-        +'<div class="liv-info"><div class="liv-name">'+esc(l.prenom+' '+l.nom)+'</div>'
+      /* PROMPT 026 : afficher photo profil si disponible */
+      var photoUrl=l.photo_url||'';
+      var avContent=photoUrl
+        ?'<img src="'+esc(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="'+esc(initials)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'block\'">'
+          +'<span style="display:none">'+initials+'</span>'
+        :initials;
+      /* Badge identité */
+      var idBadge=l.identity_verified
+        ?'<span style="font-size:9px;color:#22d3a5;font-weight:700">&#10003; vérif.</span>'
+        :!photoUrl
+          ?'<span style="font-size:9px;color:#f59e0b">📷 manquant</span>'
+          :'';
+      return '<button class="liv-card'+(isCur?' liv-cur':'')+'" data-lid="'+esc(l.id)+'" data-lnom="'+esc(l.prenom+' '+l.nom)+'" data-lphoto="'+esc(photoUrl)+'" onclick="pickLivreur(this)">'
+        +'<div class="liv-av" style="background:'+col+';overflow:hidden;position:relative">'+avContent+'</div>'
+        +'<div class="liv-info"><div class="liv-name">'+esc(l.prenom+' '+l.nom)+' '+idBadge+'</div>'
         +'<div class="liv-role">'+esc(l.poste||'Livreur')+(l.vehicule?' · '+esc(l.vehicule):'')+'</div></div>'
         +(isCur?'<span style="color:var(--acc1);font-size:16px;">&#10003;</span>':'')
         +'</button>';
@@ -1756,7 +1782,9 @@ function pickLivreur(btn){
   var lid=btn?btn.dataset.lid:null;
   var lnom=btn?btn.dataset.lnom:null;
   closeMd('md-livreur');
-  PATCH('veraluz_food_orders',oid,{assigned_to:lnom||null,livreur_id:lid||null})
+  /* PROMPT 026 : copier driver_photo_url au moment de l'assignation */
+  var lphoto=btn?btn.dataset.lphoto||null:null;
+  PATCH('veraluz_food_orders',oid,{assigned_to:lnom||null,livreur_id:lid||null,driver_photo_url:lphoto||null})
     .then(function(){
       if(o){o.assigned_to=lnom;o.livreur_id=lid;}
       renderKDS();
