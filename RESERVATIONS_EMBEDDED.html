@@ -1805,6 +1805,73 @@ function saveSettings(){
   toast('Paramètres sauvegardés ✓','success');
 }
 
+
+/* ══════════════════════════════════════════
+   PROMPT 032 — Alert Engine Réservations
+   Détecte nouvelles réservations en DB (30s)
+   ══════════════════════════════════════════ */
+var _vlzRezAC=null,_vlzRezNP=false,_vlzLastRezCreatedAt='',_vlzRezInterval=null;
+function _vlzRezBeep(f,d,v){
+  try{
+    if(!_vlzRezAC)_vlzRezAC=new(window.AudioContext||window.webkitAudioContext||function(){return null;})();
+    if(!_vlzRezAC)return;
+    if(_vlzRezAC.state==='suspended')_vlzRezAC.resume();
+    var o=_vlzRezAC.createOscillator(),g=_vlzRezAC.createGain();
+    o.connect(g);g.connect(_vlzRezAC.destination);
+    o.type='sine';o.frequency.value=f||660;
+    g.gain.setValueAtTime(v||0.22,_vlzRezAC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,_vlzRezAC.currentTime+(d||0.3));
+    o.start();o.stop(_vlzRezAC.currentTime+(d||0.3));
+  }catch(e){}
+}
+function _vlzRezAlertSound(){
+  _vlzRezBeep(440,0.12,0.2);setTimeout(function(){_vlzRezBeep(550,0.15,0.22);},165);
+  setTimeout(function(){_vlzRezBeep(660,0.2,0.28);},330);
+}
+function _vlzRezNotif(title,body,tag){
+  _vlzRezNP=(typeof Notification!=='undefined'&&Notification.permission==='granted');
+  if(!_vlzRezNP)return;
+  try{new Notification(title||'Veraluz',{body:body||'',tag:tag||'vlz-rez',
+    icon:'https://ngams237.github.io/mako-city_suivis_ok/icon-192.png',silent:false});}catch(e){}
+}
+function _vlzRezRequestNotif(){
+  if(!('Notification' in window)||Notification.permission!=='default')return;
+  Notification.requestPermission().then(function(p){_vlzRezNP=(p==='granted');}).catch(function(){});
+}
+function startRezAlertPolling(){
+  if(_vlzRezInterval)return;
+  /* Baseline : mémoriser la dernière réservation connue */
+  sbGet('veraluz_reservations?order=created_at.desc&limit=1').then(function(data){
+    if(data&&data[0]&&data[0].created_at) _vlzLastRezCreatedAt=data[0].created_at;
+  }).catch(function(){});
+  _vlzRezInterval=setInterval(function(){
+    sbGet('veraluz_reservations?order=created_at.desc&limit=3').then(function(data){
+      if(!data||!data.length)return;
+      var newest=data[0];
+      if(!newest||!newest.created_at)return;
+      if(_vlzLastRezCreatedAt===newest.created_at)return; /* rien de nouveau */
+      if(_vlzLastRezCreatedAt===''){ _vlzLastRezCreatedAt=newest.created_at; return; }
+      /* Nouvelle réservation détectée */
+      _vlzLastRezCreatedAt=newest.created_at;
+      var guest=newest.guest_name||newest.name||'Client';
+      var unit=newest.unit_id||newest.room||'';
+      var body=guest+(unit?' — '+unit:'');
+      _vlzRezAlertSound();
+      try{if(navigator.vibrate)navigator.vibrate([100,50,150]);}catch(e){}
+      toast('\uD83D\uDD14 Nouvelle réservation : '+body,'success');
+      _vlzRezNotif('Nouvelle réservation', body, 'vlz-rez-new');
+      /* Recharger les données */
+      if(typeof loadAll==='function')loadAll(function(){
+        if(typeof enrichStatuses==='function')enrichStatuses();
+        if(typeof refresh==='function')refresh();
+        if(typeof updateBadges==='function')updateBadges();
+      });
+      console.log('[REZ ALERT] Nouvelle réservation:', body);
+    }).catch(function(){});
+  },30000);
+}
+document.addEventListener('click',function(){_vlzRezRequestNotif();},{once:true});
+/* ══════════════════════════════════════════ */
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', function(){
   goTab('dash');
@@ -1841,6 +1908,9 @@ document.addEventListener('DOMContentLoaded', function(){
       if(ts>_lastRezSync){ _lastRezSync=ts; loadAll(function(){enrichStatuses();refresh();}); toast('Nouvelle réservation reçue du Booking Engine ✓','success'); }
     }catch(e){}
   },5000);
+  /* PROMPT 032 — alertes nouvelles réservations DB */
+  setTimeout(function(){startRezAlertPolling();},2000);
 });
 </script>
-<
+</body>
+</html>

@@ -609,7 +609,7 @@ function sbPatch(table,id,data){
    STATE
 ══════════════════════════════════════════ */
 var LIVREURS=[], LIVREUR_ACTIF=null;
-var LIVREUR_BUILD = 'v031d-message-rights-2026-06-28'; /* PROMPT 031 */
+var LIVREUR_BUILD = 'v032-alerts-2026-07-08'; /* PROMPT 031 */
 var _orders=[], _orderTab='pickup', _online=navigator.onLine, _curId=null, _interval=null;
 var _pointages=[], _pinBuffer='';
 var _lastSync=null;  // PROMPT 005: dernière synchronisation réussie
@@ -866,6 +866,73 @@ function validatePin(){
 /* ══════════════════════════════════════════
    APP INIT
 ══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════
+   PROMPT 032 — Alert Engine Livreur
+   WebAudio + Notification OS + Vibration
+   ══════════════════════════════════════════ */
+var _vlzLivAC=null,_vlzLivNP=false;
+function _vlzLivBeep(f,d,v){
+  try{
+    if(!_vlzLivAC)_vlzLivAC=new(window.AudioContext||window.webkitAudioContext||function(){return null;})();
+    if(!_vlzLivAC)return;
+    if(_vlzLivAC.state==='suspended')_vlzLivAC.resume();
+    var o=_vlzLivAC.createOscillator(),g=_vlzLivAC.createGain();
+    o.connect(g);g.connect(_vlzLivAC.destination);
+    o.type='sine';o.frequency.value=f||880;
+    g.gain.setValueAtTime(v||0.25,_vlzLivAC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,_vlzLivAC.currentTime+(d||0.3));
+    o.start();o.stop(_vlzLivAC.currentTime+(d||0.3));
+  }catch(e){}
+}
+function _vlzLivAlertSound(){
+  _vlzLivBeep(1000,0.1,0.3);
+  setTimeout(function(){_vlzLivBeep(1000,0.1,0.3);},150);
+  setTimeout(function(){_vlzLivBeep(1200,0.25,0.35);},300);
+}
+function _vlzLivNotif(title,body,tag){
+  _vlzLivNP=(typeof Notification!=='undefined'&&Notification.permission==='granted');
+  if(!_vlzLivNP)return;
+  try{new Notification(title||'Veraluz',{body:body||'',tag:tag||'vlz-liv',
+    icon:'https://ngams237.github.io/mako-city_suivis_ok/icon-192.png',silent:false});}catch(e){}
+}
+function _vlzLivRequestNotif(){
+  if(!('Notification' in window)||Notification.permission!=='default')return;
+  Notification.requestPermission().then(function(p){_vlzLivNP=(p==='granted');}).catch(function(){});
+}
+var _vlzLastLivMsgId='',_vlzLivMsgInterval=null;
+function startLivreurMsgPolling(){
+  if(_vlzLivMsgInterval)return;
+  if(!LIVREUR_ACTIF||!LIVREUR_ACTIF.id)return;
+  var lid=String(LIVREUR_ACTIF.id);
+  _vlzLivMsgInterval=setInterval(function(){
+    if(!LIVREUR_ACTIF||!LIVREUR_ACTIF.id)return;
+    sbFetch('veraluz_delivery_messages?tenant_id=eq.veraluz-001'
+      +'&recipient_type=eq.driver&recipient_id=eq.'+encodeURIComponent(lid)
+      +'&order=created_at.desc&limit=5')
+    .then(function(msgs){
+      if(!msgs||!msgs.length)return;
+      var newest=msgs[0];
+      if(!newest||!newest.id)return;
+      if(_vlzLastLivMsgId===String(newest.id))return;
+      if(_vlzLastLivMsgId===''){ _vlzLastLivMsgId=String(newest.id); return; }
+      _vlzLastLivMsgId=String(newest.id);
+      var from=newest.sender_name||'Restaurant';
+      var txt=(newest.message||newest.subject||'Nouveau message').substring(0,60);
+      /* Son urgent + vibration + notif OS */
+      _vlzLivAlertSound();
+      try{if(navigator.vibrate)navigator.vibrate([150,60,150,60,200]);}catch(e){}
+      if(typeof toast==='function')toast('\uD83D\uDD14 '+from+' : '+txt,'ok');
+      _vlzLivNotif(from, txt, 'vlz-liv-msg-'+newest.id);
+      /* Rafraîchir badge messages */
+      if(typeof refreshMsgBadge==='function')refreshMsgBadge();
+      console.log('[LIV ALERT] Message:', from, txt);
+    }).catch(function(){});
+  },15000);
+}
+document.addEventListener('click',function(){_vlzLivRequestNotif();},{once:true});
+/* ══════════════════════════════════════════ */
+
 function initApp(){
   document.getElementById('tbName').textContent=LIVREUR_ACTIF.prenom+' '+LIVREUR_ACTIF.nom;
   document.getElementById('tbDate').textContent='Veraluz · Livreur';
@@ -882,6 +949,8 @@ function initApp(){
     loadPointageToday();
     if (_online) syncPendingActions();
   },30000); /* PROMPT 027 — polling 30s */
+  /* PROMPT 032 — alertes messages restaurant */
+  setTimeout(function(){startLivreurMsgPolling();},3000);
 }
 
 /* ══════════════════════════════════════════

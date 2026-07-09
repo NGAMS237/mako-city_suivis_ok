@@ -284,7 +284,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <div class="toast" id="msg-toast"></div>
 
 <script>
-var MESSAGES_BUILD = 'v031d-message-rights-2026-06-28'; /* PROMPT 031 */
+var MESSAGES_BUILD = 'v032-alerts-2026-07-08'; /* PROMPT 031 */
 var _migration030Status = 'pending'; /* sera verifie au demarrage */
 /* ──────────────────────────────────────────────────────────
    VERALUZ MESSAGES MODULE — PROMPT 030
@@ -514,9 +514,10 @@ function loadMyInbox(filters){
 
 function loadMessages(filters){
   var actor=getCurrentMessagingActor();
+  console.log('[MSGS 031D] loadMessages actor='+actor.actor_type+' view_all='+actor.can_view_all_messages+' dept='+actor.department);
   var isArchive=filters&&filters.status==='archived';
   var pane=document.getElementById('pane-'+(isArchive?'archives':'inbox'));
-  if(!pane)return;
+  if(!pane){console.warn('[MSGS] pane non trouvé'); return;}
   pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
 
   var promises=[];
@@ -525,12 +526,12 @@ function loadMessages(filters){
     /* Admin : tout charger */
     var path='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&order=created_at.desc&limit=80';
     if(isArchive) path+='&status=eq.archived';
-    else path+='&status=neq.archived&status=neq.cancelled';
+    else path+='&status=not.in.(archived,cancelled)';
     promises.push(sbQ(path).catch(function(){return[];}));
   } else {
     /* Requêtes ciblées selon acteur — fusionnées côté JS */
     var base='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&order=created_at.desc&limit=40';
-    var sf=isArchive?'&status=eq.archived':'&status=neq.archived&status=neq.cancelled';
+    var sf=isArchive?'&status=eq.archived':'&status=not.in.(archived,cancelled)';
 
     /* Messages directs à cet acteur */
     if(actor.actor_id){
@@ -575,9 +576,12 @@ function loadMessages(filters){
     var toShow=_allMessages;
     if(filters&&filters.excludeChloe===false){/* tout afficher */}
     renderInboxList(pane,toShow,filters&&filters.status==='archived');
-  }).catch(function(){
+  }).catch(function(e){
+    console.error('[MSGS] Erreur chargement:', e&&(e.message||e.detail||JSON.stringify(e))||e);
     pane.innerHTML='<div class="empty-state"><div class="empty-ico">📭</div>'
-      +'<div>Messagerie non disponible.<br>Exécutez MIGRATION_SQL_PROMPT_030.sql</div></div>';
+      +'<div>Erreur chargement messages.<br><small style="color:#888">'
+      +(e&&(e.message||e.detail||'').substring(0,80)||'Vérifiez la connexion')
+      +'</small></div></div>';
   });
 }
 
@@ -1251,7 +1255,7 @@ function sendDeliveryMessage(orderId,message,type){
 /* ────────────────────────────────────
    INIT
 ──────────────────────────────────── */
-document./* PROMPT 031D — Debug admin droits messagerie */
+/* PROMPT 031D — Debug admin droits messagerie */
 function renderActorDebugPanel(){
   var actor=getCurrentMessagingActor();
   var el=document.getElementById('actor-debug-panel');
@@ -1274,6 +1278,91 @@ function renderActorDebugPanel(){
     +'</div>';
 }
 
+
+/* ── PROMPT 032 — Alert polling messages 20s ── */
+var _vlzLastMsgId='',_vlzMsgPollInterval=null;
+function startMsgAlertPolling(){
+  if(_vlzMsgPollInterval)return;
+  _vlzMsgPollInterval=setInterval(function(){
+    var actor=getCurrentMessagingActor();
+    if(!actor)return;
+    var qs='veraluz_internal_messages?tenant_id=eq.'+encodeURIComponent(TENANT)
+      +'&status=not.in.(archived,cancelled)&order=created_at.desc&limit=5';
+    sbGet(qs).then(function(msgs){
+      if(!msgs||!msgs.length)return;
+      var newest=msgs[0];
+      if(!newest||!newest.id)return;
+      if(_vlzLastMsgId===String(newest.id))return; /* rien de nouveau */
+      if(_vlzLastMsgId===''){ _vlzLastMsgId=String(newest.id); return; } /* 1er poll = baseline */
+      /* Vérifier visibilité acteur */
+      if(!canActorSeeMessage(actor,newest))return;
+      _vlzLastMsgId=String(newest.id);
+      var from=newest.sender_name||newest.sender_type||'Système';
+      var body=newest.message||(newest.subject||'Nouveau message');
+      vlzAlert('Message de '+from, body.substring(0,80), 'message', 'vlz-msg-'+newest.id);
+      /* Recharger badge + inbox si ouvert */
+      renderMessageBadge();
+      if(typeof _activeTab!=='undefined'&&_activeTab==='inbox'){
+        loadMessages({status:'sent',excludeArchived:true});
+      }
+    }).catch(function(){});
+  },20000);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   VERALUZ ALERT ENGINE v032 — Alertes temps réel
+   WebAudio + Notification OS + Toast + Vibration
+   Aucun envoi WA/email/paiement automatique
+   ══════════════════════════════════════════════════════════════ */
+var _vlzAC=null,_vlzNP=false;
+function _vlzBeep(f,d,v){
+  try{
+    if(!_vlzAC)_vlzAC=new(window.AudioContext||window.webkitAudioContext||function(){return null;})();
+    if(!_vlzAC)return;
+    if(_vlzAC.state==='suspended')_vlzAC.resume();
+    var o=_vlzAC.createOscillator(),g=_vlzAC.createGain();
+    o.connect(g);g.connect(_vlzAC.destination);
+    o.type='sine';o.frequency.value=f||880;
+    g.gain.setValueAtTime(v||0.22,_vlzAC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,_vlzAC.currentTime+(d||0.3));
+    o.start();o.stop(_vlzAC.currentTime+(d||0.3));
+  }catch(e){}
+}
+function vlzAlertSound(type){
+  if(type==='urgent'){
+    _vlzBeep(1000,0.1,0.3);setTimeout(function(){_vlzBeep(1000,0.1,0.3);},140);
+    setTimeout(function(){_vlzBeep(1200,0.22,0.35);},280);
+  }else if(type==='reservation'){
+    _vlzBeep(440,0.12,0.2);setTimeout(function(){_vlzBeep(550,0.15,0.22);},160);
+    setTimeout(function(){_vlzBeep(660,0.2,0.28);},320);
+  }else if(type==='order'){
+    _vlzBeep(528,0.18,0.22);setTimeout(function(){_vlzBeep(660,0.22,0.28);},230);
+  }else{
+    _vlzBeep(660,0.12,0.18);setTimeout(function(){_vlzBeep(880,0.18,0.22);},160);
+  }
+}
+function vlzRequestNotif(){
+  if(!('Notification' in window)||Notification.permission!=='default')return;
+  Notification.requestPermission().then(function(p){_vlzNP=(p==='granted');}).catch(function(){});
+}
+function vlzNotif(title,body,tag){
+  if(typeof Notification==='undefined')return;
+  _vlzNP=(Notification.permission==='granted');
+  if(!_vlzNP)return;
+  try{new Notification(title||'Veraluz',{body:body||'',tag:tag||'vlz-alert',
+    icon:'https://ngams237.github.io/mako-city_suivis_ok/icon-192.png',silent:false});}
+  catch(e){}
+}
+function vlzAlert(title,body,soundType,tag){
+  if(typeof toast==='function')toast('\uD83D\uDD14 '+(body||title).substring(0,70),'ok');
+  vlzAlertSound(soundType||'message');
+  try{if(navigator.vibrate)navigator.vibrate([100,50,100]);}catch(e){}
+  vlzNotif(title,body,tag||'vlz-alert');
+  console.log('[VLZ ALERT]',title,'|',(body||'').substring(0,60));
+}
+document.addEventListener('click',function(){vlzRequestNotif();},{once:true});
+/* ══════════════════════════════════════════════════════════════ */
 addEventListener('DOMContentLoaded',function(){
   /* PROMPT 031D — init avec acteur identifié */
   var actor=getCurrentMessagingActor();
@@ -1288,7 +1377,10 @@ addEventListener('DOMContentLoaded',function(){
     else if(_activeTab==='chloe')renderChloeMessages();
     renderMessageBadge();
   },45000);
+  /* PROMPT 032 — alertes temps réel */
+  startMsgAlertPolling();
 });
 </script>
 </body>
 </html>
+         

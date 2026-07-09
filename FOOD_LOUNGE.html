@@ -1878,6 +1878,17 @@ function renderTrackOrder(o){
   var body=document.getElementById('trackBody');
   /* P0 FIX: normalise le statut pour compatibilité anciens enregistrements */
   var status=normalizeOrderStatus(o.status);
+  /* PROMPT 032 — alerte si statut changé depuis dernier affichage */
+  if(_vlzFoodPrevStatus&&_vlzFoodPrevStatus!==status){
+    var sidxTmp=TRACK_STATUSES.findIndex(function(s){return s.id===status;});
+    var lbl=sidxTmp>=0?TRACK_STATUSES[sidxTmp].lbl:status;
+    _vlzFoodAlertSound();
+    try{if(navigator.vibrate)navigator.vibrate([80,40,120]);}catch(e){}
+    if(typeof toast==='function')toast('\uD83D\uDD14 Commande : '+lbl,'ok');
+    _vlzFoodNotif('Statut mis à jour',lbl,'vlz-food-order');
+    console.log('[FOOD ALERT] Statut:',_vlzFoodPrevStatus,'->',status);
+  }
+  _vlzFoodPrevStatus=status;
   var sidx=TRACK_STATUSES.findIndex(function(s){return s.id===status;});
   if(sidx<0)sidx=0;
   var now=new Date();
@@ -1985,6 +1996,43 @@ window.addEventListener('message',function(ev){
   /* Reload menu if admin changed products */
   if(ev.data.type==='menu_updated'||ev.data.type==='products_updated')loadMenu();
 });
+
+
+/* ══════════════════════════════════════════
+   PROMPT 032 — Alert Engine Food Lounge
+   Alerte client quand statut commande change
+   ══════════════════════════════════════════ */
+var _vlzFoodAC=null,_vlzFoodNP=false;
+function _vlzFoodBeep(f,d,v){
+  try{
+    if(!_vlzFoodAC)_vlzFoodAC=new(window.AudioContext||window.webkitAudioContext||function(){return null;})();
+    if(!_vlzFoodAC)return;
+    if(_vlzFoodAC.state==='suspended')_vlzFoodAC.resume();
+    var o=_vlzFoodAC.createOscillator(),g=_vlzFoodAC.createGain();
+    o.connect(g);g.connect(_vlzFoodAC.destination);
+    o.type='sine';o.frequency.value=f||660;
+    g.gain.setValueAtTime(v||0.22,_vlzFoodAC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,_vlzFoodAC.currentTime+(d||0.3));
+    o.start();o.stop(_vlzFoodAC.currentTime+(d||0.3));
+  }catch(e){}
+}
+function _vlzFoodAlertSound(){
+  _vlzFoodBeep(528,0.18,0.22);setTimeout(function(){_vlzFoodBeep(660,0.22,0.28);},230);
+}
+function _vlzFoodNotif(title,body,tag){
+  _vlzFoodNP=(typeof Notification!=='undefined'&&Notification.permission==='granted');
+  if(!_vlzFoodNP)return;
+  try{new Notification(title||'Veraluz Food',{body:body||'',tag:tag||'vlz-food',
+    icon:'https://ngams237.github.io/mako-city_suivis_ok/icon-192.png',silent:false});}catch(e){}
+}
+function _vlzFoodRequestNotif(){
+  if(!('Notification' in window)||Notification.permission!=='default')return;
+  Notification.requestPermission().then(function(p){_vlzFoodNP=(p==='granted');}).catch(function(){});
+}
+/* Suivi statut commande en cours */
+var _vlzFoodPrevStatus='';
+document.addEventListener('click',function(){_vlzFoodRequestNotif();},{once:true});
+/* ══════════════════════════════════════════ */
 
 /* ── Init ── */
 (function(){

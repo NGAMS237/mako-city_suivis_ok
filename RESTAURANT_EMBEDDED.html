@@ -990,7 +990,7 @@ var payMeth='cash',payOid=null;
 var _tt=null;
 var APP_PROMOS=[], _appSub='promos';
 var LIVREURS=[], _assignOid=null;
-var RESTAURANT_BUILD = 'v031d-message-rights-2026-06-28'; /* PROMPT 031 */
+var RESTAURANT_BUILD = 'v032-alerts-2026-07-08'; /* PROMPT 031 */
 
 /* ══════════════════════════════════════════
    NORMALIZE UTILS — VERALUZ CORE v0.3.0
@@ -3072,8 +3072,45 @@ function renderAdmSup(){
   }).join('')||'<div class="empty">Aucun fournisseur</div>';
 }
 
+
+/* ── PROMPT 032 — Alert notifications OS Restaurant ── */
+var _vlzRestNP=false,_vlzLastDelivMsgId='',_vlzRestMsgInterval=null;
+function _vlzRestRequestNotif(){
+  if(!('Notification' in window)||Notification.permission!=='default')return;
+  Notification.requestPermission().then(function(p){_vlzRestNP=(p==='granted');}).catch(function(){});
+}
+function _vlzRestNotif(title,body,tag){
+  _vlzRestNP=(typeof Notification!=='undefined'&&Notification.permission==='granted');
+  if(!_vlzRestNP)return;
+  try{new Notification(title||'Veraluz Restaurant',{body:body||'',tag:tag||'vlz-rest',
+    icon:'https://ngams237.github.io/mako-city_suivis_ok/icon-192.png',silent:false});}catch(e){}
+}
+function startRestaurantMsgPolling(){
+  if(_vlzRestMsgInterval)return;
+  _vlzRestMsgInterval=setInterval(function(){
+    sbGet('veraluz_delivery_messages?tenant_id=eq.'+encodeURIComponent(TENANT)
+      +'&sender_type=eq.driver&order=created_at.desc&limit=5')
+    .then(function(msgs){
+      if(!msgs||!msgs.length)return;
+      var newest=msgs[0];
+      if(!newest||!newest.id)return;
+      if(_vlzLastDelivMsgId===String(newest.id))return;
+      if(_vlzLastDelivMsgId===''){ _vlzLastDelivMsgId=String(newest.id); return; }
+      _vlzLastDelivMsgId=String(newest.id);
+      var from=newest.sender_name||'Livreur';
+      var txt=(newest.message||newest.subject||'Message livreur').substring(0,60);
+      _playBeepOnCtx(880,0.3,0);
+      setTimeout(function(){_playBeepOnCtx(1000,0.28,0.15);},180);
+      toast('\uD83D\uDD14 '+from+' : '+txt,'ok');
+      _vlzRestNotif('Message de '+from, txt, 'vlz-rest-msg-'+newest.id);
+      console.log('[REST ALERT] Livreur:', from, txt);
+    }).catch(function(){});
+  },15000);
+}
+document.addEventListener('click',function(){_vlzRestRequestNotif();},{once:true});
+/* ─────────────────────────────────────────────────────────────────────────── */
 /* ── Init ── */
-document.addEventListener('DOMContentLoaded',function(){loadAll();});
+document.addEventListener('DOMContentLoaded',function(){loadAll();startRestaurantMsgPolling();});
 /* GUARD [G01][G02][G03][G04][G05][G06][G07][G08][G09][G10] */
 /* GUARD [G11][G12][G13][G14][G15][G16][G17][G18][G19][G20] */
 
