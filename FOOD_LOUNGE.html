@@ -1353,6 +1353,9 @@ var DEL_ICONS = {
 };
 
 /* ── Supabase ── */
+/* 011D-2A: _FALLBACK désactivé comme source commerciale — utilisé uniquement pour référence interne.
+   FOOD_LOUNGE charge exclusivement depuis get_public_restaurant_menu() RPC.
+   En cas d'échec RPC: message d'erreur, pas de fausse carte. */
 var _FALLBACK = [{"id": "p19", "name": "33 Export", "category": "bieres", "price": 1000, "available": true, "station": "bar"}, {"id": "p18", "name": "Castel Beer", "category": "bieres", "price": 1000, "available": true, "station": "bar"}, {"id": "p13", "name": "Eau minérale 50cl", "category": "bieres", "price": 500, "available": true, "station": "bar"}, {"id": "p20", "name": "Grande Guinness", "category": "bieres", "price": 2000, "available": true, "station": "bar"}, {"id": "p16", "name": "Coca Cola", "category": "boisson", "price": 1000, "available": true, "station": "bar"}, {"id": "p23", "name": "Mojito", "category": "cocktail", "price": 4000, "available": true, "station": "bar"}, {"id": "p22", "name": "Punch maison", "category": "cocktail", "price": 3500, "available": true, "station": "bar"}, {"id": "p21", "name": "Cocktail Kribi", "category": "cocktails", "price": 4500, "available": true, "station": "bar"}, {"id": "p15", "name": "Jus de fruits naturel", "category": "cocktails", "price": 1500, "available": true, "station": "bar"}, {"id": "p11", "name": "Ananas frais", "category": "dessert", "price": 1500, "available": true, "station": "cuisine"}, {"id": "p12", "name": "Pastèque", "category": "dessert", "price": 1000, "available": true, "station": "cuisine"}, {"id": "p14", "name": "Eau minérale 1.5L", "category": "eau", "price": 1000, "available": true, "station": "bar"}, {"id": "p03", "name": "Crevettes grillées", "category": "entree", "price": 5500, "available": true, "station": "cuisine"}, {"id": "p01", "name": "Salade Kribi", "category": "entree", "price": 2500, "available": true, "station": "cuisine"}, {"id": "p07", "name": "Eru au water fufu", "category": "plat", "price": 5500, "available": true, "station": "cuisine"}, {"id": "p08", "name": "Homard grillé", "category": "plat", "price": 15000, "available": true, "station": "cuisine"}, {"id": "p06", "name": "Ndolé complet", "category": "plat", "price": 6000, "available": true, "station": "cuisine"}, {"id": "p10", "name": "Plantain braisé", "category": "plat", "price": 2000, "available": true, "station": "cuisine"}, {"id": "p05", "name": "Poisson braisé", "category": "plat", "price": 7500, "available": true, "station": "cuisine"}, {"id": "p09", "name": "Riz blanc + sauce", "category": "plat", "price": 3000, "available": true, "station": "cuisine"}, {"id": "p04", "name": "Poulet DG", "category": "plats", "price": 5000, "available": true, "station": "cuisine"}, {"id": "p02", "name": "Soupe de poisson", "category": "plats", "price": 3000, "available": true, "station": "cuisine"}, {"id": "p17", "name": "Cappuccino", "category": "softs", "price": 800, "available": true, "station": "bar"}, {"id": "p24", "name": "Vin rouge (verre)", "category": "vins", "price": 3000, "available": true, "station": "bar"}];
 
 function sbFetch(path){
@@ -1361,6 +1364,19 @@ function sbFetch(path){
     mode:'cors',
     credentials:'omit',
     headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json','Cache-Control':'no-cache'}
+  }).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  });
+}
+/* 011D-2A — RPC call helper (POST to /rest/v1/rpc/<name>) */
+function sbRpc(name,params){
+  return fetch(SB+'/rest/v1/rpc/'+name,{
+    method:'POST',
+    mode:'cors',
+    credentials:'omit',
+    headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json',Accept:'application/json','Cache-Control':'no-cache'},
+    body:JSON.stringify(params||{})
   }).then(function(r){
     if(!r.ok) throw new Error('HTTP '+r.status);
     return r.json();
@@ -1375,29 +1391,40 @@ function sbInsert(table,data){
 }
 
 /* ── Load menu from Supabase ── */
+/* 011D-2A — Source canonique: get_public_restaurant_menu() RPC
+   Filtre DB: active=true AND app_visible=true
+   Filtre client: available, room_service_enabled selon _svc */
 function loadMenu(){
   _loadErr=false;
-  sbFetch('veraluz_restaurant_products?select=*&order=category,name')
+  /* Show skeleton while loading */
+  var el=document.getElementById('prodGrid');
+  if(el)el.innerHTML='<div class="prod-empty" style="padding:24px;text-align:center;color:var(--tx3);">Chargement de la carte…</div>';
+  sbRpc('get_public_restaurant_menu',{})
     .then(function(data){
-      /* Only show available items (available=true or available not set) */
-      _prods = (data||[]).filter(function(p){
-        return p.available !== false;
-      });
-      /* Build category list from actual products */
+      if(!Array.isArray(data)||!data.length){
+        /* RPC succeeded but no products — show empty state */
+        _prods=[];
+        buildCats();renderCats();renderProds();
+        return;
+      }
+      /* Store full list — renderProds() applies room_service filter per _svc */
+      _prods = data;
       buildCats();
       renderCats();
       renderProds();
     })
     .catch(function(err){
-      console.warn('Menu load failed, using fallback:',err);
-      /* Fallback: use hardcoded products so app is always functional */
-      _prods = _FALLBACK.filter(function(p){ return p.available !== false; });
-      buildCats();
-      renderCats();
-      renderProds();
-      /* Small offline badge */
-      var hdr=document.getElementById('prod-count');
-      if(hdr) hdr.title='Données hors ligne';
+      console.warn('Menu load failed:',err);
+      _loadErr=true;
+      /* Fail-closed: show error — do NOT use _FALLBACK as commercial fallback */
+      var gridEl=document.getElementById('prodGrid');
+      if(gridEl)gridEl.innerHTML='<div class="prod-empty" style="padding:32px 16px;text-align:center;">'
+        +'<div style="font-size:28px;margin-bottom:10px;">&#128683;</div>'
+        +'<div style="font-weight:700;margin-bottom:6px;">Carte temporairement indisponible</div>'
+        +'<div style="font-size:13px;color:var(--tx3);margin-bottom:16px;">Veuillez réessayer dans quelques instants.</div>'
+        +'<button onclick="loadMenu()" style="padding:8px 20px;background:var(--am);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">&#8635; Réessayer</button>'
+        +'</div>';
+      _prods=[];buildCats();renderCats();
     });
 }
 
@@ -1462,6 +1489,9 @@ function cartTotal(){return cartSub()+(FEES[_svc]||0);}
 function addToCart(id){
   var p=_prods.find(function(x){return x.id===id||String(x.id)===String(id);});
   if(!p) return;
+  /* Fail-closed: block adding unavailable or room-service-disabled products */
+  if(p.available===false){toast('Ce produit est indisponible','warn');return;}
+  if(_svc==='room'&&p.room_service_enabled===false){toast('Ce produit n'est pas disponible en room service','warn');return;}
   var item=ci(id);
   if(item){item.qty++;}
   else{_cart.push({id:p.id,name:p.name,price:p.price,img:getProdImg(p),cat:p.category,qty:1});}
@@ -1523,6 +1553,8 @@ function renderProds(){
   /* Filter: category + search + available (already filtered on load, but re-check) */
   var list=_prods.filter(function(p){
     if(p.available===false)return false;
+    /* room service filter: only show room_service_enabled products in room mode */
+    if(_svc==='room'&&p.room_service_enabled===false)return false;
     if(_cat!=='all'&&p.category!==_cat)return false;
     if(q)return (p.name||'').toLowerCase().includes(q);
     return true;
@@ -1810,9 +1842,16 @@ function hideConfirm(){
   document.getElementById('confirmScreen').classList.remove('show');
   renderProds();
 }
+/* PROMPT 034 — Historique commandes client */
 function showOrders(){
-  if(!_orders.length){toast('Aucune commande pour le moment');return;}
-  toast('Dernière : '+_orders[0].order_number+' · '+SVC_LBLS[_orders[0].delivery_type],3000);
+  document.getElementById('histOverlay').classList.add('open');
+  /* Pré-remplir si commande locale disponible */
+  if(_orders.length&&_orders[0].customer_phone){
+    document.getElementById('hist-phone').value=_orders[0].customer_phone;
+    loadOrderHistoryByPhone(_orders[0].customer_phone);
+  } else {
+    document.getElementById('hist-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--tx3);font-size:.8rem;">Entrez votre téléphone pour retrouver vos commandes.</div>';
+  }
 }
 function scrollToMenu(){document.getElementById('menu-anchor').scrollIntoView({behavior:'smooth'});}
 function goView(v){document.querySelectorAll('.bnav-item').forEach(function(e){e.classList.remove('active');});var el=document.getElementById('bn-'+v);if(el)el.classList.add('active');}
@@ -1833,6 +1872,10 @@ var normalizeOrderStatus = VC.normalizeOrderStatus || function(s) {
    TRACKING CLIENT
 ══════════════════════════════════ */
 var _trackNum=null;
+/* PROMPT 034 */
+var _trackOrderId=null;    /* UUID Supabase de la commande en suivi */
+var _trackMsgInterval=null; /* Polling messages dans trackOverlay */
+var _histPhone='';          /* Téléphone saisi pour historique */
 var TRACK_STATUSES=[
   {id:'pending',    lbl:'En attente',     ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'},
   {id:'preparing',  lbl:'Préparation',    ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6h2.8a1 1 0 0 1 1 1.1l-.5 4.3A2 2 0 0 1 17.3 20h-.6a2 2 0 0 1-2-1.6l-.5-4.3a1 1 0 0 1 1-1.1H17"/></svg>'},
@@ -1851,6 +1894,7 @@ function stopTrackAutoRefresh(){
 }
 function openTrack(num){
   _trackNum=num||null;
+  _vlzFoodPrevStatus=''; /* PROMPT 033A — F1 : reset avant chaque nouvelle commande pour éviter les fausses alertes */
   document.getElementById('trackOverlay').classList.add('open');
   if(_trackNum){loadTrackOrder(_trackNum);startTrackAutoRefresh();}
 }
@@ -1859,11 +1903,15 @@ function openTrackFromConfirm(){
   hideConfirm();
   openTrack(num);
 }
-function closeTrack(){document.getElementById('trackOverlay').classList.remove('open');}
+function closeTrack(){
+  document.getElementById('trackOverlay').classList.remove('open');
+  stopTrackMsgRefresh(); /* PROMPT 034 */
+  _trackOrderId=null;
+}
 function loadTrackOrder(num){
   var body=document.getElementById('trackBody');
   body.innerHTML='<div style="text-align:center;padding:32px;color:var(--tx3)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg><p style="margin-top:10px;font-size:.8rem">Chargement…</p></div>';
-  sbFetch('veraluz_food_orders?order_number=eq.'+encodeURIComponent(num)+'&select=order_number,customer_name,status,delivery_status,payment_status,delivery_type,delivery_zone,address,created_at,total,payment_method,livreur_id,assigned_to,driver_photo_url,accepted_at,picked_up_at,out_for_delivery_at,arrived_at,delivered_at')
+  sbFetch('veraluz_food_orders?order_number=eq.'+encodeURIComponent(num)+'&select=id,order_number,customer_name,customer_phone,status,delivery_status,payment_status,delivery_type,delivery_zone,address,created_at,total,payment_method,livreur_id,assigned_livreur_id,assigned_to,driver_photo_url,accepted_at,picked_up_at,out_for_delivery_at,arrived_at,delivered_at')
     .then(function(data){
       if(!data||!data.length){renderTrackNotFound(num);return;}
       renderTrackOrder(data[0]);
@@ -1876,6 +1924,8 @@ function loadTrackOrder(num){
 }
 function renderTrackOrder(o){
   var body=document.getElementById('trackBody');
+  /* PROMPT 034 : mémoriser l'UUID pour le chat */
+  _trackOrderId=o.id||null;
   /* P0 FIX: normalise le statut pour compatibilité anciens enregistrements */
   var status=normalizeOrderStatus(o.status);
   /* PROMPT 032 — alerte si statut changé depuis dernier affichage */
@@ -1930,6 +1980,11 @@ function renderTrackOrder(o){
   var rbtn=document.getElementById('trackRefBtn');if(rbtn){rbtn.dataset.num=o.order_number;rbtn.onclick=function(){loadTrackOrder(this.dataset.num);};}
   /* PROMPT 027 : stopper auto-refresh si livraison terminée */
   if(o.status==='delivered'||o.status==='cancelled')stopTrackAutoRefresh();
+  /* PROMPT 034 : charger et démarrer polling messages */
+  if(_trackOrderId){
+    loadTrackMessages();
+    startTrackMsgRefresh();
+  }
 }
 /* Construit la carte livreur visible côté client — PROMPT 026
    NE PAS AFFICHER : salaire, email, adresse, données RH, tel perso (sauf décision admin) */
@@ -2032,6 +2087,119 @@ function _vlzFoodRequestNotif(){
 /* Suivi statut commande en cours */
 var _vlzFoodPrevStatus='';
 document.addEventListener('click',function(){_vlzFoodRequestNotif();},{once:true});
+
+/* ══════════════════════════════════════════
+   PROMPT 034 — Historique commandes + Chat
+══════════════════════════════════════════ */
+function loadOrderHistoryByPhone(phone){
+  var el=document.getElementById('hist-list');
+  if(!el)return;
+  phone=(phone||'').trim();
+  if(phone.length<6){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:.8rem;">Numéro trop court</div>';return;}
+  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:.8rem;">Chargement…</div>';
+  sbFetch('veraluz_food_orders?customer_phone=eq.'+encodeURIComponent(phone)+'&order=created_at.desc&limit=20&select=id,order_number,customer_name,status,delivery_status,created_at,total,delivery_type')
+  .then(function(rows){
+    if(!rows||!rows.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--tx3);font-size:.8rem;">Aucune commande trouvée pour ce numéro.</div>';return;}
+    var STAT_LABEL={pending:'En attente',confirmed:'Confirmée',preparing:'Préparation',ready:'Prête',out_for_delivery:'En livraison',delivered:'Livrée',cancelled:'Annulée'};
+    var STAT_CLS={delivered:'#22c55e',out_for_delivery:'#fbbf24',cancelled:'#ef4444'};
+    var html='';
+    rows.forEach(function(o){
+      var s=o.delivery_status||o.status||'pending';
+      var lbl=STAT_LABEL[s]||s;
+      var clr=STAT_CLS[s]||'var(--tx2)';
+      var d=o.created_at?new Date(o.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'—';
+      html+='<div onclick="openHistOrder(\''+esc(String(o.order_number||''))+'\');" style="background:var(--c3);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+        +'<span style="font-size:.8rem;font-weight:800;color:var(--tx1);flex:1;">#'+esc(String(o.order_number||''))+'</span>'
+        +'<span style="font-size:.7rem;font-weight:700;color:'+clr+';">'+esc(lbl)+'</span>'
+        +'</div>'
+        +'<div style="display:flex;gap:10px;font-size:.72rem;color:var(--tx3);flex-wrap:wrap;">'
+        +'<span>📅 '+esc(d)+'</span>'
+        +(o.total?'<span>'+Math.round(o.total).toLocaleString('fr-FR')+' F</span>':'')
+        +'</div>'
+        +'</div>';
+    });
+    el.innerHTML=html;
+  })
+  .catch(function(){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:.8rem;">Erreur de chargement</div>';});
+}
+
+function openHistOrder(num){
+  if(!num)return;
+  document.getElementById('histOverlay').classList.remove('open');
+  openTrack(num);
+}
+
+function closeHist(){
+  document.getElementById('histOverlay').classList.remove('open');
+}
+
+/* Messages temps réel dans trackOverlay */
+function startTrackMsgRefresh(){
+  stopTrackMsgRefresh();
+  _trackMsgInterval=setInterval(function(){
+    if(_trackOrderId)loadTrackMessages();
+  },12000);
+}
+function stopTrackMsgRefresh(){
+  if(_trackMsgInterval){clearInterval(_trackMsgInterval);_trackMsgInterval=null;}
+}
+
+function loadTrackMessages(){
+  if(!_trackOrderId)return;
+  sbFetch('veraluz_delivery_messages?order_id=eq.'+encodeURIComponent(_trackOrderId)+'&order=created_at.asc&limit=60')
+  .then(function(msgs){renderTrackMessages(msgs||[]);})
+  .catch(function(){/* silencieux */});
+}
+
+function renderTrackMessages(msgs){
+  var el=document.getElementById('track-chat-msgs');
+  if(!el)return;
+  if(!msgs.length){el.innerHTML='<div style="font-size:.72rem;color:var(--tx3);text-align:center;padding:10px;">Aucun message pour l\'instant</div>';return;}
+  var html='';
+  msgs.forEach(function(m){
+    var st=m.sender_type||'system';
+    var isClient=st==='client';
+    var senderLabel=isClient?'Vous':st==='restaurant'?'🏨 Restaurant':st==='driver'?'🚚 Livreur':'Système';
+    var clr=isClient?'var(--accent)':st==='restaurant'?'#60a5fa':st==='driver'?'#fbbf24':'var(--tx3)';
+    var bg=isClient?'rgba(201,168,76,.18)':'rgba(255,255,255,.05)';
+    var align=isClient?'flex-end':'flex-start';
+    var t=m.created_at?new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
+    html+='<div style="display:flex;flex-direction:column;align-items:'+align+';margin-bottom:6px;">'
+      +'<div style="font-size:.65rem;color:'+clr+';font-weight:700;margin-bottom:2px;">'+esc(senderLabel)+'</div>'
+      +'<div style="background:'+bg+';padding:7px 10px;border-radius:10px;max-width:80%;font-size:.76rem;color:var(--tx1);line-height:1.4;">'+esc(m.message||m.subject||'')+'</div>'
+      +(t?'<div style="font-size:.6rem;color:var(--tx3);margin-top:2px;">'+t+'</div>':'')
+      +'</div>';
+  });
+  el.innerHTML=html;
+  el.scrollTop=el.scrollHeight;
+}
+
+function sendTrackClientMsg(){
+  var inp=document.getElementById('track-chat-inp');
+  if(!inp)return;
+  var txt=(inp.value||'').trim();
+  if(!txt||!_trackOrderId)return;
+  inp.value='';
+  /* Retrouver infos client depuis commande locale */
+  var cname='Client';
+  var local=_orders.find(function(o){return o.id===_trackOrderId||o.order_number===_trackNum;});
+  if(local&&local.customer_name)cname=local.customer_name;
+  sbInsert('veraluz_delivery_messages',{
+    order_id:_trackOrderId,
+    sender_type:'client',
+    sender_name:cname,
+    recipient_type:'restaurant',
+    tenant_id:'veraluz-001',
+    message:txt,
+    subject:txt.substring(0,50),
+    is_read:false,
+    created_at:new Date().toISOString()
+  })
+  .then(function(){loadTrackMessages();})
+  .catch(function(){toast('Erreur envoi');inp.value=txt;});
+}
+
 /* ══════════════════════════════════════════ */
 
 /* ── Init ── */
@@ -2052,6 +2220,25 @@ document.addEventListener('click',function(){_vlzFoodRequestNotif();},{once:true
   loadMenu();
 })();
 </script>
+<!-- PROMPT 034 — HISTORIQUE COMMANDES -->
+<div class="track-overlay" id="histOverlay" style="z-index:1050;">
+  <div class="track-hdr">
+    <div class="track-close" onclick="closeHist()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+    <div class="track-hdr-title">Mes commandes</div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="track-body">
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input id="hist-phone" class="inp" type="tel" placeholder="Votre téléphone (ex: 237XXXXXXXXX)"
+        style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx1);border-radius:10px;padding:10px 12px;font-size:.8rem;"
+        onkeydown="if(event.key==='Enter')loadOrderHistoryByPhone(this.value)">
+      <button onclick="loadOrderHistoryByPhone(document.getElementById('hist-phone').value)"
+        style="background:var(--accent);color:#0f0f0d;border:none;border-radius:10px;padding:10px 14px;font-size:.8rem;font-weight:700;cursor:pointer;">Chercher</button>
+    </div>
+    <div id="hist-list"></div>
+  </div>
+</div>
+
 <!-- TRACKING OVERLAY -->
 <div class="track-overlay" id="trackOverlay">
   <div class="track-hdr">
@@ -2059,8 +2246,20 @@ document.addEventListener('click',function(){_vlzFoodRequestNotif();},{once:true
     <div class="track-hdr-title">Suivi de commande</div>
     <div style="width:32px"></div>
   </div>
-  <div class="track-body" id="trackBody">
+  <div class="track-body" id="trackBody" style="flex:1;overflow-y:auto;">
     <div class="track-not-found"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Entrez votre numéro de commande</p></div>
+  </div>
+  <!-- PROMPT 034 — Chat client ↔ restaurant/livreur -->
+  <div id="track-chat-section" style="border-top:1px solid rgba(255,255,255,.08);padding:10px 12px;display:flex;flex-direction:column;gap:6px;max-height:240px;">
+    <div style="font-size:.65rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;">Chat</div>
+    <div id="track-chat-msgs" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;min-height:60px;max-height:160px;"></div>
+    <div style="display:flex;gap:6px;">
+      <input id="track-chat-inp" type="text" placeholder="Votre message…"
+        style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx1);border-radius:20px;padding:8px 12px;font-size:.76rem;"
+        onkeydown="if(event.key==='Enter')sendTrackClientMsg()">
+      <button onclick="sendTrackClientMsg()"
+        style="background:var(--accent);color:#0f0f0d;border:none;border-radius:50%;width:34px;height:34px;font-size:1rem;cursor:pointer;flex-shrink:0;">&#10148;</button>
+    </div>
   </div>
 </div>
 
